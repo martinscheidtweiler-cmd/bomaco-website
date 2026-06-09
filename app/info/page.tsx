@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { FileText, Globe, MapPin, Phone } from 'lucide-react'
+import { FileText, MapPin, Phone } from 'lucide-react'
 import { supabase } from '../lib/supabaseClient'
 
 type Lang = 'nl' | 'fr' | 'en'
@@ -133,12 +133,11 @@ export default function InfoPage() {
                 key={item}
                 type="button"
                 onClick={() => {
-                    setLang(item)
-                    localStorage.setItem('bomaco-lang', item)
+                  setLang(item)
+                  localStorage.setItem('bomaco-lang', item)
                 }}
                 className={lang === item ? 'active' : ''}
               >
-                {item === 'nl' && <Globe size={14} />}
                 {item.toUpperCase()}
               </button>
             ))}
@@ -238,9 +237,9 @@ export default function InfoPage() {
           </div>
         </aside>
       </section>
-      <footer className="site-footer">
-        <span>© 2026 Bomaco</span>
-        <span>Design by MS Webdesign</span>
+      <footer className="site-footer-simple">
+        <span>© 2026 Bomaco · Asse</span>
+        <a href="https://mswebdesign.be" target="_blank">Design by MS Webdesign</a>
       </footer>
     </main>
   )

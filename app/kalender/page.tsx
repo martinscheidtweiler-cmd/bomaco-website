@@ -7,7 +7,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock3,
-  Globe,
   List,
   MapPin,
 } from 'lucide-react'
@@ -259,8 +258,10 @@ export default function KalenderPage() {
         <div className="nav-right">
           <div className="language-switch">
             {(['nl', 'fr', 'en'] as Lang[]).map((item) => (
-              <button key={item} type="button" onClick={() => setLang(item)} className={lang === item ? 'active' : ''}>
-                {item === 'nl' && <Globe size={14} />}
+              <button key={item} type="button" onClick={() => {
+                setLang(item)
+                localStorage.setItem('bomaco-lang', item)
+              }} className={lang === item ? 'active' : ''}>
                 {item.toUpperCase()}
               </button>
             ))}
@@ -387,6 +388,10 @@ export default function KalenderPage() {
 
       {viewMode === 'list' && (
         <section className="all-events-section clean-list">
+          <div className="list-header">
+            <h2>{t.allEvents}</h2>
+            <span>{events.length} {lang === 'nl' ? 'evenementen' : lang === 'fr' ? 'événements' : 'events'}</span>
+          </div>
           <div className="events-list professional">
             {!loading && events.length === 0 && <div className="empty-card">{t.noEvents}</div>}
 
@@ -469,9 +474,9 @@ export default function KalenderPage() {
           </div>
         </section>
       )}
-      <footer className="site-footer">
-        <span>© 2026 Bomaco</span>
-        <span>Design by MS Webdesign</span>
+      <footer className="site-footer-simple">
+        <span>© 2026 Bomaco · Asse</span>
+        <a href="https://mswebdesign.be" target="_blank">Design by MS Webdesign</a>
       </footer>
     </main>
   )
@@ -555,6 +560,5 @@ function EventCard({
         )}
       </div>
     </div>
-    
   )
 }
