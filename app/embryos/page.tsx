@@ -1,1 +1,1 @@
-import Listing from "../collection";export default function Page(){return <Listing kind="EMBRYO"/>}
+import Collection from "../collection";export default function Embryos(){return <Collection kind="EMBRYO"/>}
