@@ -1,0 +1,1 @@
+import Listing from "../collection";export default function Page(){return <Listing kind="FOAL"/>}
