@@ -7,7 +7,7 @@ export default function LiveBidPanel({lot}:{lot:{slug:string;name:string;image:s
  const [state,setState]=useState<State>({slug:lot.slug,name:lot.name,image:lot.image,no:lot.no,current:lot.current,close:"",status:"draft"});
  const [amount,setAmount]=useState(lot.current+100);const [now,setNow]=useState(0);const [message,setMessage]=useState("");const [busy,setBusy]=useState(false);
  useEffect(()=>{const client=auctionSupabase();if(!client)return;let alive=true;
-  async function refresh(){const {data}=await client.rpc("auction_public_lot",{p_slug:lot.slug});const d=Array.isArray(data)?data[0]:null;if(!alive||!d)return;
+  async function refresh(){if(!client)return;const {data}=await client.rpc("auction_public_lot",{p_slug:lot.slug});const d=Array.isArray(data)?data[0]:null;if(!alive||!d)return;
    setState(s=>({...s,current:Number(d.current_bid),close:d.closes_at,status:d.status}));setAmount(a=>Math.max(a,Number(d.current_bid)+100));
   }
   void refresh();const interval=setInterval(()=>{setNow(Date.now());void refresh()},2000);
