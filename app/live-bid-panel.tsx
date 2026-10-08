@@ -12,8 +12,8 @@ export default function LiveBidPanel({lot}:{lot:{slug:string;name:string;image:s
    const {data:queueData}=await client.rpc("auction_queue_status",{p_slug:lot.slug});
    const activeQueue=Array.isArray(queueData)?queueData[0]:null;if(!alive)return;setState(s=>({...s,current:Number(d.current_bid),close:d.closes_at,cutoff:typeof cutoff==="string"?cutoff:"",status:d.status,...(activeQueue?{queueStart:activeQueue.slot_starts_at,queueEnd:activeQueue.slot_ends_at,peopleAhead:Number(activeQueue.people_ahead),position:Number(activeQueue.queue_position)}:{})}));
   }
-  void refresh();const interval=setInterval(()=>{setNow(Date.now());void refresh()},2000);
-  return()=>{alive=false;clearInterval(interval)};
+  void refresh();setNow(Date.now());const clock=setInterval(()=>setNow(Date.now()),100);const interval=setInterval(()=>void refresh(),2000);
+  return()=>{alive=false;clearInterval(clock);clearInterval(interval)};
  },[lot.slug]);
  const end=state.close?Date.parse(state.close):0;const cutoffAt=state.cutoff?Date.parse(state.cutoff):end-300000;const final=end>0&&now>=cutoffAt;const open=state.status==="live"&&end>now;const slotStart=state.queueStart?Date.parse(state.queueStart):0;const slotEnd=state.queueEnd?Date.parse(state.queueEnd):0;const turn=slotStart>0&&now>=slotStart&&now<slotEnd;
  async function join(){const client=auctionSupabase();if(!client){setMessage("Auction connection not configured");return}setBusy(true);setMessage("");setAccepted(null);const {data:{user}}=await client.auth.getUser();if(!user){setBusy(false);window.location.href="/login";return}
