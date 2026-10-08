@@ -258,3 +258,5 @@
 .optimusCountdownCompact .optimusCountdownDigits>span:first-child{padding-left:0}
 .optimusCountdownCompact .optimusCountdownDigits b{font-size:22px}
 @media(max-width:700px){.catalogHero{padding-top:40px;padding-bottom:28px}.catalogHero h1{font-size:clamp(42px,10vw,55px);letter-spacing:-2px}.optimusCountdownDigits>span{min-width:48px;padding:5px 8px}.optimusCountdownDigits b{font-size:22px}}
+
+/* Trigger deployment for updated collection design. */
