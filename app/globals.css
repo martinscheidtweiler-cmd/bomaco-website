@@ -144,3 +144,11 @@
 .catalogEmpty a{font-size:11px;font-weight:800;letter-spacing:1px;border-bottom:1px solid #111;padding-bottom:9px}
 .catalogEmpty a span{margin-left:12px}
 @media(max-width:700px){.catalogPage{width:calc(100% - 38px);padding:0 0 65px}.catalogHero{padding:48px 0 32px}.catalogHeroRow{flex-direction:column;align-items:flex-start;gap:28px}.catalogHero h1{font-size:60px;letter-spacing:-3px}.catalogHero p{font-size:13px}.catalogHeroAside{align-items:flex-start;gap:9px}.catalogEmpty{min-height:290px}.catalogPage .catalogTools{min-height:65px}}
+
+/* Original Stal Optimus Auction footer */
+.optimusOriginalFooter{width:100%;background:#ebebeb;color:#343434;text-align:center;padding:34px 20px 38px;margin:0;font-family:Arial,Helvetica,sans-serif}
+.optimusFooterLine{font-size:12px;line-height:1.8;font-weight:400}
+.optimusFooterLegal{font-size:10px;line-height:1.8;margin-top:2px}
+.optimusOriginalFooter a{color:inherit;text-decoration:none}
+.optimusOriginalFooter a:hover{text-decoration:underline;text-underline-offset:3px}
+@media(max-width:700px){.optimusOriginalFooter{padding:26px 18px 30px}.optimusFooterLine{font-size:11px;line-height:1.9}.optimusFooterLegal{font-size:10px;line-height:1.9;margin-top:9px}}
