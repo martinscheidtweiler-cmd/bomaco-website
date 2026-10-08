@@ -23,7 +23,7 @@ export default function AuctionAccountEarnings(){
   return()=>{alive=false;subscription.unsubscribe();clearInterval(interval)};
  },[]);
  return <span className="auctionAccountEarnings">
-  {state.name&&state.amount!==null&&<span className="auctionEarnedTotal"><small>TOTAL EARNED</small><b>€{state.amount.toLocaleString("en-IE",{minimumFractionDigits:2,maximumFractionDigits:2})}</b></span>}
   <a href={state.name?"/account":"/login"} className="accountNav">{state.name||"LOGIN"}</a>
+  {state.name&&state.amount!==null&&<span className="auctionEarnedTotal"><small>TOTAL EARNED</small><b>€{state.amount.toLocaleString("en-IE",{minimumFractionDigits:2,maximumFractionDigits:2})}</b></span>}
  </span>;
 }
