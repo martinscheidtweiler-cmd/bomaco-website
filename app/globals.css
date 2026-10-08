@@ -232,3 +232,8 @@
 @media(max-width:700px){.auctionAdminWinner{grid-template-columns:1fr 1fr}.auctionAdminWinner>strong{text-align:left}}
 
 /* Vercel GitHub reconnection deployment trigger. */
+
+.bidPanel .auctionBidAccepted{background:#fff;color:#111;border:3px solid #fff;text-align:center}
+.bidPanel .auctionBidAccepted .auctionQueueBig{color:#111;font-size:29px}
+.bidPanel .auctionBidAccepted p,.bidPanel .auctionBidAccepted b{color:#111}
+.bidPanel .auctionBidAccepted .auctionJoinQueue{background:#111;color:#fff;border-color:#111;margin-top:8px}
