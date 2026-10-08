@@ -237,3 +237,5 @@
 .bidPanel .auctionBidAccepted .auctionQueueBig{color:#111;font-size:29px}
 .bidPanel .auctionBidAccepted p,.bidPanel .auctionBidAccepted b{color:#111}
 .bidPanel .auctionBidAccepted .auctionJoinQueue{background:#111;color:#fff;border-color:#111;margin-top:8px}
+
+/* Refresh deployment after queue widget visibility fix. */
