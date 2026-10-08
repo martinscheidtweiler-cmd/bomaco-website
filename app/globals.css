@@ -21,3 +21,5 @@
 .queueFloatMetrics b{font-size:24px;font-variant-numeric:tabular-nums}
 .queueFloat p{font-size:12px;line-height:1.5;color:#555}
 .queueFloatLeave{background:#111;color:white;border:0;padding:10px 14px;cursor:pointer;width:100%;font-size:11px}
+
+.auctionAccountEarnings{display:flex;align-items:center;gap:16px}.auctionEarnedTotal{display:flex;flex-direction:column;align-items:flex-end;gap:3px;white-space:nowrap}.auctionEarnedTotal small{font-size:9px;letter-spacing:1px;color:#777}.auctionEarnedTotal b{font-size:16px;color:#218452;font-variant-numeric:tabular-nums}@media(max-width:750px){.auctionAccountEarnings{gap:8px}.auctionEarnedTotal b{font-size:13px}}
