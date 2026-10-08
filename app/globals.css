@@ -188,3 +188,13 @@
 .optimusCountdownEnded,.optimusCountdownPending{font-size:16px;letter-spacing:1px}
 .auctionEnd .optimusCountdown{margin-bottom:12px}
 @media(max-width:480px){.optimusCountdownDigits>span{min-width:38px}.optimusCountdownDigits b{font-size:19px}}
+
+
+/* Collection card layout: content must never overlap countdown or current bid */
+.catalogCard{display:flex;flex-direction:column;min-height:0;padding-bottom:9px;overflow:hidden}
+.catalogCardHead{flex-shrink:0}
+.catalogCard>p{flex-shrink:0;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow:hidden}
+.catalogPedigreeHighlight{min-height:0;padding:12px 14px;gap:5px;flex:1 1 auto;justify-content:flex-start}
+.catalogPedigreeHighlight strong{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow:hidden;font-style:normal;font-weight:500;line-height:1.45;max-width:100%;overflow-wrap:anywhere}
+.catalogCard>.optimusCountdownCompact{margin-top:auto;flex-shrink:0}
+.catalogCard>.catalogBid{position:static;left:auto;right:auto;bottom:auto;margin-top:0;flex-shrink:0}
