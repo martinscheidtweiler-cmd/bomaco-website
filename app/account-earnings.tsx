@@ -9,6 +9,7 @@ export default function AuctionAccountEarnings(){
   if(!supabase)return;
   let alive=true;
   async function refresh(){
+   if(!supabase)return;
    const {data:{user}}=await supabase.auth.getUser();
    if(!alive)return;
    if(!user){setState({name:null,amount:null});return}
