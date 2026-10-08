@@ -99,3 +99,5 @@
 .referenceHome .earnKeep{font-size:11px;color:#fff;margin:13px 0 0;font-weight:700}
 @media(max-width:1050px){.referenceHome .earnStrip{grid-template-columns:1fr 1.2fr}.referenceHome .earnExample{grid-column:1/-1}.referenceHome .earnIntro h1{font-size:45px}}
 @media(max-width:650px){.referenceHome .earnStrip{display:flex;flex-direction:column}.referenceHome .earnIntro{padding:28px 25px 20px}.referenceHome .earnExplanation{border-left:0;border-top:1px solid #ddd;padding:22px 25px}.referenceHome .earnExample{padding:26px 25px}.referenceHome .earnIntro h1{font-size:46px}.referenceHome .earnNumbers b{font-size:21px}}
+
+.optimusBrandLogo{display:block;width:255px;max-width:100%;height:auto;object-fit:contain}.siteFooter .optimusBrandLogo{width:235px}.siteHeader .logo{align-items:center;flex-shrink:0}@media(max-width:700px){.siteHeader .optimusBrandLogo{width:195px}}
