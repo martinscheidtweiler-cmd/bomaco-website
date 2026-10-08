@@ -230,3 +230,5 @@
 .auctionBidTableWrap td,.auctionBidTableWrap th{padding:12px 10px;border-bottom:1px solid #eee;vertical-align:top}
 .auctionBidTableWrap td a{color:#111;text-decoration:underline}
 @media(max-width:700px){.auctionAdminWinner{grid-template-columns:1fr 1fr}.auctionAdminWinner>strong{text-align:left}}
+
+/* Vercel GitHub reconnection deployment trigger. */
