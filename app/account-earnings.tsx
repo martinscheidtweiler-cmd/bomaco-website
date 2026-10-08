@@ -1,14 +1,12 @@
 "use client";
 import {useEffect,useState} from "react";
-import {createClient} from "@supabase/supabase-js";
+import {auctionSupabase} from "./auction-client";
 type EarnedState={name:string|null;amount:number|null};
 export default function AuctionAccountEarnings(){
  const [state,setState]=useState<EarnedState>({name:null,amount:null});
  useEffect(()=>{
-  const url=process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key=process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if(!url||!key)return;
-  const supabase=createClient(url,key);
+  const supabase=auctionSupabase();
+  if(!supabase)return;
   let alive=true;
   async function refresh(){
    const {data:{user}}=await supabase.auth.getUser();
