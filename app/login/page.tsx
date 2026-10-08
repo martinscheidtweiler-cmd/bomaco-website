@@ -1,12 +1,10 @@
 "use client";
 import {useEffect,useState} from "react";
-import {useSearchParams} from "next/navigation";
 import Link from "next/link";
 import {auctionSupabase} from "../auction-client";
 import {Header,Footer} from "../components";
 export default function Login(){
- const searchParams=useSearchParams();
- useEffect(()=>{setSignup(searchParams.get("mode")==="signup")},[searchParams]);
+ useEffect(()=>{setSignup(new URLSearchParams(window.location.search).get("mode")==="signup")},[]);
  const [email,setEmail]=useState("");const [password,setPassword]=useState("");const [signup,setSignup]=useState(false);const [busy,setBusy]=useState(false);const [message,setMessage]=useState("");
  async function submit(e:React.FormEvent){e.preventDefault();const client=auctionSupabase();if(!client){setMessage("Authentication is not configured yet.");return}setBusy(true);setMessage("");
   const {error}=signup?await client.auth.signUp({email,password,options:{emailRedirectTo:window.location.origin+"/account"}}):await client.auth.signInWithPassword({email,password});
