@@ -3,7 +3,7 @@ import styles from "./pedigree.module.css";
 
 export const metadata: Metadata = {
   title: "Cacacha van het Schaeck | Pedigree | Optimus Auction",
-  description: "Four-generation pedigree of Cacacha van het Schaeck.",
+  description: "Discover the four-generation pedigree of Cacacha van het Schaeck, featuring Bamako de Muze, Darco and Quidam de Revel.",
 };
 
 type Horse = {
