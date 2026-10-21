@@ -3,7 +3,7 @@ import type { HorseDetails } from "./pedigree-data";
 
 type Props = { horses: HorseDetails[] };
 
-/* Full four-generation tree on desktop; a legible three-generation tree on mobile. */
+/* Four generations on desktop; mobile starts with parents and includes great-grandparents. */
 const desktopLayout = [
   { col: 1, row: 1, span: 8 },
   { col: 2, row: 1, span: 4 },
@@ -16,14 +16,15 @@ const desktopLayout = [
 ];
 
 const mobileLayout = [
-  { col: 1, row: 1, span: 4 },
+  null, // The featured horse is intentionally omitted on mobile.
+  { col: 1, row: 1, span: 4 }, // Sire
+  { col: 1, row: 5, span: 4 }, // Dam
   { col: 2, row: 1, span: 2 },
   { col: 2, row: 3, span: 2 },
-  { col: 3, row: 1, span: 1 },
-  { col: 3, row: 2, span: 1 },
-  { col: 3, row: 3, span: 1 },
-  { col: 3, row: 4, span: 1 },
-];
+  { col: 2, row: 5, span: 2 },
+  { col: 2, row: 7, span: 2 },
+  ...Array.from({ length: 8 }, (_, i) => ({ col: 3, row: i + 1, span: 1 })),
+]
 
 function HorseText({ horse }: { horse: HorseDetails }) {
   return (
@@ -64,17 +65,18 @@ export default function PedigreeChart({ horses }: Props) {
       </div>
 
       <div className={styles.mobile}>
-        <div className={styles.mobileTree} aria-label="Three generations on mobile">
-          {horses.slice(0, 7).map((horse, index) => {
-            const position = mobileLayout[index];
+        <div className={styles.mobileTree} aria-label="Parents, grandparents and great-grandparents on mobile">
+          {horses.slice(1).map((horse, offset) => {
+            const index = offset + 1;
+            const position = mobileLayout[index]!;
             return (
               <div
                 key={index}
                 className={[
                   styles.mobileNode,
-                  index === 0 ? styles.mobileSubject : "",
-                  index === 1 || index === 2 ? styles.mobileParent : "",
-                  index >= 3 ? styles.mobileGrandparent : "",
+                  index <= 2 ? styles.mobileParent : "",
+                  index >= 3 && index <= 6 ? styles.mobileGrandparent : "",
+                  index >= 7 ? styles.mobileAncestor : "",
                 ].join(" ")}
                 style={{ gridColumn: position.col, gridRow: `${position.row} / span ${position.span}` }}
               >
