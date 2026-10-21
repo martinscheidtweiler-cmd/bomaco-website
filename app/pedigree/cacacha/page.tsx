@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import PedigreeChart from "../PedigreeChart";
+import styles from "../pedigree.module.css";
 import { CACACHA } from "../pedigree-data";
 
 export const metadata: Metadata = {
@@ -8,5 +9,5 @@ export const metadata: Metadata = {
 };
 
 export default function CacachaPedigreePage() {
-  return <main><PedigreeChart horses={CACACHA} /></main>;
+  return <main className={styles.surface}><PedigreeChart horses={CACACHA} /></main>;
 }
