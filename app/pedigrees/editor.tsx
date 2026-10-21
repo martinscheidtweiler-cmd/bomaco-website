@@ -12,6 +12,7 @@ import { autocompleteAncestors, knownAncestorNames, type PedigreeSource } from "
 
 type Draft = {
   id: string;
+  ownerId?: string;
   name: string;
   updatedAt: string;
   horses: HorseDetails[];
@@ -30,6 +31,7 @@ const cloud = process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SU
 
 type CloudRow = {
   id: string;
+  owner_id: string;
   name: string;
   updated_at: string;
   horses: unknown;
@@ -40,6 +42,7 @@ function draftFromCloud(row: CloudRow): Draft | null {
   if (!horses || typeof row.id !== "string") return null;
   return {
     id: row.id,
+    ownerId: row.owner_id,
     name: row.name,
     updatedAt: row.updated_at,
     horses,
@@ -52,6 +55,11 @@ const example: Draft = {
   updatedAt: "",
   horses: CACACHA,
 };
+
+// Composite keys avoid collisions when two colleagues import the same draft ID.
+function draftKey(draft: Draft): string {
+  return `${draft.ownerId ?? "local"}:${draft.id}`;
+}
 
 function readDrafts(): Draft[] {
   try {
@@ -66,6 +74,7 @@ function readDrafts(): Draft[] {
       if (!horses || typeof draft.id !== "string" || draft.id.length > 100) return [];
       return [{
         id: draft.id,
+        ownerId: typeof draft.ownerId === "string" ? draft.ownerId : undefined,
         name: typeof draft.name === "string" ? draft.name.slice(0, 120) : "Untitled",
         updatedAt: typeof draft.updatedAt === "string" ? draft.updatedAt : "",
         horses,
@@ -94,7 +103,7 @@ function formatDate(value: string) {
 
 export default function PedigreeEditor() {
   const [drafts, setDrafts] = useState<Draft[]>([example]);
-  const [activeId, setActiveId] = useState(example.id);
+  const [activeId, setActiveId] = useState(draftKey(example));
   const [horses, setHorses] = useState<HorseDetails[]>(CACACHA);
   const [origin, setOrigin] = useState("");
   const [status, setStatus] = useState("");
@@ -111,9 +120,9 @@ export default function PedigreeEditor() {
   useEffect(() => {
     const loaded = readDrafts();
     const remembered = localStorage.getItem(ACTIVE_KEY);
-    const selected = loaded.find((draft) => draft.id === remembered) ?? loaded[0];
+    const selected = loaded.find((draft) => draftKey(draft) === remembered || draft.id === remembered) ?? loaded[0];
     setDrafts(loaded);
-    setActiveId(selected.id);
+    setActiveId(draftKey(selected));
     setHorses(selected.horses.map((horse) => ({ ...horse })));
     setOrigin(window.location.origin);
 
@@ -132,9 +141,17 @@ export default function PedigreeEditor() {
       setCloudReady(false);
       setAuthNotice("");
 
+      const { data: isMember, error: memberError } =
+        await cloud!.rpc("optimus_is_pedigree_member");
+      if (disposed || sequence !== loadSequence) return;
+      if (memberError || !isMember) {
+        setAuthNotice(memberError?.message ?? "This account is not yet authorized for the Optimus pedigree team. Ask a team member for access.");
+        setCloudBusy(false);
+        return;
+      }
+
       const { data, error } = await cloud!.from("optimus_pedigrees")
-        .select("id,name,updated_at,horses")
-        .eq("owner_id", accountId)
+        .select("id,owner_id,name,updated_at,horses")
         .order("updated_at", { ascending: false })
         .limit(200);
 
@@ -155,7 +172,7 @@ export default function PedigreeEditor() {
         const legacy = localStorage.getItem(STORAGE_KEY);
         if (legacy) {
           const existingIds = new Set(all.map((draft) => draft.id));
-          const missing = readDrafts().filter((draft) => !existingIds.has(draft.id));
+          const missing = readDrafts().filter((draft) => !draft.ownerId && !existingIds.has(draft.id));
           if (missing.length) {
             const { error: migrationError } = await cloud!.from("optimus_pedigrees")
               .insert(missing.map((draft) => ({
@@ -172,7 +189,7 @@ export default function PedigreeEditor() {
               setCloudBusy(false);
               return;
             }
-            all = [...all, ...missing];
+            all = [...all, ...missing.map((draft) => ({ ...draft, ownerId: accountId }))];
           }
         }
         localStorage.setItem(MIGRATION_KEY, "1");
@@ -180,14 +197,14 @@ export default function PedigreeEditor() {
 
       if (all.length === 0) all = [example];
       const lastSelected = localStorage.getItem(ACTIVE_KEY);
-      const current = all.find((draft) => draft.id === lastSelected) ?? all[0];
+      const current = all.find((draft) => draftKey(draft) === lastSelected || draft.id === lastSelected) ?? all[0];
       setDrafts(all);
-      setActiveId(current.id);
+      setActiveId(draftKey(current));
       setHorses(current.horses.map((horse) => ({ ...horse })));
       setDirty(false);
       setCloudReady(true);
       setCloudBusy(false);
-      remember(all, current.id);
+      remember(all, draftKey(current));
     }
 
     function changeAccount(id: string | null, email = "") {
@@ -201,6 +218,14 @@ export default function PedigreeEditor() {
         void loadCloud(id);
       } else {
         setCloudBusy(false);
+        // Do not leave a different team account's drafts visible after signing out.
+        const locals = readDrafts().filter((draft) => !draft.ownerId);
+        const safe = locals.length ? locals : [example];
+        setDrafts(safe);
+        setActiveId(draftKey(safe[0]));
+        setHorses(safe[0].horses.map((horse) => ({ ...horse })));
+        setDirty(false);
+        remember(safe, draftKey(safe[0]));
       }
     }
 
@@ -228,8 +253,7 @@ export default function PedigreeEditor() {
   const iframeCode = `<iframe src="${viewUrl}" width="100%" height="620" style="border:0;display:block;width:100%;max-width:100%;overflow:hidden" scrolling="no" loading="lazy" title="Horse pedigree"></iframe>`;
   const title = horses[0].name.trim() || "Untitled pedigree";
 
-  // Look up lineages from other pedigrees saved on this device.
-  // The original Cacacha example is available as a fallback.
+  // Look up lineages across the shared team library (and the example).
   const library = useMemo<PedigreeSource[]>(
     () => [...drafts, { id: "__cacacha_example__", name: "Cacacha van het Schaeck (example)", horses: CACACHA }],
     [drafts],
@@ -255,10 +279,10 @@ export default function PedigreeEditor() {
   }
 
   function selectDraft(id: string) {
-    const draft = drafts.find((item) => item.id === id);
+    const draft = drafts.find((item) => draftKey(item) === id);
     if (!draft) return;
     if (dirty && !window.confirm("Discard unsaved changes?")) return;
-    setActiveId(id);
+    setActiveId(draftKey(draft));
     setHorses(draft.horses.map((horse) => ({ ...horse })));
     setStatus("");
     setDirty(false);
@@ -269,84 +293,106 @@ export default function PedigreeEditor() {
     if (dirty && !window.confirm("Discard unsaved changes?")) return;
     const id = crypto.randomUUID();
     const newDraft: Draft = {
-      id, name: "Untitled pedigree", updatedAt: "",
+      id, ownerId: userId ?? undefined, name: "Untitled pedigree", updatedAt: "",
       horses: EMPTY_PEDIGREE.map((horse) => ({ ...horse })),
     };
     const next = [...drafts, newDraft];
     setDrafts(next);
-    setActiveId(id);
+    setActiveId(draftKey(newDraft));
     setHorses(newDraft.horses);
     setStatus("New pedigree — not yet saved");
     setDirty(false);
-    remember(next, id);
+    remember(next, draftKey(newDraft));
   }
 
   async function saveDraft() {
     if (cloudBusy || (userId && !cloudReady)) {
-      setStatus("Please wait until your cloud data has loaded.");
+      setStatus("Please wait until the shared pedigrees have loaded.");
       return;
     }
+
+    const existing = drafts.find((draft) => draftKey(draft) === activeId);
+    const ownerId = existing?.ownerId ?? userId ?? undefined;
     const updated: Draft = {
-      id: activeId,
+      id: existing?.id ?? crypto.randomUUID(),
+      ownerId,
       name: title,
       updatedAt: new Date().toISOString(),
       horses: horses.map((horse) => ({ ...horse })),
     };
-    const next = drafts.some((draft) => draft.id === activeId)
-      ? drafts.map((draft) => draft.id === activeId ? updated : draft)
+    const next = existing
+      ? drafts.map((draft) => draftKey(draft) === activeId ? updated : draft)
       : [...drafts, updated];
-    // Always retain a local backup, even if the network is offline.
     setDrafts(next);
-    remember(next, activeId);
-    setDirty(false);
+    setActiveId(draftKey(updated));
+    remember(next, draftKey(updated));
 
     if (!userId || !cloud) {
-      setStatus("Saved in this browser only. Sign in to save to Supabase.");
+      setDirty(false);
+      setStatus("Saved in this browser only. Sign in to share with the team.");
       return;
     }
+
     setCloudBusy(true);
-    const { error } = await cloud.from("optimus_pedigrees").upsert({
-      id: updated.id,
-      owner_id: userId,
+    // Other people's pedigrees are edited in place; don't create copies.
+    const payload = {
       name: updated.name,
       horses: updated.horses,
       updated_at: updated.updatedAt,
-    }, { onConflict: "owner_id,id" });
+    };
+    const outcome = ownerId !== userId
+      ? await cloud.from("optimus_pedigrees").update(payload)
+          .eq("owner_id", ownerId!).eq("id", updated.id)
+          .select("id").single()
+      : await cloud.from("optimus_pedigrees").upsert({
+          ...payload, id: updated.id, owner_id: userId,
+        }, { onConflict: "owner_id,id" }).select("id").single();
     setCloudBusy(false);
-    setStatus(error
-      ? `Cloud save failed: ${error.message}. A browser backup was kept; try SAVE again.`
-      : "Saved to Supabase ✓");
+    setDirty(Boolean(outcome.error));
+    setStatus(outcome.error
+      ? `Cloud save failed: ${outcome.error.message}. A browser copy remains; please retry.`
+      : "Saved to the shared Supabase library ✓");
   }
 
   async function deleteDraft() {
     if (cloudBusy || (userId && !cloudReady)) return;
-    if (!window.confirm(`Delete "${title}" permanently${userId ? " from Supabase" : " from this browser"}?`)) return;
+    const selected = drafts.find((draft) => draftKey(draft) === activeId);
+    if (!selected) return;
+    if (!window.confirm(`Delete "${title}" permanently${userId ? " from the team library" : " from this browser"}?`)) return;
 
-    if (userId && cloud) {
+    if (userId && cloud && selected.ownerId) {
       setCloudBusy(true);
       const { error } = await cloud.from("optimus_pedigrees")
-        .delete().eq("owner_id", userId).eq("id", activeId);
+        .delete()
+        .eq("owner_id", selected.ownerId)
+        .eq("id", selected.id);
       setCloudBusy(false);
       if (error) {
-        setStatus(`Could not delete cloud pedigree: ${error.message}`);
+        setStatus(`Could not delete team pedigree: ${error.message}`);
         return;
       }
     }
 
-    const remaining = drafts.filter((draft) => draft.id !== activeId);
+    const remaining = drafts.filter((draft) => draftKey(draft) !== activeId);
     const next = remaining.length ? remaining : [{
       id: crypto.randomUUID(),
+      ownerId: userId ?? undefined,
       name: "Untitled pedigree",
       updatedAt: "",
       horses: EMPTY_PEDIGREE.map((horse) => ({ ...horse })),
     }];
     const current = next[0];
     setDrafts(next);
-    setActiveId(current.id);
+    setActiveId(draftKey(current));
     setHorses(current.horses.map((horse) => ({ ...horse })));
-    setStatus(userId ? "Deleted from Supabase" : "Deleted from this browser");
+    setStatus(userId ? "Deleted from the shared Supabase library" : "Deleted from this browser");
     setDirty(false);
-    remember(next, current.id);
+    remember(next, draftKey(current));
+  }
+
+  function refreshShared() {
+    if (dirty && !window.confirm("Discard unsaved changes and refresh the team pedigrees?")) return;
+    window.location.reload();
   }
 
   async function signIn(event: React.FormEvent<HTMLFormElement>) {
@@ -427,8 +473,8 @@ export default function PedigreeEditor() {
         <div>
           <strong>{userId ? "☁ Cloud pedigrees" : "☁ Save pedigrees to Supabase"}</strong>
           <p>{userId
-            ? `${userEmail} · ${cloudReady ? "Your pedigrees are synced between devices." : "Loading cloud pedigrees..."}`
-            : "Sign in to save your pedigrees in Supabase and access them on other devices. Existing browser drafts will be imported."}</p>
+            ? `${userEmail} · ${cloudReady ? "Shared team library — every colleague's pedigrees are visible." : "Loading team pedigrees..."}`
+            : "Sign in to access the shared Optimus pedigree library. Team membership is required; your existing local drafts are imported on first sign-in."}</p>
         </div>
         {userId ? (
           <button type="button" className={styles.lightButton} onClick={signOut} disabled={authBusy}>SIGN OUT</button>
@@ -449,13 +495,14 @@ export default function PedigreeEditor() {
         <label className={styles.selectLabel}>
           SAVED PEDIGREES
           <select value={activeId} onChange={(event) => selectDraft(event.target.value)}>
-            {drafts.map((draft) => <option key={draft.id} value={draft.id}>
+            {drafts.map((draft) => <option key={draftKey(draft)} value={draftKey(draft)}>
               {draft.name} · {formatDate(draft.updatedAt)}
             </option>)}
           </select>
         </label>
         <div className={styles.actions}>
-          <button type="button" className={styles.lightButton} onClick={addDraft}>+ NEW</button>
+          <button type="button" className={styles.lightButton} onClick={addDraft} disabled={cloudBusy || (Boolean(userId) && !cloudReady)}>+ NEW</button>
+          {userId && <button type="button" className={styles.lightButton} onClick={refreshShared} disabled={cloudBusy}>↻ REFRESH</button>}
           <button type="button" className={styles.darkButton} onClick={saveDraft} disabled={cloudBusy}>SAVE {userId ? "TO CLOUD" : "LOCALLY"}</button>
           <button type="button" className={styles.deleteButton} onClick={deleteDraft} disabled={cloudBusy}>DELETE</button>
         </div>
@@ -524,8 +571,8 @@ export default function PedigreeEditor() {
         </div>
         {status && <p role="status" className={styles.status}>{status}</p>}
         <p className={styles.note}>
-          Sign in to synchronize your saved pedigrees in Supabase across devices. Without sign-in, saves are browser-only.
-          Auto-fill uses your saved pedigrees and the example pedigree. The generated iframe contains its own data and works for visitors on any device.
+          Signed-in Optimus team members can view and edit all pedigrees in the shared Supabase library. Use REFRESH to load changes made by colleagues.
+          Without sign-in, saves are browser-only. Auto-fill uses all team pedigrees and the example pedigree. The generated iframe contains its own data and works for visitors on any device.
           After changing a pedigree, copy the updated iframe code into your CMS again.
         </p>
       </section>
