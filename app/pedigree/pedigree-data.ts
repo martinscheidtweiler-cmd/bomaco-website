@@ -78,7 +78,15 @@ export function decodePedigree(code: string | undefined): HorseDetails[] | null 
     const parsed: unknown = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
     if (!parsed || typeof parsed !== "object") return null;
     const obj = parsed as { v?: unknown; h?: unknown };
-    return obj.v === 1 ? cleanHorses(obj.h) : null;
+    if (obj.v !== 1 || !Array.isArray(obj.h)) return null;
+
+    // Some older embed links contain only 14 entries. The last
+    // great-grandparent is optional, so pad that missing blank slot
+    // instead of showing a 404 for an otherwise valid pedigree.
+    const items = obj.h.length === PEDIGREE_COUNT - 1
+      ? [...obj.h, entry()]
+      : obj.h;
+    return cleanHorses(items);
   } catch {
     return null;
   }
