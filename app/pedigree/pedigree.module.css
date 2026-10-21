@@ -1,0 +1,71 @@
+.wrapper {
+  width: 100%;
+  max-width: 1500px;
+  margin-inline: auto;
+  padding: 10px 12px;
+  color: #111;
+  background: #fff;
+  font-family: Arial, Helvetica, sans-serif;
+}
+.desktop {
+  --gap: 24px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-rows: repeat(8, 64px);
+  column-gap: var(--gap);
+  row-gap: 5px;
+}
+.desktopNode { min-width: 0; position: relative; display: flex; align-items: center; }
+.card { min-width: 0; width: 100%; padding: 5px 5px 6px 0; border-bottom: 1px solid #d2d2d2; }
+.root .card { border-bottom: 2px solid #111; }
+.name { display: block; font-weight: 700; font-size: 15px; line-height: 1.22; overflow-wrap: anywhere; letter-spacing: -.25px; }
+.root .name { font-size: 18px; }
+.info { display: block; padding-top: 4px; font-size: 12px; line-height: 1.15; white-space: normal; }
+.level { font-weight: 750; color: #111; }
+.separator, .year { font-weight: 400; color: #888; }
+.child::before {
+  position: absolute; content: ""; width: 12px; left: -12px;
+  top: 50%; border-top: 1px solid #c7c7c7;
+}
+.fork {
+  position: absolute; right: -12px; top: 25%; height: 50%;
+  border-right: 1px solid #c7c7c7; pointer-events: none;
+}
+.fork::after {
+  position: absolute; content: ""; width: 12px; left: -12px;
+  top: 50%; border-top: 1px solid #c7c7c7;
+}
+.mobile { display: none; }
+
+@media (max-width: 760px) {
+  .wrapper { padding: 8px 6px; }
+  .desktop { display: none; }
+  .mobile { display: block; }
+  .mobileRoot {
+    padding: 6px 8px 10px;
+    margin-bottom: 7px;
+    border-bottom: 2px solid #111;
+    min-height: 47px;
+  }
+  .mobileRoot .name { font-size: 17px; }
+  .mobileBranches { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .mobileBranch { min-width: 0; }
+  .mobileNode {
+    min-width: 0; min-height: 61px; display: flex; flex-direction: column; justify-content: center;
+    padding: 3px 3px 3px 8px; border-bottom: 1px solid #e4e4e4;
+  }
+  .mobileParent { padding-left: 6px; border-left: 3px solid #111; border-bottom-color: #bbb; }
+  .mobileGrandparent { padding-left: 8px; border-left: 2px solid #888; margin-top: 3px; }
+  .mobileAncestor { padding-left: 13px; border-left: 1px solid #ddd; }
+  .mobileNode .name { font-size: 11px; line-height: 1.2; }
+  .mobileParent .name { font-size: 14px; }
+  .mobileGrandparent .name { font-size: 12px; }
+  .mobileNode .info { font-size: 10px; padding-top: 3px; }
+}
+@media (max-width: 360px) {
+  .mobileBranches { gap: 5px; }
+  .mobileNode { min-height: 64px; padding-right: 1px; }
+  .mobileAncestor { padding-left: 8px; }
+  .mobileNode .name { font-size: 10.5px; }
+  .mobileParent .name { font-size: 12.5px; }
+}
