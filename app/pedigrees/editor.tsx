@@ -13,6 +13,8 @@ import { autocompleteAncestors, knownAncestorNames, type PedigreeSource } from "
 type Draft = {
   id: string;
   ownerId?: string;
+  publicToken?: string;
+  isPublished?: boolean;
   name: string;
   updatedAt: string;
   horses: HorseDetails[];
@@ -32,6 +34,8 @@ const cloud = process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SU
 type CloudRow = {
   id: string;
   owner_id: string;
+  public_token: string;
+  is_published: boolean;
   name: string;
   updated_at: string;
   horses: unknown;
@@ -43,6 +47,8 @@ function draftFromCloud(row: CloudRow): Draft | null {
   return {
     id: row.id,
     ownerId: row.owner_id,
+    publicToken: row.public_token,
+    isPublished: row.is_published,
     name: row.name,
     updatedAt: row.updated_at,
     horses,
@@ -75,6 +81,8 @@ function readDrafts(): Draft[] {
       return [{
         id: draft.id,
         ownerId: typeof draft.ownerId === "string" ? draft.ownerId : undefined,
+        publicToken: typeof draft.publicToken === "string" ? draft.publicToken : undefined,
+        isPublished: draft.isPublished === true,
         name: typeof draft.name === "string" ? draft.name.slice(0, 120) : "Untitled",
         updatedAt: typeof draft.updatedAt === "string" ? draft.updatedAt : "",
         horses,
@@ -151,7 +159,7 @@ export default function PedigreeEditor() {
       }
 
       const { data, error } = await cloud!.from("optimus_pedigrees")
-        .select("id,owner_id,name,updated_at,horses")
+        .select("id,owner_id,name,updated_at,horses,public_token,is_published")
         .order("updated_at", { ascending: false })
         .limit(200);
 
@@ -174,14 +182,15 @@ export default function PedigreeEditor() {
           const existingIds = new Set(all.map((draft) => draft.id));
           const missing = readDrafts().filter((draft) => !draft.ownerId && !existingIds.has(draft.id));
           if (missing.length) {
-            const { error: migrationError } = await cloud!.from("optimus_pedigrees")
+            const { data: imported, error: migrationError } = await cloud!.from("optimus_pedigrees")
               .insert(missing.map((draft) => ({
                 id: draft.id,
                 owner_id: accountId,
                 name: draft.name,
                 horses: draft.horses,
                 updated_at: draft.updatedAt || new Date().toISOString(),
-              })));
+              })))
+              .select("id,owner_id,name,updated_at,horses,public_token,is_published");
 
             if (disposed || sequence !== loadSequence) return;
             if (migrationError) {
@@ -189,7 +198,8 @@ export default function PedigreeEditor() {
               setCloudBusy(false);
               return;
             }
-            all = [...all, ...missing.map((draft) => ({ ...draft, ownerId: accountId }))];
+            all = [...all, ...((imported ?? []) as CloudRow[])
+              .map(draftFromCloud).filter((draft): draft is Draft => draft !== null)];
           }
         }
         localStorage.setItem(MIGRATION_KEY, "1");
@@ -249,8 +259,15 @@ export default function PedigreeEditor() {
   }, []);
 
   const shareCode = useMemo(() => encodePedigree(horses), [horses]);
-  const viewUrl = origin ? `${origin}/pedigree/view?d=${shareCode}` : "";
-  const iframeCode = `<iframe src="${viewUrl}" width="100%" height="620" style="border:0;display:block;width:100%;max-width:100%;overflow:hidden" scrolling="no" loading="lazy" title="Horse pedigree"></iframe>`;
+  const activeDraft = drafts.find((draft) => draftKey(draft) === activeId);
+  const staticUrl = origin ? `${origin}/pedigree/view?d=${shareCode}` : "";
+  const permanentUrl = origin && activeDraft?.publicToken
+    ? `${origin}/pedigree/live/${activeDraft.publicToken}`
+    : "";
+  const viewUrl = activeDraft?.isPublished && permanentUrl ? permanentUrl : staticUrl;
+  const iframeForUrl = (url: string) =>
+    `<iframe src="${url}" width="100%" height="650" style="border:0;display:block;width:100%;max-width:100%;overflow:hidden" scrolling="no" loading="lazy" title="Horse pedigree"></iframe>`;
+  const iframeCode = iframeForUrl(viewUrl);
   const title = horses[0].name.trim() || "Untitled pedigree";
 
   // Look up lineages across the shared team library (and the example).
@@ -305,10 +322,10 @@ export default function PedigreeEditor() {
     remember(next, draftKey(newDraft));
   }
 
-  async function saveDraft() {
+  async function saveDraft(): Promise<Draft | null> {
     if (cloudBusy || (userId && !cloudReady)) {
       setStatus("Please wait until the shared pedigrees have loaded.");
-      return;
+      return null;
     }
 
     const existing = drafts.find((draft) => draftKey(draft) === activeId);
@@ -316,6 +333,8 @@ export default function PedigreeEditor() {
     const updated: Draft = {
       id: existing?.id ?? crypto.randomUUID(),
       ownerId,
+      publicToken: existing?.publicToken,
+      isPublished: existing?.isPublished,
       name: title,
       updatedAt: new Date().toISOString(),
       horses: horses.map((horse) => ({ ...horse })),
@@ -329,12 +348,11 @@ export default function PedigreeEditor() {
 
     if (!userId || !cloud) {
       setDirty(false);
-      setStatus("Saved in this browser only. Sign in to share with the team.");
-      return;
+      setStatus("Saved in this browser only. Sign in for a permanent iframe link.");
+      return updated;
     }
 
     setCloudBusy(true);
-    // Other people's pedigrees are edited in place; don't create copies.
     const payload = {
       name: updated.name,
       horses: updated.horses,
@@ -343,15 +361,75 @@ export default function PedigreeEditor() {
     const outcome = ownerId !== userId
       ? await cloud.from("optimus_pedigrees").update(payload)
           .eq("owner_id", ownerId!).eq("id", updated.id)
-          .select("id").single()
+          .select("id,public_token,is_published").single()
       : await cloud.from("optimus_pedigrees").upsert({
           ...payload, id: updated.id, owner_id: userId,
-        }, { onConflict: "owner_id,id" }).select("id").single();
+        }, { onConflict: "owner_id,id" })
+          .select("id,public_token,is_published").single();
     setCloudBusy(false);
     setDirty(Boolean(outcome.error));
-    setStatus(outcome.error
-      ? `Cloud save failed: ${outcome.error.message}. A browser copy remains; please retry.`
-      : "Saved to the shared Supabase library ✓");
+    if (outcome.error || !outcome.data) {
+      setStatus(`Cloud save failed: ${outcome.error?.message || "Unknown error"}. A browser copy remains; please retry.`);
+      return null;
+    }
+    const confirmed = {
+      ...updated,
+      publicToken: outcome.data.public_token as string,
+      isPublished: outcome.data.is_published as boolean,
+    };
+    const synced = next.map((draft) => draftKey(draft) === draftKey(updated) ? confirmed : draft);
+    setDrafts(synced);
+    remember(synced, draftKey(confirmed));
+    setStatus("Saved to Supabase ✓ Published iframe links will show these changes.");
+    return confirmed;
+  }
+
+  async function publishAndCopy(kind: "iframe" | "link") {
+    if (!cloud || !userId) {
+      const content = kind === "iframe" ? iframeForUrl(staticUrl) : staticUrl;
+      await copy(content, kind === "iframe" ? "Static iframe code" : "Static pedigree link");
+      setStatus("Copied a fixed snapshot. Sign in to publish a permanently updating link.");
+      return;
+    }
+    // Always save the current form first, so the live link immediately shows
+    // exactly what is visible in the editor, including unsaved changes.
+    const saved = await saveDraft();
+    if (!saved || !saved.ownerId) return;
+
+    setCloudBusy(true);
+    const { data, error } = await cloud.from("optimus_pedigrees")
+      .update({ is_published: true })
+      .eq("owner_id", saved.ownerId)
+      .eq("id", saved.id)
+      .select("public_token,is_published")
+      .single();
+    setCloudBusy(false);
+    if (error || !data?.public_token) {
+      setStatus(`Could not publish pedigree: ${error?.message || "Unknown error"}`);
+      return;
+    }
+
+    const published: Draft = {
+      ...saved,
+      publicToken: data.public_token as string,
+      isPublished: true,
+    };
+    setDrafts((previous) => {
+      const next = previous.map((draft) =>
+        draftKey(draft) === draftKey(published) ? published : draft
+      );
+      remember(next, draftKey(published));
+      return next;
+    });
+
+    const url = `${window.location.origin}/pedigree/live/${published.publicToken}`;
+    const content = kind === "iframe" ? iframeForUrl(url) : url;
+    try {
+      await navigator.clipboard.writeText(content);
+      setStatus("Published ✓ Permanent link copied. Future saves update this same iframe.");
+    } catch {
+      setStatus(`Published ✓ Your permanent link: ${url}. Select and copy it manually if needed.`);
+    }
   }
 
   async function deleteDraft() {
@@ -560,20 +638,30 @@ export default function PedigreeEditor() {
       <section className={styles.export}>
         <div className={styles.groupTitle}>
           <h2>Embed on your website</h2>
-          <span>Iframe height: 620 px · No internal scrolling</span>
+          <span>Permanent Supabase link · Updates after every save</span>
         </div>
-        <p>Copy this HTML into the source-code box of your CMS:</p>
+        <p>{userId
+          ? activeDraft?.isPublished
+            ? "This iframe always shows the latest saved pedigree. You only need to paste it into Pweb once."
+            : "Click PUBLISH & COPY IFRAME to save your pedigree and generate its permanent link."
+          : "Sign in to Supabase to generate a permanent iframe. Without sign-in the link is only a static snapshot."}</p>
         <textarea readOnly spellCheck={false} value={iframeCode} rows={5} aria-label="Iframe HTML code" />
         <div className={styles.exportActions}>
-          <button type="button" className={styles.darkButton} onClick={() => copy(iframeCode, "Iframe code")}>COPY IFRAME CODE</button>
-          <button type="button" className={styles.lightButton} onClick={() => copy(viewUrl, "Pedigree link")}>COPY LINK</button>
+          <button type="button" className={styles.darkButton} disabled={cloudBusy || (Boolean(userId) && !cloudReady)}
+            onClick={() => void publishAndCopy("iframe")}>
+            {userId ? "PUBLISH & COPY IFRAME" : "COPY STATIC IFRAME"}
+          </button>
+          <button type="button" className={styles.lightButton} disabled={cloudBusy || (Boolean(userId) && !cloudReady)}
+            onClick={() => void publishAndCopy("link")}>
+            {userId ? "COPY LIVE LINK" : "COPY STATIC LINK"}
+          </button>
           {viewUrl && <a className={styles.lightButton} href={viewUrl} target="_blank" rel="noreferrer">OPEN PEDIGREE ↗</a>}
         </div>
         {status && <p role="status" className={styles.status}>{status}</p>}
         <p className={styles.note}>
           Signed-in Optimus team members can view and edit all pedigrees in the shared Supabase library. Use REFRESH to load changes made by colleagues.
           Without sign-in, saves are browser-only. Auto-fill uses all team pedigrees and the example pedigree. The generated iframe contains its own data and works for visitors on any device.
-          After changing a pedigree, copy the updated iframe code into your CMS again.
+          Once published, the iframe's URL remains the same forever. Just press SAVE TO CLOUD after editing, and reload the horse page to see the latest pedigree. Older ?d= snapshot embeds must be replaced one final time.
         </p>
       </section>
     </main>
