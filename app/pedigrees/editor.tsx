@@ -7,6 +7,7 @@ import {
   encodePedigree, type HorseDetails,
 } from "../pedigree/pedigree-data";
 import styles from "./editor.module.css";
+import { autocompleteAncestors, knownAncestorNames, type PedigreeSource } from "./ancestry";
 
 type Draft = {
   id: string;
@@ -86,8 +87,28 @@ export default function PedigreeEditor() {
   const iframeCode = `<iframe src="${viewUrl}" width="100%" height="620" style="border:0;display:block;width:100%;max-width:100%;overflow:hidden" scrolling="no" loading="lazy" title="Horse pedigree"></iframe>`;
   const title = horses[0].name.trim() || "Untitled pedigree";
 
+  // Look up lineages from other pedigrees saved on this device.
+  // The original Cacacha example is available as a fallback.
+  const library = useMemo<PedigreeSource[]>(
+    () => [...drafts, { id: "__cacacha_example__", name: "Cacacha van het Schaeck (example)", horses: CACACHA }],
+    [drafts],
+  );
+  const knownNames = useMemo(
+    () => knownAncestorNames(library, activeId),
+    [library, activeId],
+  );
+
   function updateHorse(index: number, key: keyof HorseDetails, value: string) {
-    setHorses((prev) => prev.map((horse, i) => i === index ? { ...horse, [key]: value } : horse));
+    const edited = horses.map((horse, i) => i === index ? { ...horse, [key]: value } : { ...horse });
+    if (key === "name" && index >= 1 && index <= 6) {
+      const result = autocompleteAncestors(edited, index, library, activeId);
+      setHorses(result.horses);
+      setStatus(result.filled > 0
+        ? `Automatically filled ${result.filled} details from ${result.sourceName}. Save to keep changes.`
+        : "Unsaved changes");
+      return;
+    }
+    setHorses(edited);
     setStatus("Unsaved changes");
   }
 
@@ -168,7 +189,7 @@ export default function PedigreeEditor() {
         <div>
           <p className={styles.overline}>OPTIMUS AUCTION · PEDIGREE BUILDER</p>
           <h1>Pedigree editor</h1>
-          <p>Enter names, jumping levels and optional birth years. Generate an iframe for each horse.</p>
+          <p>Enter names, jumping levels and optional birth years. Matching a saved sire or dam automatically fills its known ancestors.</p>
         </div>
         <a className={styles.back} href="/">↗ BACK TO AUCTION</a>
       </div>
@@ -189,6 +210,10 @@ export default function PedigreeEditor() {
         </div>
       </section>
 
+      <datalist id="optimus-saved-ancestors">
+        {knownNames.map((name) => <option value={name} key={name} />)}
+      </datalist>
+
       <div className={styles.sections}>
         {groups.map((group) => (
           <section key={group.label} className={styles.group}>
@@ -203,6 +228,7 @@ export default function PedigreeEditor() {
                   <label className={styles.nameField}>
                     <span>NAME</span>
                     <input type="text" maxLength={120} placeholder="Horse name"
+                      list={index >= 1 && index <= 6 ? "optimus-saved-ancestors" : undefined}
                       value={horses[index].name}
                       onChange={(event) => updateHorse(index, "name", event.target.value)} />
                   </label>
@@ -247,7 +273,7 @@ export default function PedigreeEditor() {
         </div>
         {status && <p role="status" className={styles.status}>{status}</p>}
         <p className={styles.note}>
-          Saved drafts are stored in this browser. The generated iframe contains its own data and works for visitors on any device.
+          Auto-fill uses other pedigrees saved in this browser (and the example pedigree). Saved drafts are stored on this device, not shared across devices. The generated iframe contains its own data and works for visitors on any device.
           After changing a pedigree, copy the updated iframe code into your CMS again.
         </p>
       </section>
