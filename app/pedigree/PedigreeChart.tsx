@@ -3,12 +3,8 @@ import type { HorseDetails } from "./pedigree-data";
 
 type Props = { horses: HorseDetails[] };
 
-const branches = [
-  [1, 3, 7, 8, 4, 9, 10],
-  [2, 5, 11, 12, 6, 13, 14],
-];
-
-const layout = [
+/* Full four-generation tree on desktop; a legible three-generation tree on mobile. */
+const desktopLayout = [
   { col: 1, row: 1, span: 8 },
   { col: 2, row: 1, span: 4 },
   { col: 2, row: 5, span: 4 },
@@ -17,6 +13,16 @@ const layout = [
   { col: 3, row: 5, span: 2 },
   { col: 3, row: 7, span: 2 },
   ...Array.from({ length: 8 }, (_, i) => ({ col: 4, row: i + 1, span: 1 })),
+];
+
+const mobileLayout = [
+  { col: 1, row: 1, span: 4 },
+  { col: 2, row: 1, span: 2 },
+  { col: 2, row: 3, span: 2 },
+  { col: 3, row: 1, span: 1 },
+  { col: 3, row: 2, span: 1 },
+  { col: 3, row: 3, span: 1 },
+  { col: 3, row: 4, span: 1 },
 ];
 
 function HorseText({ horse }: { horse: HorseDetails }) {
@@ -36,10 +42,10 @@ function HorseText({ horse }: { horse: HorseDetails }) {
 
 export default function PedigreeChart({ horses }: Props) {
   return (
-    <section className={styles.wrapper} aria-label="Four-generation horse pedigree">
+    <section className={styles.wrapper} aria-label="Horse pedigree">
       <div className={styles.desktop}>
         {horses.map((horse, index) => {
-          const position = layout[index];
+          const position = desktopLayout[index];
           return (
             <div
               className={[
@@ -58,25 +64,24 @@ export default function PedigreeChart({ horses }: Props) {
       </div>
 
       <div className={styles.mobile}>
-        <div className={styles.mobileRoot}><HorseText horse={horses[0]} /></div>
-        <div className={styles.mobileBranches}>
-          {branches.map((branch, side) => (
-            <div className={styles.mobileBranch} key={side}>
-              {branch.map((index, i) => (
-                <div
-                  key={index}
-                  className={[
-                    styles.mobileNode,
-                    i === 0 ? styles.mobileParent : "",
-                    i === 1 || i === 4 ? styles.mobileGrandparent : "",
-                    i === 2 || i === 3 || i === 5 || i === 6 ? styles.mobileAncestor : "",
-                  ].join(" ")}
-                >
-                  <HorseText horse={horses[index]} />
-                </div>
-              ))}
-            </div>
-          ))}
+        <div className={styles.mobileTree} aria-label="Three generations on mobile">
+          {horses.slice(0, 7).map((horse, index) => {
+            const position = mobileLayout[index];
+            return (
+              <div
+                key={index}
+                className={[
+                  styles.mobileNode,
+                  index === 0 ? styles.mobileSubject : "",
+                  index === 1 || index === 2 ? styles.mobileParent : "",
+                  index >= 3 ? styles.mobileGrandparent : "",
+                ].join(" ")}
+                style={{ gridColumn: position.col, gridRow: `${position.row} / span ${position.span}` }}
+              >
+                <div className={styles.mobileCard}><HorseText horse={horse} /></div>
+              </div>
+            );
+          })}
         </div>
       </div>
     </section>
