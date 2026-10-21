@@ -1,71 +1,119 @@
+/* Matches the light neutral grey supplied for the standalone pedigree. */
+.surface {
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: #eaeaea;
+  overflow-x: clip;
+}
 .wrapper {
   width: 100%;
-  max-width: 1500px;
   margin-inline: auto;
   padding: 10px 12px;
   color: #111;
-  background: #fff;
+  background: #eaeaea;
   font-family: Arial, Helvetica, sans-serif;
 }
 .desktop {
   --gap: 24px;
   display: grid;
+  max-width: 1500px;
+  margin: 0 auto;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   grid-template-rows: repeat(8, 64px);
   column-gap: var(--gap);
   row-gap: 5px;
 }
 .desktopNode { min-width: 0; position: relative; display: flex; align-items: center; }
-.card { min-width: 0; width: 100%; padding: 5px 5px 6px 0; border-bottom: 1px solid #d2d2d2; }
+.card { min-width: 0; width: 100%; padding: 5px 5px 6px 0; border-bottom: 1px solid #bfbfbf; }
 .root .card { border-bottom: 2px solid #111; }
 .name { display: block; font-weight: 700; font-size: 15px; line-height: 1.22; overflow-wrap: anywhere; letter-spacing: -.25px; }
 .root .name { font-size: 18px; }
 .info { display: block; padding-top: 4px; font-size: 12px; line-height: 1.15; white-space: normal; }
 .level { font-weight: 750; color: #111; }
-.separator, .year { font-weight: 400; color: #888; }
+.separator, .year { font-weight: 400; color: #777; }
 .child::before {
   position: absolute; content: ""; width: 12px; left: -12px;
-  top: 50%; border-top: 1px solid #c7c7c7;
+  top: 50%; border-top: 1px solid #b8b8b8;
 }
 .fork {
   position: absolute; right: -12px; top: 25%; height: 50%;
-  border-right: 1px solid #c7c7c7; pointer-events: none;
+  border-right: 1px solid #b8b8b8; pointer-events: none;
 }
 .fork::after {
   position: absolute; content: ""; width: 12px; left: -12px;
-  top: 50%; border-top: 1px solid #c7c7c7;
+  top: 50%; border-top: 1px solid #b8b8b8;
 }
 .mobile { display: none; }
 
 @media (max-width: 760px) {
-  .wrapper { padding: 8px 6px; }
+  .wrapper { padding: 12px 7px; }
   .desktop { display: none; }
-  .mobile { display: block; }
-  .mobileRoot {
-    padding: 6px 8px 10px;
-    margin-bottom: 7px;
-    border-bottom: 2px solid #111;
-    min-height: 47px;
+  .mobile { display: block; width: 100%; }
+  /* Three successive generations side by side, just like a traditional pedigree. */
+  .mobileTree {
+    display: grid;
+    width: 100%;
+    grid-template-columns: 1.05fr 1.12fr 1.2fr;
+    grid-template-rows: repeat(4, minmax(95px, auto));
   }
-  .mobileRoot .name { font-size: 17px; }
-  .mobileBranches { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-  .mobileBranch { min-width: 0; }
   .mobileNode {
-    min-width: 0; min-height: 61px; display: flex; flex-direction: column; justify-content: center;
-    padding: 3px 3px 3px 8px; border-bottom: 1px solid #e4e4e4;
+    position: relative;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    padding: 5px 8px 5px 12px;
   }
-  .mobileParent { padding-left: 6px; border-left: 3px solid #111; border-bottom-color: #bbb; }
-  .mobileGrandparent { padding-left: 8px; border-left: 2px solid #888; margin-top: 3px; }
-  .mobileAncestor { padding-left: 13px; border-left: 1px solid #ddd; }
-  .mobileNode .name { font-size: 11px; line-height: 1.2; }
-  .mobileParent .name { font-size: 14px; }
-  .mobileGrandparent .name { font-size: 12px; }
-  .mobileNode .info { font-size: 10px; padding-top: 3px; }
+  .mobileCard {
+    min-width: 0;
+    width: 100%;
+    padding: 4px 0 7px;
+    border-bottom: 1px solid #bdbdbd;
+  }
+  .mobileNode .name {
+    font-weight: 500;
+    letter-spacing: -.2px;
+    line-height: 1.32;
+    font-size: clamp(11px, 3.3vw, 18px);
+  }
+  .mobileNode .info {
+    font-size: clamp(10px, 2.6vw, 13px);
+    padding-top: 4px;
+  }
+  .mobileNode .level { font-weight: 700; }
+  .mobileSubject { padding-left: 5px; }
+  .mobileSubject .name { font-size: clamp(12px, 3.8vw, 20px); font-weight: 600; }
+  .mobileParent .name { font-size: clamp(11px, 3.5vw, 19px); }
+  .mobileGrandparent .name { font-size: clamp(11px, 3.2vw, 18px); }
+  /* The root stem connects to the sire and dam at their row centres. */
+  .mobileSubject::after {
+    content: "";
+    position: absolute;
+    top: 25%; height: 50%; right: 0;
+    border-right: 1px solid #b5b5b5;
+    pointer-events: none;
+  }
+  .mobileParent::before, .mobileGrandparent::before {
+    content: "";
+    position: absolute;
+    top: 50%; left: 0;
+    width: 12px;
+    border-top: 1px solid #b5b5b5;
+    pointer-events: none;
+  }
+  /* Each parent's second stem joins its two parents. */
+  .mobileParent::after {
+    content: "";
+    position: absolute;
+    top: 25%; height: 50%; right: 0;
+    border-right: 1px solid #b5b5b5;
+    pointer-events: none;
+  }
 }
-@media (max-width: 360px) {
-  .mobileBranches { gap: 5px; }
-  .mobileNode { min-height: 64px; padding-right: 1px; }
-  .mobileAncestor { padding-left: 8px; }
-  .mobileNode .name { font-size: 10.5px; }
-  .mobileParent .name { font-size: 12.5px; }
+@media (max-width: 370px) {
+  .wrapper { padding: 9px 4px; }
+  .mobileTree { grid-template-columns: 1fr 1.12fr 1.25fr; grid-template-rows: repeat(4, minmax(92px, auto)); }
+  .mobileNode { padding-left: 9px; padding-right: 3px; }
+  .mobileSubject { padding-left: 3px; }
+  .mobileParent::before, .mobileGrandparent::before { width: 9px; }
+  .mobileGrandparent .name { font-size: 11px; }
 }
