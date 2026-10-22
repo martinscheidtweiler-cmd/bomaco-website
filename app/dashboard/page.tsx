@@ -188,6 +188,18 @@ export default function AuctionDashboard() {
     setCopiedSignature("");
   }
 
+  async function publishPedigree() {
+    if (!cloud || !selected || isBusy) return;
+    if (dirtyPedigree) { setNotice("Sla eerst je pedigree-wijzigingen op."); return; }
+    setIsBusy(true);
+    const { error } = await cloud.from("optimus_pedigrees")
+      .update({ is_published: true })
+      .eq("id", selected.id).eq("owner_id", selected.owner_id);
+    if (error) { setNotice("Publiceren mislukt: " + error.message); setIsBusy(false); return; }
+    setNotice("✓ Live pedigree gepubliceerd. Deze link blijft automatisch up-to-date.");
+    await refresh();
+  }
+
   async function savePedigree() {
     if (!cloud || !selected || isBusy) return;
     if (draftHorses.some((h) => h.name.length > 120 || h.level.length > 30 || h.year.length > 8)) {
@@ -252,6 +264,8 @@ export default function AuctionDashboard() {
 
   async function copyCode() {
     if (!currentCode || !selected || !draftSite) return;
+    if (!draftSite.base_code.trim()) { setNotice("Plak en bewaar eerst je bestaande volledige PWeb-broncode. Zo blijft de huidige opmaak behouden."); return; }
+    if (!selected.is_published) { setNotice("Publiceer eerst het live pedigree voor dit lot."); return; }
     if (dirtyPedigree || dirtyDescription || dirtySite) {
       setNotice("Sla eerst alle wijzigingen op voordat je de definitieve broncode kopieert."); return;
     }
@@ -266,6 +280,7 @@ export default function AuctionDashboard() {
 
   async function markApplied() {
     if (!cloud || !selected || !publishedStatus || isBusy) return;
+    if (!draftSite?.base_code.trim() || !selected.is_published) { setNotice("Publiceer eerst het pedigree en bewaar een bestaande volledige PWeb-broncode."); return; }
     if (dirtyDescription || dirtyPedigree || dirtySite) {
       setNotice("Sla eerst de wijzigingen op."); return;
     }
@@ -402,6 +417,8 @@ export default function AuctionDashboard() {
               </div>)}
             </div>
             <button className={styles.primary} disabled={isBusy || !dirtyPedigree} onClick={savePedigree}>PEDIGREE OPSLAAN</button>
+            {!selected.is_published && <button className={styles.appliedButton} style={{marginLeft:10}} disabled={isBusy || dirtyPedigree} onClick={publishPedigree}>LIVE PEDIGREE PUBLICEREN</button>}
+            {selected.is_published && <p className={styles.help}>✓ Live pedigree gepubliceerd — gedeelde wijzigingen verschijnen zonder opnieuw iframecode te plakken.</p>}
           </section>}
 
           {tab === "description" && <section>
@@ -477,6 +494,8 @@ export default function AuctionDashboard() {
             </div>
             <h4>Bestaande PWeb-broncode</h4>
             <p className={styles.help}>Plak hier één keer de bestaande volledige HTML/CSS-code van deze website. Hierna worden wijzigingen automatisch eraan toegevoegd.</p>
+            {!managedSite.base_code.trim() && <p className={styles.help}><strong>Verplicht voor de eerste export:</strong> plak de oude broncode, zodat de foto’s, biedbox en bestaande opmaak niet verdwijnen.</p>}
+            {!selected.is_published && <p className={styles.help}><strong>Let op:</strong> publiceer ook eerst dit live pedigree op het tabblad Pedigree.</p>}
             <textarea className={styles.baseCode} spellCheck={false} value={managedSite.base_code}
               onChange={(e) => updateSite("base_code", e.target.value)}
               placeholder="Plak hier de volledige huidige PWeb-broncode (HTML, CSS en JavaScript)..." />
@@ -485,11 +504,11 @@ export default function AuctionDashboard() {
             <textarea readOnly spellCheck={false} className={styles.outputCode} value={currentCode}
               aria-label={"Gegenereerde code voor " + SITE_LABEL[site]} onFocus={(e) => e.currentTarget.select()} />
             <div className={styles.footerActions}>
-              <button className={styles.primary} disabled={isBusy || dirtySite || dirtyDescription || dirtyPedigree} onClick={copyCode}>
+              <button className={styles.primary} disabled={isBusy || dirtySite || dirtyDescription || dirtyPedigree || !managedSite.base_code.trim() || !selected.is_published} onClick={copyCode}>
                 <span> <span aria-hidden="true">⧉</span> VOLLEDIGE BRONCODE KOPIËREN</span>
               </button>
               <button className={styles.appliedButton}
-                disabled={isBusy || dirtySite || dirtyDescription || dirtyPedigree}
+                disabled={isBusy || dirtySite || dirtyDescription || dirtyPedigree || !managedSite.base_code.trim() || !selected.is_published}
                 onClick={markApplied}>✓ IK HEB DE BRONCODE ONLINE GEPLAATST</button>
             </div>
             {copiedSignature === currentSignature && <p className={styles.help}>✓ Deze versie is gekopieerd. Vergeet de bevestiging niet na het plakken.</p>}
