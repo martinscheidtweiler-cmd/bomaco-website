@@ -15,6 +15,8 @@ export type HorseProfile = {
   normalized_name: string;
   display_name: string;
   video_url: string;
+  level: string;
+  birth_year: string;
   updated_at: string;
 };
 export type SiteCode = {
@@ -86,7 +88,13 @@ function youtubeId(url: string): string | null {
 function horseMark(name: string, profiles: HorseProfile[]) {
   const video = profiles.find((profile) => profile.normalized_name === normalizeHorseName(name));
   const id = youtubeId(video?.video_url || "");
-  return '<strong>' + escapeHtml(name) +
+  const rawLevel = (video?.level || "").trim();
+  const metricMatch = rawLevel.match(/(?:^|\\s)1[.,](\\d{2})\\s*m?$/i);
+  const jumpLevel = metricMatch ? "1" + metricMatch[1] : rawLevel.replace(/^level\\s*/i, "").trim();
+  const birthYear = (video?.birth_year || "").trim();
+  const detail = jumpLevel ? " " + jumpLevel
+    : /^20(1[8-9]|2[0-9])$/.test(birthYear) ? " °" + birthYear : "";
+  return '<strong>' + escapeHtml(name) + escapeHtml(detail) +
     (id ? ' <button type="button" class="optimus-managed-video" data-youtube="' + id +
       '" aria-label="Watch ' + escapeHtml(name) + ' video"><span class="camas-youtube-icon">&#9654;</span></button>' : "") +
     "</strong>";
