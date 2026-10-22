@@ -115,3 +115,18 @@
  .addOffspring{width:100%}
  .descriptionPreview{padding:18px 15px}
 }
+
+
+.descriptionExtras{display:grid;grid-template-columns:1fr 1.5fr;gap:13px;padding:0 17px 17px;background:#f3f3f3}
+.descriptionExtras label,.nestedChildRow label{min-width:0;font-size:10px;font-weight:700;color:#666;display:flex;flex-direction:column;gap:7px}
+.descriptionExtras input,.descriptionExtras textarea,.nestedChildRow input{width:100%;box-sizing:border-box;min-width:0;background:#fff;color:#111;border:1px solid #ccc;padding:9px 10px;font:12px Arial,sans-serif;border-radius:0}
+.descriptionExtras textarea{resize:vertical;min-height:67px}
+.nestedChildren{margin:12px 0 0 18px;border-left:2px solid #d2d2d2;padding:1px 0 0 14px}
+.nestedChildRow{display:grid;grid-template-columns:20px 1.3fr 80px 1.1fr 1.2fr 30px;gap:7px;align-items:end;margin-bottom:10px}
+.childIndicator{font-size:19px;color:#888;padding-bottom:8px}
+.nestedChildRow>button{height:40px;border:1px solid #ccc;background:#fff;color:#111;cursor:pointer;font-size:19px}
+.childAdd{border:0;background:transparent;color:#555;cursor:pointer;padding:8px 0;font-size:10px;text-align:left;font-weight:700}
+.childAdd:hover{text-decoration:underline}
+.previewLine{margin:7px 0 8px 22px;font-size:12px;font-style:italic}
+@media(max-width:1200px){.nestedChildRow{grid-template-columns:20px minmax(0,1fr) 85px minmax(0,1fr) 30px}.nestedChildRow label:nth-of-type(4){grid-column:2/5}.nestedChildRow>button{grid-column:5;grid-row:1}}
+@media(max-width:700px){.descriptionExtras{grid-template-columns:1fr;padding:0 13px 15px}.nestedChildren{margin-left:3px;padding-left:9px}.nestedChildRow{grid-template-columns:20px minmax(0,1fr) 65px 30px;gap:5px}.nestedChildRow label:nth-of-type(3),.nestedChildRow label:nth-of-type(4){grid-column:2/4}.nestedChildRow>button{grid-column:4;grid-row:1}}
