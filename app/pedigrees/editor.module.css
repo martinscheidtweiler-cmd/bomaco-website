@@ -36,7 +36,7 @@
 .entry input { width: 100%; height: 40px; font: 13px Arial, Helvetica, sans-serif; color: #111; border: 1px solid #dfdfdf; border-radius: 0; background: #fff; padding: 8px 11px; outline: none; }
 .entry input:focus { border-color: #111; }
 .preview { margin: 40px 0 36px; }
-.previewInner { overflow: hidden; padding: 16px 0; border: 1px solid #222; min-height: 180px; background: #000; color: #fff; }
+.previewInner { overflow: hidden; padding: 16px 0; border: 1px solid #dedede; min-height: 180px; background: #fff; color: #111; }
 .export { border-top: 1px solid #111; padding-top: 22px; }
 .export p { font-size: 12px; color: #666; line-height: 1.6; }
 .export textarea { resize: vertical; box-sizing: border-box; border: 1px solid #d6d6d6; color: #222; background: #f7f7f7; width: 100%; padding: 15px; line-height: 1.5; font-size: 12px; overflow-wrap: anywhere; }
