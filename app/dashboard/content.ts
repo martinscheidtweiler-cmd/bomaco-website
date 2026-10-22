@@ -148,34 +148,34 @@ export function relevantProfiles(
   ]);
   return profiles.filter((p) => names.has(p.normalized_name));
 }
+/** Only fixed PWeb settings require re-installation. Description, pedigree and
+ * horse videos are fetched live by the embedded lot page. */
 export function signature(
-  pedigree: PedigreeRecord, lot: LotData | undefined,
-  site: SiteCode | undefined, profiles: HorseProfile[],
+  pedigree: PedigreeRecord, _lot: LotData | undefined,
+  site: SiteCode | undefined, _profiles: HorseProfile[],
 ): string {
   const body = JSON.stringify([
-    pedigree.updated_at, pedigree.horses, pedigree.public_token, pedigree.is_published,
-    lot?.updated_at || "", lot?.description || "",
-    site?.updated_at || "", site?.base_code || "", site?.heights || "", site?.crop || "",
-    ...relevantProfiles(pedigree.horses, lot?.description || defaultDescription(pedigree.horses), profiles)
-      .sort((a, b) => a.normalized_name.localeCompare(b.normalized_name))
-      .map((p) => [p.normalized_name, p.video_url, p.updated_at]),
+    "live-lot-iframe-v3", pedigree.public_token, pedigree.is_published,
+    site?.site || "", site?.updated_at || "", site?.base_code || "",
+    site?.heights || "", site?.crop ?? "",
   ]);
   let hash = 2166136261;
   for (let i = 0; i < body.length; i++) {
     hash ^= body.charCodeAt(i);
     hash = Math.imul(hash, 16777619);
   }
-  return "v2-" + (hash >>> 0).toString(16);
+  return "v3-" + (hash >>> 0).toString(16);
 }
 
-/** Generate safe, complete PWeb code with horse-specific videos and original CSS. */
+/** One-time PWeb installation. Future lot content and videos load from
+ * /lot/live/[token] and never get baked into this PWeb source. */
 export function generatePWebCode(
-  pedigree: PedigreeRecord, description: LotDescription,
-  site: SiteCode, profiles: HorseProfile[],
+  pedigree: PedigreeRecord, _description: LotDescription,
+  site: SiteCode, _profiles: HorseProfile[],
 ): string {
-  const pedigreeUrl = pedigree.is_published && pedigree.public_token
-    ? "https://optimusauction.vercel.app/pedigree/live/" + encodeURIComponent(pedigree.public_token)
-    : "";
+  const token = encodeURIComponent(pedigree.public_token || "");
+  const iframeUrl = "https://optimusauction.vercel.app/lot/live/" + token +
+    "?site=" + encodeURIComponent(site.site);
   const heights = safeHeights(site.heights);
   const crop = numberOr(site.crop, 265);
   const css = [
@@ -184,40 +184,40 @@ export function generatePWebCode(
       "(min-width:768px) and (max-width:991px)", "(min-width:600px) and (max-width:767px)",
       "(min-width:480px) and (max-width:599px)", "(min-width:431px) and (max-width:479px)",
       "(min-width:360px) and (max-width:430px)", "(max-width:359px)",
-    ].map((query, i) => "@media " + query + "{#IframeWrapper{--hippomundo-height:" + heights[i + 1] + "px!important}}"),
-    ".optimus-description .optimus-extended-note{margin:3px 0 6px 20px;font-style:italic;font-weight:400}",
-    ".optimus-description .optimus-horse-sublist{list-style-type:circle;padding-left:32px;margin-top:8px}",
-    ".optimus-description .optimus-horse-video-name{display:inline-flex!important;flex-wrap:wrap!important;align-items:center!important;gap:4px!important;vertical-align:middle!important;border:0!important;border-radius:0!important;background:transparent!important;color:inherit!important;font:inherit!important;font-weight:inherit!important;line-height:inherit!important;text-align:left!important;padding:0!important;margin:0!important;cursor:pointer!important;white-space:normal!important}",
-    ".optimus-description .optimus-horse-video-name:hover .optimus-horse-video-label{text-decoration:underline!important;text-underline-offset:2px}",
-    ".optimus-description .optimus-horse-video-name:focus-visible{outline:2px solid currentColor!important;outline-offset:2px}",
-    ".optimus-description .optimus-horse-video-label{color:inherit!important;font:inherit!important;font-weight:inherit!important}",
-    ".optimus-description .optimus-horse-video-name .camas-youtube-icon{display:inline-flex!important;align-items:center!important;justify-content:center!important;flex:none!important;background:#ff0033!important;color:#fff!important;border-radius:3px!important;width:13px!important;height:10px!important;font-size:7px!important}",
-    "#optimus-managed-video-overlay{position:fixed!important;inset:0!important;z-index:2147483647!important;display:none!important;align-items:center!important;justify-content:center!important;background:rgba(0,0,0,.92)!important;padding:20px!important;box-sizing:border-box!important}",
-    "#optimus-managed-video-overlay.is-open{display:flex!important}",
-    "#optimus-managed-video-overlay .optimus-managed-frame{width:min(100%,720px)!important;aspect-ratio:16/9!important;position:relative!important}",
-    "#optimus-managed-video-overlay iframe{position:absolute!important;width:100%!important;height:100%!important;inset:0!important;border:0!important}",
-    "#optimus-managed-video-close{position:fixed!important;top:22px!important;right:22px!important;width:42px!important;height:42px!important;color:#111!important;background:#fff!important;border:0!important;border-radius:50%!important;font-size:26px!important;cursor:pointer!important}",
-    "@media(max-width:767px){#optimus-managed-video-overlay{padding:0!important}#optimus-managed-video-overlay .optimus-managed-frame{width:100%!important}#optimus-managed-video-close{top:calc(15px + env(safe-area-inset-top))!important;right:15px!important}}",
-    "@media(min-width:992px){.col-lg-8 .bg-light-gray:has(>a[href='#videos']),.col-md-8 .bg-light-gray:has(>a[href='#videos']),.col-lg-8 .bg-light-grey:has(>a[href='#videos']),.col-md-8 .bg-light-grey:has(>a[href='#videos']){display:none!important}}",
+    ].map((q,i) => "@media " + q + "{#IframeWrapper{--hippomundo-height:" + heights[i+1] + "px!important}}"),
+    ".optimus-live-embed,.optimus-live-wide{display:block!important;width:100%!important;max-width:100%!important;margin:0!important;padding:0!important;box-sizing:border-box!important;background:#fff!important;border:0!important;box-shadow:none!important}",
+    ".optimus-live-embed iframe{display:block!important;width:100%!important;max-width:100%!important;height:900px;border:0!important;margin:0!important;padding:0!important;overflow:hidden!important;background:#fff!important}",
+    ".optimus-live-wide{clear:both!important;padding:0 15px!important}",
+    ".optimus-live-wide::after{content:'';display:table;clear:both}",
+    "#optimus-live-video-overlay{display:none!important;position:fixed!important;inset:0!important;z-index:2147483647!important;align-items:center!important;justify-content:center!important;background:rgba(0,0,0,.93)!important;padding:16px!important;box-sizing:border-box!important}",
+    "#optimus-live-video-overlay.open{display:flex!important}",
+    "#optimus-live-video-overlay .optimus-video-frame{width:min(96vw,800px)!important;aspect-ratio:16/9!important;position:relative!important}",
+    "#optimus-live-video-overlay iframe{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;border:0!important}",
+    "#optimus-live-video-overlay button{position:fixed!important;right:20px!important;top:20px!important;border:0!important;border-radius:50%!important;background:#fff!important;color:#111!important;width:42px!important;height:42px!important;font-size:26px!important;cursor:pointer!important}",
+    "@media(max-width:767px){#optimus-live-video-overlay{padding:0!important}#optimus-live-video-overlay .optimus-video-frame{width:100vw!important}#optimus-live-video-overlay button{top:calc(15px + env(safe-area-inset-top))!important;right:15px!important}}",
   ].join("\n");
-  const markup = descriptionHtml(description, profiles);
-  const payload = JSON.stringify({ markup, pedigreeUrl, site: site.site }).replace(/</g, "\\u003c");
-  const fallback = '<div class="optimus-description"></div>\n<div class="optimus-pedigree-container"><iframe class="optimus-pedigree" width="100%" height="650" scrolling="no" style="border:0"></iframe></div>';
+  const embed = '<div class="optimus-live-embed">' +
+    '<iframe class="optimus-live-lot-iframe" src="' + iframeUrl +
+    '" title="' + escapeHtml(pedigree.name) + ' - Live description and pedigree"' +
+    ' width="100%" height="900" scrolling="no" loading="eager"' +
+    ' style="display:block;width:100%;height:900px;border:0;overflow:hidden"></iframe></div>';
   const marker = "<!-- OPTIMUS DASHBOARD MANAGED CONTENT START -->";
-  const rawBase = (site.base_code || fallback).split(marker)[0];
-  const descriptionStart = rawBase.indexOf('<div class="optimus-description">');
-  const styleStart = descriptionStart >= 0 ? rawBase.indexOf("<style>", descriptionStart) : -1;
-  const withDescription = descriptionStart >= 0 && styleStart > descriptionStart
-    ? rawBase.slice(0, descriptionStart) +
-      '<div class="optimus-description">\n' + markup + "\n</div>\n\n" +
-      rawBase.slice(styleStart)
-    : rawBase;
-  // Old PWeb scripts moved the bid and gallery DOM and caused loading loops.
-  // The safe version already tested on PWeb leaves this structure intact.
-  const safeBase = withDescription.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "");
-  const runtime = "(function(){\n\"use strict\";\nvar config=__OPTIMUS_CONFIG__;\nfunction apply(){\n var desc=document.querySelector(\".optimus-description\");\n if(desc&&!desc.hasAttribute(\"data-dashboard-markup\")){\n  if(desc.innerHTML!==config.markup)desc.innerHTML=config.markup;\n  desc.setAttribute(\"data-dashboard-markup\",\"v2\");\n }\n var frame=document.querySelector(\"iframe.optimus-pedigree\");\n if(frame&&config.pedigreeUrl&&frame.getAttribute(\"src\")!==config.pedigreeUrl)frame.setAttribute(\"src\",config.pedigreeUrl);\n}\nvar previousOverflow=null;\nfunction closeVideo(){\n var el=document.getElementById(\"optimus-managed-video-overlay\");\n if(el){el.classList.remove(\"is-open\");var f=el.querySelector(\"iframe\");if(f)f.setAttribute(\"src\",\"about:blank\");}\n if(previousOverflow!==null){document.body.style.overflow=previousOverflow;previousOverflow=null;}\n}\nfunction openVideo(id){\n if(!/^[A-Za-z0-9_-]{11}$/.test(id||\"\"))return;\n var overlay=document.getElementById(\"optimus-managed-video-overlay\");\n if(!overlay){\n  overlay=document.createElement(\"div\");overlay.id=\"optimus-managed-video-overlay\";\n  overlay.setAttribute(\"role\",\"dialog\");overlay.setAttribute(\"aria-modal\",\"true\");\n  overlay.setAttribute(\"aria-label\",\"Paardenvideo\");\n  overlay.innerHTML='<div class=\"optimus-managed-frame\"><iframe title=\"Horse video\" src=\"about:blank\" allow=\"autoplay;encrypted-media;picture-in-picture;fullscreen\" allowfullscreen></iframe></div><button type=\"button\" id=\"optimus-managed-video-close\" aria-label=\"Sluit video\">&times;</button>';\n  document.body.appendChild(overlay);\n }\n var f=overlay.querySelector(\"iframe\");\n if(!f)return;\n f.setAttribute(\"src\",\"https://www.youtube-nocookie.com/embed/\"+id+\"?autoplay=1&rel=0\");\n overlay.classList.add(\"is-open\");\n if(previousOverflow===null)previousOverflow=document.body.style.overflow;\n document.body.style.overflow=\"hidden\";\n}\ndocument.addEventListener(\"click\",function(event){\n var target=event.target;if(!target||!target.closest)return;\n var button=target.closest(\".optimus-managed-video\");\n if(button){event.preventDefault();openVideo(button.getAttribute(\"data-youtube\"));return;}\n if(target.id===\"optimus-managed-video-close\"||target.id===\"optimus-managed-video-overlay\")closeVideo();\n});\ndocument.addEventListener(\"keydown\",function(event){if(event.key===\"Escape\")closeVideo();});\nwindow.addEventListener(\"message\",function(event){\n if(event.origin!==\"https://optimusauction.vercel.app\")return;\n var iframe=document.querySelector(\"iframe.optimus-pedigree\");\n if(!iframe||event.source!==iframe.contentWindow)return;\n var data=event.data;\n if(data&&data.type===\"optimus:pedigree-horse-video\"){openVideo(data.videoId);if(event.source&&event.source.postMessage)event.source.postMessage({type:\"optimus:pedigree-video-opened\",videoId:data.videoId},event.origin);}\n});\nfunction removeGreyBar(){\n if(config.site!==\"be\"||window.innerWidth<992)return;\n var desc=document.querySelector(\".optimus-description\");if(!desc)return;\n var d=desc.getBoundingClientRect();\n var nodes=document.querySelectorAll(\".col-lg-8 div,.col-md-8 div\");\n for(var i=0;i<nodes.length;i++){\n  var el=nodes[i];\n  if(el.contains(desc)||el.closest(\".optimus-description,.optimus-pedigree-container,#IframeWrapper\"))continue;\n  if(el.querySelector(\"img,video,canvas,iframe,input,form,.optimus-description,.optimus-pedigree-container\"))continue;\n  var rect=el.getBoundingClientRect();\n  if(rect.width<300||rect.height<18||rect.height>100||rect.bottom>d.top+8||d.top-rect.bottom>160)continue;\n  var color=window.getComputedStyle(el).backgroundColor;\n  var match=color.match(/^rgba?\\(\\s*(\\d+)[,\\s]+(\\d+)[,\\s]+(\\d+)/);\n  if(!match)continue;\n  var r=Number(match[1]),g=Number(match[2]),b=Number(match[3]);\n  if(r<215||r>245||Math.abs(r-g)>3||Math.abs(r-b)>3)continue;\n  if((el.innerText||\"\").trim())continue;\n  var controls=el.querySelectorAll(\"a,button\"),visible=false;\n  for(var j=0;j<controls.length;j++){\n   var c=controls[j],cs=window.getComputedStyle(c),cr=c.getBoundingClientRect();\n   if(cs.display!==\"none\"&&cs.visibility!==\"hidden\"&&cr.width>0&&cr.height>0){visible=true;break;}\n  }\n  if(!visible)el.style.setProperty(\"display\",\"none\",\"important\");\n }\n}\nfunction init(){apply();removeGreyBar();}\nif(document.readyState===\"loading\")document.addEventListener(\"DOMContentLoaded\",init,{once:true});else init();\nwindow.addEventListener(\"load\",init,{once:true});\n})();".replace("__OPTIMUS_CONFIG__", payload);
-  return safeBase + "\n" + marker + "\n" +
+  const base = (site.base_code || "").split(marker)[0];
+  const descriptionStart = base.indexOf('<div class="optimus-description">');
+  const firstStyle = descriptionStart >= 0 ? base.indexOf("<style>", descriptionStart) : -1;
+  // Preserve the site's original styling, top video and Hippomundo rules.
+  // The old static description and duplicate pedigree must not remain.
+  let fixed = descriptionStart >= 0 && firstStyle > descriptionStart
+    ? base.slice(0, descriptionStart) + embed + "\n\n" + base.slice(firstStyle)
+    : embed + "\n" + base;
+  fixed = fixed.replace(/<div\s+class=["']optimus-pedigree-container["'][^>]*>\s*<iframe\b[\s\S]*?<\/iframe>\s*<\/div>/gi, "");
+  fixed = fixed.replace(/<a\b[^>]*class=["']optimus-hippomundo-jump["'][\s\S]*?<\/a>/gi, "");
+  // Old page-mutating scripts caused PWeb to hang; keep only one bounded,
+  // delegated message listener. Do not move PWeb's gallery or bidding widgets.
+  fixed = fixed.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "");
+  const runtime = "(function(){\n\"use strict\";\nif(window.optimusLiveLotInstalled)return;\nwindow.optimusLiveLotInstalled=true;\nvar root=document.querySelector(\".optimus-live-embed\");\nvar iframe=root&&root.querySelector(\"iframe.optimus-live-lot-iframe\");\nif(!root||!iframe)return;\nfunction widen(){\n if(root.closest(\".optimus-live-wide\"))return;\n var n=root;\n while(n&&n!==document.body){\n  if(n.classList&&n.classList.contains(\"row\")){\n   var cols=Array.from(n.children).filter(function(x){return x.matches('[class*=\"col-md-\"],[class*=\"col-lg-\"]');});\n   var gallery=cols.find(function(x){return x.contains(root)&&x.matches(\".col-lg-8,.col-md-8\");});\n   var auction=cols.find(function(x){return x!==gallery&&x.matches(\".col-lg-4,.col-md-4\");});\n   if(gallery&&auction&&n.parentElement){\n    var wide=document.createElement(\"div\");\n    wide.className=\"optimus-live-wide\";\n    n.insertAdjacentElement(\"afterend\",wide);\n    wide.appendChild(root);\n    var hip=document.getElementById(\"IframeWrapper\");\n    if(hip&&gallery.contains(hip))wide.appendChild(hip);\n    return;\n   }\n  }\n  n=n.parentElement;\n }\n}\nvar oldOverflow=null;\nfunction closeVideo(){\n var popup=document.getElementById(\"optimus-live-video-overlay\");\n if(popup){popup.classList.remove(\"open\");var video=popup.querySelector(\"iframe\");if(video)video.src=\"about:blank\";}\n if(oldOverflow!==null){document.body.style.overflow=oldOverflow;oldOverflow=null;}\n}\nfunction video(id){\n if(!/^[A-Za-z0-9_-]{11}$/.test(id||\"\"))return;\n var popup=document.getElementById(\"optimus-live-video-overlay\");\n if(!popup){\n  popup=document.createElement(\"div\");\n  popup.id=\"optimus-live-video-overlay\";\n  popup.setAttribute(\"role\",\"dialog\");\n  popup.setAttribute(\"aria-label\",\"Paardenvideo\");\n  popup.setAttribute(\"aria-modal\",\"true\");\n  popup.innerHTML='<div class=\"optimus-video-frame\"><iframe title=\"Horse video\" src=\"about:blank\" allow=\"autoplay;encrypted-media;picture-in-picture;fullscreen\" allowfullscreen></iframe></div><button type=\"button\" aria-label=\"Close video\">&times;</button>';\n  document.body.appendChild(popup);\n  popup.addEventListener(\"click\",function(e){if(e.target===popup||e.target.closest(\"button\"))closeVideo();});\n }\n var frame=popup.querySelector(\"iframe\");\n if(frame)frame.src=\"https://www.youtube-nocookie.com/embed/\"+id+\"?autoplay=1&rel=0\";\n popup.classList.add(\"open\");\n if(oldOverflow===null)oldOverflow=document.body.style.overflow;\n document.body.style.overflow=\"hidden\";\n}\nwindow.addEventListener(\"message\",function(event){\n if(event.origin!==\"https://optimusauction.vercel.app\"||event.source!==iframe.contentWindow)return;\n var data=event.data;\n if(!data||typeof data!==\"object\")return;\n if(data.type===\"optimus:lot-height\"){\n  var height=Number(data.height);\n  if(Number.isFinite(height)&&height>100&&height<20000)iframe.style.setProperty(\"height\",Math.ceil(height)+\"px\",\"important\");\n }\n if(data.type===\"optimus:hippomundo-jump\"){\n  var hippomundo=document.getElementById(\"IframeWrapper\");\n  if(hippomundo)hippomundo.scrollIntoView({behavior:\"smooth\",block:\"start\"});\n }\n if(data.type===\"optimus:pedigree-horse-video\"&&/^[A-Za-z0-9_-]{11}$/.test(data.videoId||\"\")){\n  video(data.videoId);\n  if(event.source&&event.source.postMessage)event.source.postMessage({type:\"optimus:pedigree-video-opened\",videoId:data.videoId},event.origin);\n }\n});\ndocument.addEventListener(\"keydown\",function(e){if(e.key===\"Escape\")closeVideo();});\nfunction hideEmptyBar(){\n if(window.innerWidth<992)return;\n var desc=document.querySelector(\".optimus-live-embed\");if(!desc)return;\n var ref=desc.getBoundingClientRect();\n document.querySelectorAll(\".col-lg-8 div,.col-md-8 div\").forEach(function(el){\n  if(el.contains(desc)||el.closest(\".optimus-live-embed,.optimus-live-wide,#IframeWrapper\"))return;\n  if(el.querySelector(\"img,video,canvas,iframe,input,form\"))return;\n  var rect=el.getBoundingClientRect();\n  if(rect.width<300||rect.height<18||rect.height>100||rect.bottom>ref.top+8||ref.top-rect.bottom>160)return;\n  var c=window.getComputedStyle(el).backgroundColor.match(/^rgba?\\(\\s*(\\d+)[,\\s]+(\\d+)[,\\s]+(\\d+)/);\n  if(!c)return;\n  var r=Number(c[1]),g=Number(c[2]),b=Number(c[3]);\n  if(r<215||r>245||Math.abs(r-g)>3||Math.abs(r-b)>3)return;\n  if((el.innerText||\"\").trim())return;\n  var visible=Array.from(el.querySelectorAll(\"a,button\")).some(function(a){\n   var s=window.getComputedStyle(a),r=a.getBoundingClientRect();\n   return s.display!==\"none\"&&s.visibility!==\"hidden\"&&r.width>0&&r.height>0;\n  });\n  if(!visible)el.style.setProperty(\"display\",\"none\",\"important\");\n });\n}\nfunction askHeight(){\n if(iframe.contentWindow)iframe.contentWindow.postMessage({type:\"optimus:lot-measure\"},\"https://optimusauction.vercel.app\");\n}\niframe.addEventListener(\"load\",askHeight);\nfunction init(){widen();askHeight();if(\"__SITE__\"===\"be\")hideEmptyBar();}\nif(document.readyState===\"loading\")document.addEventListener(\"DOMContentLoaded\",init,{once:true});else init();\nwindow.addEventListener(\"load\",init,{once:true});\n})();".replace("__SITE__", site.site);
+  return fixed + "\n" + marker + "\n" +
     '<style id="optimus-dashboard-override">\n' + css + "\n</style>\n" +
-    '<script id="optimus-dashboard-script">\n' + runtime + "\n</script>\n" +
+    '<script id="optimus-dashboard-live-runtime">\n' + runtime + "\n</script>\n" +
     "<!-- OPTIMUS DASHBOARD MANAGED CONTENT END -->";
 }

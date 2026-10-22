@@ -309,7 +309,7 @@ export default function AuctionDashboard() {
       description: draftDescription, updated_at: new Date().toISOString(),
     }, { onConflict: "owner_id,pedigree_id" });
     if (error) { setNotice("Beschrijving opslaan mislukt: " + error.message); setIsBusy(false); return; }
-    setNotice("Beschrijving opgeslagen. Controleer de broncodes voor beide websites.");
+    setNotice("Beschrijving opgeslagen. De live iframe haalt wijzigingen automatisch op; PWeb hoeft niet bijgewerkt te worden.");
     setDirtyDescription(false);
     await refresh();
   }
@@ -328,7 +328,7 @@ export default function AuctionDashboard() {
       updated_at: new Date().toISOString(),
     }, { onConflict: "normalized_name" });
     if (error) { setNotice("Video opslaan mislukt: " + error.message); setIsBusy(false); return; }
-    setNotice("Video opgeslagen. De broncodes met dit paard moeten bijgewerkt worden.");
+    setNotice("Paardgegevens opgeslagen. De video's en prestaties worden automatisch bijgewerkt in alle live iframes.");
     await refresh();
   }
 
@@ -345,7 +345,7 @@ export default function AuctionDashboard() {
     }, { onConflict: "owner_id,pedigree_id,site" });
     if (error) { setNotice("Website-instellingen opslaan mislukt: " + error.message); setIsBusy(false); return; }
     setDirtySite(false);
-    setNotice("Instellingen opgeslagen. Kopieer daarna de nieuwe broncode.");
+    setNotice("Hippomundo-/website-instellingen opgeslagen. Kopieer hiervoor opnieuw de vaste PWeb-code.");
     await refresh();
   }
 
@@ -359,7 +359,7 @@ export default function AuctionDashboard() {
     try {
       await navigator.clipboard.writeText(currentCode);
       setCopiedSignature(currentSignature);
-      setNotice("Broncode gekopieerd. Plak hem in het PWeb CMS en bevestig daarna dat hij online staat.");
+      setNotice("Vaste broncode gekopieerd. Plak die in PWeb; wijzigingen aan moederlijn, video's en pedigree volgen nadien automatisch.");
     } catch {
       setNotice("Automatisch kopiëren geblokkeerd. Selecteer de broncode en kopieer handmatig.");
     }
@@ -693,15 +693,15 @@ export default function AuctionDashboard() {
           </section>}
 
           {tab === "sites" && managedSite && <section>
-            <h3>Broncode en Hippomundo</h3>
-            <p className={styles.help}>Iedere website heeft een eigen broncode en publicatiecontrole. Je bestaande PWeb-code blijft als basis behouden.</p>
+            <h3>Vaste PWeb-code & Hippomundo</h3>
+            <p className={styles.help}>Installeer deze vaste broncode per veulen één keer op PWeb. Beschrijving, video's en pedigree verschijnen daarna automatisch via de live iframe. Alleen gewijzigde website-instellingen of Hippomundo-afmetingen vereisen nieuwe code.</p>
             <div className={styles.siteTabs}>
               {SITES.map((s) => <button key={s} className={s === site ? styles.tabActive : ""}
                 onClick={() => { if (dirtySite && !window.confirm("Niet-opgeslagen site-instellingen weggooien?")) return; setSite(s); }}>
                 {SITE_LABEL[s]}</button>)}
             </div>
             <div className={publishedStatus?.needsUpdate ? styles.statusPending : styles.statusDone}>
-              {publishedStatus?.needsUpdate ? "● NIEUWE BRONCODE NODIG" : "✓ LAATSTE VERSIE STAAT ONLINE"}
+              {publishedStatus?.needsUpdate ? "● EENMALIGE PWEB-CODE INSTALLEREN / BIJWERKEN" : "✓ CODE GEPLAATST — LIVE INHOUD WORDT AUTOMATISCH BIJGEWERKT"}
               {publishedStatus?.saved?.applied_at &&
                 <small>Laatste bevestiging: {new Date(publishedStatus.saved.applied_at).toLocaleString("nl-BE")}</small>}
             </div>
@@ -717,24 +717,41 @@ export default function AuctionDashboard() {
                   onChange={(e) => updateSite("crop", Number(e.target.value))} />
               </label>
             </div>
-            <h4>Bestaande PWeb-broncode</h4>
-            <p className={styles.help}>Plak hier één keer de bestaande volledige HTML/CSS-code van deze website. Hierna worden wijzigingen automatisch eraan toegevoegd.</p>
+            {selected.is_published && <p className={styles.help}>
+              <strong>Live voorbeeld:</strong>{" "}
+              <a href={"https://optimusauction.vercel.app/lot/live/" + selected.public_token + "?site=" + site}
+                target="_blank" rel="noopener noreferrer" style={{ textDecoration: "underline" }}>
+                Bekijk actuele beschrijving, video's en pedigree
+              </a>
+            </p>}
+            <h4>Oorspronkelijke PWeb-basiscode</h4>
+            <p className={styles.help}>Deze code is al opgeslagen. Normaal hoef je hier niets aan te veranderen.</p>
             {!managedSite.base_code.trim() && <p className={styles.help}><strong>Verplicht voor de eerste export:</strong> plak de oude broncode, zodat de foto’s, biedbox en bestaande opmaak niet verdwijnen.</p>}
             {!selected.is_published && <p className={styles.help}><strong>Let op:</strong> publiceer ook eerst dit live pedigree op het tabblad Pedigree.</p>}
-            <textarea className={styles.baseCode} spellCheck={false} value={managedSite.base_code}
-              onChange={(e) => updateSite("base_code", e.target.value)}
-              placeholder="Plak hier de volledige huidige PWeb-broncode (HTML, CSS en JavaScript)..." />
-            <button className={styles.primary} disabled={!dirtySite || isBusy} onClick={saveSite}>WEBSITE-INSTELLINGEN OPSLAAN</button>
-            <h4>Gegenereerde volledige broncode</h4>
-            <textarea readOnly spellCheck={false} className={styles.outputCode} value={currentCode}
-              aria-label={"Gegenereerde code voor " + SITE_LABEL[site]} onFocus={(e) => e.currentTarget.select()} />
+            <details>
+              <summary style={{ cursor: "pointer", fontWeight: 700, fontSize: 12, marginBottom: 12 }}>
+                Geavanceerd: oorspronkelijke broncode bekijken of aanpassen
+              </summary>
+              <textarea className={styles.baseCode} spellCheck={false} value={managedSite.base_code}
+                onChange={(e) => updateSite("base_code", e.target.value)}
+                placeholder="Volledige PWeb-broncode..." />
+            </details>
+            <button className={styles.primary} disabled={!dirtySite || isBusy} onClick={saveSite}>HIPPOMUNDO-/WEBSITE-INSTELLINGEN OPSLAAN</button>
+            <h4>Vaste PWeb-code — eenmalig kopiëren</h4>
+            <details>
+              <summary style={{ cursor: "pointer", fontWeight: 700, fontSize: 12, marginBottom: 12 }}>
+                Technische code bekijken (normaal niet nodig)
+              </summary>
+              <textarea readOnly spellCheck={false} className={styles.outputCode} value={currentCode}
+                aria-label={"Gegenereerde code voor " + SITE_LABEL[site]} onFocus={(e) => e.currentTarget.select()} />
+            </details>
             <div className={styles.footerActions}>
               <button className={styles.primary} disabled={isBusy || dirtySite || dirtyDescription || dirtyPedigree || !managedSite.base_code.trim() || !selected.is_published} onClick={copyCode}>
-                <span> <span aria-hidden="true">⧉</span> VOLLEDIGE BRONCODE KOPIËREN</span>
+                <span> <span aria-hidden="true">⧉</span> EENMALIGE PWEB-CODE KOPIËREN</span>
               </button>
               <button className={styles.appliedButton}
                 disabled={isBusy || dirtySite || dirtyDescription || dirtyPedigree || !managedSite.base_code.trim() || !selected.is_published}
-                onClick={markApplied}>✓ IK HEB DE BRONCODE ONLINE GEPLAATST</button>
+                onClick={markApplied}>✓ VASTE CODE STAAT ONLINE</button>
             </div>
             {copiedSignature === currentSignature && <p className={styles.help}>✓ Deze versie is gekopieerd. Vergeet de bevestiging niet na het plakken.</p>}
           </section>}
