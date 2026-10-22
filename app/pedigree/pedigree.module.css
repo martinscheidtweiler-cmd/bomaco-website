@@ -27,8 +27,8 @@
   row-gap: 5px;
 }
 .desktopNode { min-width: 0; position: relative; display: flex; align-items: center; }
-.card { min-width: 0; width: 100%; padding: 5px 5px 6px 0; border-bottom: 1px solid #d0d0d0; }
-.root .card { border-bottom: 1px solid #555; }
+.card { min-width: 0; width: 100%; padding: 5px 5px 6px 0; border-bottom: none; }
+.root .card { border-bottom: none; }
 .name { display: block; font-weight: 700; font-size: 15px; line-height: 1.22; overflow-wrap: anywhere; letter-spacing: -.25px; }
 .root .name { font-size: 18px; }
 .info { display: flex; flex-wrap: wrap; align-items: center; gap: 3px 5px; padding-top: 5px; font-size: 11px; line-height: 1.15; white-space: normal; }
@@ -73,7 +73,7 @@
     min-width: 0;
     width: 100%;
     padding: 4px 0 5px;
-    border-bottom: 1px solid #d0d0d0;
+    border-bottom: none;
   }
   .mobileNode .name {
     font-weight: 700;
