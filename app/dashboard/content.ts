@@ -8,8 +8,8 @@ export const SITE_LABEL: Record<Site, string> = {
   auction: "stal-optimus.auction",
 };
 
-export type LineItem = { horse: string; note: string };
-export type LineSection = { title: string; horse: string; items: LineItem[] };
+export type LineItem = { horse: string; note: string; children?: LineItem[] };
+export type LineSection = { title: string; horse: string; note?: string; notes?: string[]; items: LineItem[] };
 export type LotDescription = { sections: LineSection[] };
 export type HorseProfile = {
   normalized_name: string;
@@ -59,10 +59,16 @@ export function safeDescription(value: unknown, horses: HorseDetails[]): LotDesc
   return { sections: sections.slice(0, 12).map((section) => ({
     title: String(section.title || "").slice(0, 60),
     horse: String(section.horse || "").slice(0, 120),
+    note: String(section.note || "").slice(0, 200),
+    notes: Array.isArray(section.notes) ? section.notes.slice(0, 12).map((line) => String(line).slice(0, 200)) : [],
     items: Array.isArray(section.items)
       ? section.items.slice(0, 50).map((item) => ({
           horse: String(item.horse || "").slice(0, 120),
           note: String(item.note || "").slice(0, 200),
+          children: Array.isArray(item.children) ? item.children.slice(0, 30).map((child) => ({
+            horse: String(child.horse || "").slice(0, 120),
+            note: String(child.note || "").slice(0, 200),
+          })) : [],
         })) : [],
   })) };
 }
@@ -90,7 +96,8 @@ function horseMark(name: string, profiles: HorseProfile[]) {
   const id = youtubeId(video?.video_url || "");
   const rawLevel = (video?.level || "").trim();
   const metricMatch = rawLevel.match(/(?:^|\s)1[.,](\d{2})\s*m?$/i);
-  const jumpLevel = metricMatch ? "1" + metricMatch[1] : rawLevel.replace(/^level\s*/i, "").trim();
+  const wholeCm = rawLevel.match(/(?:^|\s)(1[2-7]\d)\s*(?:cm)?$/i);
+  const jumpLevel = metricMatch ? "1" + metricMatch[1] : wholeCm ? wholeCm[1] : "";
   const birthYear = (video?.birth_year || "").trim();
   const nameHasLevel = jumpLevel && new RegExp("(?:\\s|\\()"+jumpLevel+"\\)?$","i").test(name.trim());
   const detail = jumpLevel && !nameHasLevel ? " " + jumpLevel
@@ -101,14 +108,26 @@ function horseMark(name: string, profiles: HorseProfile[]) {
     "</strong>";
 }
 function descriptionHtml(description: LotDescription, profiles: HorseProfile[]): string {
-  return description.sections.map((section) => {
-    const heading = escapeHtml(section.title) + ": " + horseMark(section.horse, profiles);
-    const lines = section.items.filter((item) => item.horse.trim()).map((item) =>
-      "<li>" + horseMark(item.horse, profiles) +
+  function itemHtml(item: LineItem, allowChildren: boolean): string {
+    if (!item.horse.trim()) return "";
+    const children = allowChildren && (item.children || []).some((child) => child.horse.trim())
+      ? '<ul class="optimus-horse-sublist">' + (item.children || []).map((child) => itemHtml(child, false)).join("") + "</ul>"
+      : "";
+    return "<li>" + (item.horse.trim() === "…" || item.horse.trim() === "..."
+      ? "<span>…</span>" : horseMark(item.horse, profiles)) +
       (item.note.trim() ? ' <span class="optimus-horse-note">' + escapeHtml(item.note) + "</span>" : "") +
-      "</li>").join("");
+      children + "</li>";
+  }
+  return description.sections.map((section) => {
+    const heading = escapeHtml(section.title) + ": " +
+      (section.horse.trim() ? horseMark(section.horse, profiles) : "") +
+      (section.note?.trim() ? ' <span class="optimus-horse-note">' + escapeHtml(section.note) + "</span>" : "");
+    const lines = section.items.map((item) => itemHtml(item, true)).join("");
+    const notes = (section.notes || []).filter(Boolean).map((note) =>
+      '<p class="optimus-extended-note">→ ' + escapeHtml(note) + "</p>").join("");
     return '<div class="optimus-description-section">' +
       '<p class="optimus-description-heading">' + heading + "</p>" +
+      notes +
       (lines ? '<ul class="optimus-horse-list">' + lines + "</ul>" : "") +
       "</div>";
   }).join("");
@@ -122,7 +141,7 @@ export function relevantProfiles(
 ): HorseProfile[] {
   const names = new Set([
     ...horses.map((h) => normalizeHorseName(h.name)),
-    ...description.sections.flatMap((s) => [normalizeHorseName(s.horse), ...s.items.map((i) => normalizeHorseName(i.horse))]),
+    ...description.sections.flatMap((s) => [normalizeHorseName(s.horse), ...s.items.flatMap((i) => [normalizeHorseName(i.horse), ...(i.children || []).map((child) => normalizeHorseName(child.horse))])]),
   ]);
   return profiles.filter((p) => names.has(p.normalized_name));
 }
@@ -165,6 +184,8 @@ export function generatePWebCode(
       "(min-width:480px) and (max-width:599px)", "(min-width:431px) and (max-width:479px)",
       "(min-width:360px) and (max-width:430px)", "(max-width:359px)",
     ].map((query, i) => "@media " + query + "{#IframeWrapper{--hippomundo-height:" + heights[i+1] + "px !important;}}"),
+    ".optimus-description .optimus-extended-note{margin:3px 0 6px 20px;font-style:italic;font-weight:400}",
+    ".optimus-description .optimus-horse-sublist{list-style-type:circle;padding-left:32px;margin-top:8px}",
     ".optimus-description .optimus-managed-video{display:inline-flex!important;vertical-align:middle;border:0!important;background:transparent!important;padding:0 2px!important;cursor:pointer!important}",
     ".optimus-description .optimus-managed-video .camas-youtube-icon{display:inline-flex!important;align-items:center!important;justify-content:center!important;background:#ff0033!important;color:white!important;border-radius:3px!important;width:13px!important;height:10px!important;font-size:7px!important}",
     "#optimus-managed-video-overlay{position:fixed!important;inset:0!important;z-index:2147483647!important;display:none!important;align-items:center!important;justify-content:center!important;background:rgba(0,0,0,.9)!important;padding:20px!important}",
