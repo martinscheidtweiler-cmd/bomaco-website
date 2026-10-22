@@ -46,6 +46,8 @@ export default function AuctionDashboard() {
   const [draftSite, setDraftSite] = useState<SiteCode | null>(null);
   const [profileName, setProfileName] = useState("");
   const [videoUrl, setVideoUrl] = useState("");
+  const [profileLevel, setProfileLevel] = useState("");
+  const [profileYear, setProfileYear] = useState("");
   const [profileFilter, setProfileFilter] = useState("");
   const [isBusy, setIsBusy] = useState(false);
   const [notice, setNotice] = useState("");
@@ -120,6 +122,8 @@ export default function AuctionDashboard() {
     setDirtyDescription(false);
     setProfileName("");
     setVideoUrl("");
+    setProfileLevel("");
+    setProfileYear("");
   // Only swap the editable lot when its selected ID changes or a cloud refresh changes the version.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected?.owner_id, selected?.id, selected?.updated_at, selectedLot?.updated_at]);
@@ -147,12 +151,9 @@ export default function AuctionDashboard() {
   [pedigrees, lots, siteCodes, profiles]);
 
   const matching = pedigrees.filter((p) => p.name.toLowerCase().includes(search.toLowerCase()));
-  const editingProfile = profiles.find((p) => p.normalized_name === normalizeHorseName(profileName));
   const managedSite = selected && draftSite ? draftSite : null;
   const currentCode = selected && managedSite
-    ? generatePWebCode(selected, draftDescription, managedSite, profiles.map((p) =>
-      p.normalized_name === normalizeHorseName(profileName) && profileName && videoUrl !== (editingProfile?.video_url || "")
-        ? { ...p, video_url: videoUrl } : p))
+    ? generatePWebCode(selected, draftDescription, managedSite, profiles)
     : "";
   const publishedStatus = selected ? statusFor(selected, site) : null;
   const currentSignature = selected && managedSite
@@ -238,6 +239,7 @@ export default function AuctionDashboard() {
     setIsBusy(true);
     const { error } = await cloud.from("optimus_auction_horse_profiles").upsert({
       normalized_name, display_name: profileName.trim(), video_url: videoUrl.trim(),
+      level: profileLevel.trim(), birth_year: profileYear.trim(),
       updated_at: new Date().toISOString(),
     }, { onConflict: "normalized_name" });
     if (error) { setNotice("Video opslaan mislukt: " + error.message); setIsBusy(false); return; }
@@ -335,6 +337,9 @@ export default function AuctionDashboard() {
     const existing = profiles.find((p) => p.normalized_name === normalizeHorseName(name));
     setProfileName(name);
     setVideoUrl(existing?.video_url || "");
+    const fromChart = selected?.horses.find((horse) => normalizeHorseName(horse.name) === normalizeHorseName(name));
+    setProfileLevel(existing?.level ?? fromChart?.level ?? "");
+    setProfileYear(existing?.birth_year ?? fromChart?.year ?? "");
   }
 
   if (!cloud) return <main className={styles.page}><h1>Supabase is niet ingesteld</h1></main>;
@@ -460,10 +465,17 @@ export default function AuctionDashboard() {
                 setProfileName(name);
                 const found = profiles.find((p) => p.normalized_name === normalizeHorseName(name));
                 setVideoUrl(found?.video_url || "");
+                const fromChart = selected?.horses.find((horse) => normalizeHorseName(horse.name) === normalizeHorseName(name));
+                setProfileLevel(found?.level ?? fromChart?.level ?? "");
+                setProfileYear(found?.birth_year ?? fromChart?.year ?? "");
               }} placeholder="Like a Diamond vh Schaeck" /></label>
               <label>YouTube-video URL<input value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)}
                 placeholder="https://youtu.be/..." /></label>
-              <button className={styles.primary} onClick={saveVideo} disabled={isBusy || !profileName.trim()}>VIDEO OPSLAAN / BIJWERKEN</button>
+              <div className={styles.formGrid}>
+                <label>Springniveau<input value={profileLevel} maxLength={30} onChange={(e) => setProfileLevel(e.target.value)} placeholder="bv. 165 of level 1.60m" /></label>
+                <label>Geboortejaar<input value={profileYear} maxLength={8} onChange={(e) => setProfileYear(e.target.value)} placeholder="bv. 2020" /></label>
+              </div>
+              <button className={styles.primary} onClick={saveVideo} disabled={isBusy || !profileName.trim()}>PAARDGEGEVENS OPSLAAN / BIJWERKEN</button>
             </div>
           </section>}
 
