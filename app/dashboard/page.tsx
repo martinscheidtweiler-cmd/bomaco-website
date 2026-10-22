@@ -18,6 +18,7 @@ const cloud = process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SU
   : null;
 
 type Tab = "pedigree" | "description" | "videos" | "sites";
+type HorseDescriptionEdit = { display_name: string; level: string; video_url: string; birth_year: string };
 
 function makeSite(pedigree: PedigreeRecord, site: Site): SiteCode {
   return {
@@ -43,6 +44,7 @@ export default function AuctionDashboard() {
   const [site, setSite] = useState<Site>("auction");
   const [draftHorses, setDraftHorses] = useState<HorseDetails[]>([]);
   const [draftDescription, setDraftDescription] = useState<LotDescription>({ sections: [] });
+  const [descriptionHorseEdits, setDescriptionHorseEdits] = useState<Record<string, HorseDescriptionEdit>>({});
   const [draftSite, setDraftSite] = useState<SiteCode | null>(null);
   const [profileName, setProfileName] = useState("");
   const [videoUrl, setVideoUrl] = useState("");
@@ -120,6 +122,7 @@ export default function AuctionDashboard() {
     ));
     setDirtyPedigree(false);
     setDirtyDescription(false);
+    setDescriptionHorseEdits({});
     setProfileName("");
     setVideoUrl("");
     setProfileLevel("");
@@ -178,6 +181,37 @@ export default function AuctionDashboard() {
       i === section ? { ...s, items: [...s.items, { horse: "", note: "" }] } : s) }));
     setDirtyDescription(true);
   }
+  function moveItem(section: number, index: number, direction: -1 | 1) {
+    setDraftDescription((prev) => ({ sections: prev.sections.map((s, i) => {
+      if (i !== section) return s;
+      const target = index + direction;
+      if (target < 0 || target >= s.items.length) return s;
+      const items = [...s.items];
+      [items[index], items[target]] = [items[target], items[index]];
+      return { ...s, items };
+    }) }));
+    setDirtyDescription(true);
+  }
+  function descriptionHorse(name: string): HorseDescriptionEdit {
+    const normalized = normalizeHorseName(name);
+    const found = profiles.find((p) => p.normalized_name === normalized);
+    const fromPedigree = selected?.horses.find((horse) => normalizeHorseName(horse.name) === normalized);
+    return descriptionHorseEdits[normalized] || {
+      display_name: name,
+      level: found?.level || fromPedigree?.level || "",
+      birth_year: found?.birth_year || fromPedigree?.year || "",
+      video_url: found?.video_url || "",
+    };
+  }
+  function updateDescriptionHorse(name: string, field: "level" | "video_url" | "birth_year", value: string) {
+    const normalized = normalizeHorseName(name);
+    if (!normalized) return;
+    setDescriptionHorseEdits((before) => {
+      const current = before[normalized] || descriptionHorse(name);
+      return { ...before, [normalized]: { ...current, display_name: name.trim(), [field]: value } };
+    });
+    setDirtyDescription(true);
+  }
   function removeItem(section: number, item: number) {
     setDraftDescription((prev) => ({ sections: prev.sections.map((s, i) =>
       i === section ? { ...s, items: s.items.filter((_, j) => j !== item) } : s) }));
@@ -218,7 +252,34 @@ export default function AuctionDashboard() {
 
   async function saveDescription() {
     if (!cloud || !selected || isBusy) return;
+    const listedNames = new Set(draftDescription.sections.flatMap((section) =>
+      [section.horse, ...section.items.map((item) => item.horse)].map(normalizeHorseName)));
+    const profileChanges = Object.entries(descriptionHorseEdits)
+      .filter(([key]) => listedNames.has(key))
+      .map(([normalized_name, changed]) => ({
+        normalized_name,
+        display_name: changed.display_name.trim(),
+        level: changed.level.trim(),
+        birth_year: changed.birth_year.trim(),
+        video_url: changed.video_url.trim(),
+        updated_at: new Date().toISOString(),
+      }));
+
+    if (profileChanges.some((profile) =>
+      profile.video_url && !/^https:\/\/(www\.)?(youtu\.be|youtube\.com|youtube-nocookie\.com|m\.youtube\.com)\//i.test(profile.video_url))) {
+      setNotice("Controleer de YouTube-links: gebruik https://youtu.be/... of een normale YouTube-link.");
+      return;
+    }
     setIsBusy(true);
+    if (profileChanges.length) {
+      const { error: profileError } = await cloud.from("optimus_auction_horse_profiles")
+        .upsert(profileChanges, { onConflict: "normalized_name" });
+      if (profileError) {
+        setNotice("De gedeelde paardgegevens konden niet worden opgeslagen: " + profileError.message);
+        setIsBusy(false);
+        return;
+      }
+    }
     const { error } = await cloud.from("optimus_auction_lot_descriptions").upsert({
       owner_id: selected.owner_id, pedigree_id: selected.id,
       description: draftDescription, updated_at: new Date().toISOString(),
@@ -427,25 +488,108 @@ export default function AuctionDashboard() {
           </section>}
 
           {tab === "description" && <section>
-            <h3>Beschrijving en damline</h3>
-            <p className={styles.help}>Deze informatie wordt op beide websites gebruikt. Video-icoontjes verschijnen automatisch bij paarden met een opgeslagen YouTube-link.</p>
-            {draftDescription.sections.map((section, i) => <div className={styles.descriptionBlock} key={i}>
-              <div className={styles.formGrid}>
-                <label>Sectie<input value={section.title} onChange={(e) => updateSection(i, "title", e.target.value)} /></label>
-                <label>Paard<input value={section.horse} onChange={(e) => updateSection(i, "horse", e.target.value)} placeholder="Naam moeder / vader" /></label>
-              </div>
-              {section.items.map((item, j) => <div className={styles.itemRow} key={j}>
-                <input aria-label="Paard" value={item.horse} onChange={(e) => updateItem(i, j, "horse", e.target.value)} placeholder="Paard (bv. Like a Diamond vh Schaeck)" />
-                <input aria-label="Opmerking" value={item.note} onChange={(e) => updateItem(i, j, "note", e.target.value)} placeholder="Opmerking (bv. CSI5* GP WINNER)" />
-                <button aria-label="Verwijder paard" onClick={() => removeItem(i, j)}>×</button>
-              </div>)}
-              <button className={styles.linkButton} onClick={() => addItem(i)}>+ PAARD TOEVOEGEN</button>
-            </div>)}
-            <button className={styles.linkButton} onClick={() => {
+            <h3>Beschrijving & moederlijn</h3>
+            <p className={styles.help}>
+              Vul bij elke moeder in welke paarden ze heeft gegeven. Voeg zoveel nakomelingen toe als nodig.
+              Springniveau en video zijn centrale paardgegevens: wijzigingen verschijnen ook bij andere loten.
+            </p>
+            <datalist id="optimus-description-known-horses">
+              {profiles.map((p) => <option key={p.normalized_name} value={p.display_name} />)}
+            </datalist>
+            {draftDescription.sections.map((section, i) => {
+              const isSire = section.title.trim().toUpperCase() === "SIRE";
+              const motherInfo = descriptionHorse(section.horse);
+              return <div className={styles.damBlock} key={i}>
+                <div className={styles.damTitle}>
+                  <span className={styles.damIndex}>{section.title || "DAMLINE"}</span>
+                  <span className={styles.damCount}>{isSire ? "Vader" : section.items.length + " nakomelingen"}</span>
+                </div>
+                <div className={styles.damHorseFields}>
+                  <label>Onderdeel
+                    <input value={section.title} maxLength={60} onChange={(e) => updateSection(i, "title", e.target.value)} />
+                  </label>
+                  <label>{isSire ? "Naam vader" : "Naam moeder"}
+                    <input value={section.horse} list="optimus-description-known-horses" maxLength={120}
+                      onChange={(e) => updateSection(i, "horse", e.target.value)} placeholder="Naam paard" />
+                  </label>
+                  <label>Springniveau
+                    <input value={motherInfo.level} maxLength={30} disabled={!section.horse.trim()}
+                      onChange={(e) => updateDescriptionHorse(section.horse, "level", e.target.value)} placeholder="bv. 160" />
+                  </label>
+                  <label>YouTube-video (optioneel)
+                    <input value={motherInfo.video_url} disabled={!section.horse.trim()}
+                      onChange={(e) => updateDescriptionHorse(section.horse, "video_url", e.target.value)} placeholder="https://youtu.be/..." />
+                  </label>
+                </div>
+                {!isSire && <>
+                  <div className={styles.offspringHeading}>
+                    <div><strong>Nakomelingen van {section.horse.trim() || "deze moeder"}</strong>
+                      <small>Per paard: naam, niveau, prestaties en optioneel video</small></div>
+                    <button className={styles.addOffspring} type="button" onClick={() => addItem(i)}>+ NAKOMELING TOEVOEGEN</button>
+                  </div>
+                  {section.items.length === 0 && <div className={styles.emptyOffspring}>
+                    Nog geen nakomelingen toegevoegd. Gebruik de knop hierboven om de eerste toe te voegen.
+                  </div>}
+                  {section.items.map((item, j) => {
+                    const details = descriptionHorse(item.horse);
+                    return <div className={styles.offspringRow} key={j}>
+                      <div className={styles.offspringTop}>
+                        <span className={styles.offspringNumber}>{String(j + 1).padStart(2, "0")}</span>
+                        <span className={styles.offspringNamePreview}>{item.horse || "Nieuwe nakomeling"}</span>
+                        <div className={styles.offspringTools}>
+                          <button type="button" disabled={j === 0} aria-label="Nakomeling omhoog" onClick={() => moveItem(i, j, -1)}>↑</button>
+                          <button type="button" disabled={j === section.items.length - 1} aria-label="Nakomeling omlaag" onClick={() => moveItem(i, j, 1)}>↓</button>
+                          <button type="button" aria-label="Nakomeling verwijderen" onClick={() => removeItem(i, j)}>×</button>
+                        </div>
+                      </div>
+                      <div className={styles.offspringFields}>
+                        <label>Naam paard
+                          <input value={item.horse} list="optimus-description-known-horses" maxLength={120}
+                            onChange={(e) => updateItem(i, j, "horse", e.target.value)}
+                            placeholder="bv. Like a Diamond vh Schaeck" />
+                        </label>
+                        <label>Niveau
+                          <input value={details.level} maxLength={30} disabled={!item.horse.trim()}
+                            onChange={(e) => updateDescriptionHorse(item.horse, "level", e.target.value)}
+                            placeholder="bv. 165" />
+                        </label>
+                        <label>Prestaties / extra info
+                          <input value={item.note} maxLength={200}
+                            onChange={(e) => updateItem(i, j, "note", e.target.value)}
+                            placeholder="bv. CSI5* GP WINNER / BWP approved" />
+                        </label>
+                        <label>Video (YouTube)
+                          <input value={details.video_url} disabled={!item.horse.trim()}
+                            onChange={(e) => updateDescriptionHorse(item.horse, "video_url", e.target.value)}
+                            placeholder="https://youtu.be/..." />
+                        </label>
+                      </div>
+                    </div>;
+                  })}
+                </>}
+              </div>;
+            })}
+            <button className={styles.linkButton} type="button" onClick={() => {
               setDraftDescription((prev) => ({ sections: [...prev.sections, { title: "DAMLINE", horse: "", items: [] }] }));
               setDirtyDescription(true);
-            }}>+ SECTIE TOEVOEGEN</button>
-            <div className={styles.footerActions}><button className={styles.primary} disabled={isBusy || !dirtyDescription} onClick={saveDescription}>BESCHRIJVING OPSLAAN</button></div>
+            }}>+ EXTRA MOEDERLIJN TOEVOEGEN</button>
+
+            <div className={styles.descriptionPreview}>
+              <h4>Voorbeeld van de beschrijving</h4>
+              {draftDescription.sections.map((section, i) => <div key={i}>
+                <strong>{section.title}: {section.horse}
+                  {descriptionHorse(section.horse).level ? " " + descriptionHorse(section.horse).level : ""}</strong>
+                {!!section.items.length && <ul>{section.items.filter((v) => v.horse.trim()).map((item, j) =>
+                  <li key={j}><strong>{item.horse}{descriptionHorse(item.horse).level
+                    ? " " + descriptionHorse(item.horse).level : ""}</strong>
+                    {item.note.trim() && <span> {item.note}</span>}</li>)}</ul>}
+              </div>)}
+            </div>
+            <div className={styles.footerActions}>
+              <button className={styles.primary} type="button" disabled={isBusy || !dirtyDescription}
+                onClick={saveDescription}>VOLLEDIGE BESCHRIJVING OPSLAAN</button>
+              {dirtyDescription && <span className={styles.unsavedWarning}>● Nog niet opgeslagen</span>}
+            </div>
           </section>}
 
           {tab === "videos" && <section>
