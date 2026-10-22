@@ -544,7 +544,7 @@ export default function PedigreeEditor() {
           <h1>Pedigree editor</h1>
           <p>Enter names, jumping levels and optional birth years. Matching a saved sire or dam automatically fills its known ancestors.</p>
         </div>
-        <a className={styles.back} href="/">↗ BACK TO AUCTION</a>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}><a className={styles.back} href="/dashboard">↗ CONTENT DASHBOARD</a><a className={styles.back} href="/">↗ BACK TO AUCTION</a></div>
       </div>
 
       <section className={styles.account} aria-label="Supabase cloud storage">
