@@ -1,4 +1,4 @@
-/* Optimus clean white pedigree theme for live, snapshot and editor previews. */
+/* Optimus minimalist pedigree: bold names, small square charcoal level labels, fine silver-grey branches. */
 .surface {
   min-height: 100vh;
   min-height: 100dvh;
@@ -12,7 +12,7 @@
   width: 100%;
   margin-inline: auto;
   padding: 10px 12px;
-  color: #111;
+  color: #171717;
   background: #fff;
   font-family: Arial, Helvetica, sans-serif;
 }
@@ -27,24 +27,24 @@
   row-gap: 5px;
 }
 .desktopNode { min-width: 0; position: relative; display: flex; align-items: center; }
-.card { min-width: 0; width: 100%; padding: 5px 5px 6px 0; border-bottom: 1px solid #bcbcbc; }
-.root .card { border-bottom: 2px solid #111; }
+.card { min-width: 0; width: 100%; padding: 5px 5px 6px 0; border-bottom: 1px solid #d0d0d0; }
+.root .card { border-bottom: 1px solid #555; }
 .name { display: block; font-weight: 700; font-size: 15px; line-height: 1.22; overflow-wrap: anywhere; letter-spacing: -.25px; }
 .root .name { font-size: 18px; }
-.info { display: block; padding-top: 4px; font-size: 12px; line-height: 1.15; white-space: normal; }
-.level { font-weight: 750; color: #111; }
-.separator, .year { font-weight: 400; color: #666; }
+.info { display: flex; flex-wrap: wrap; align-items: center; gap: 3px 5px; padding-top: 5px; font-size: 11px; line-height: 1.15; white-space: normal; }
+.level { display: inline-block; width: max-content; max-width: 100%; padding: 3px 6px; background: #272727; color: #fff; border: 0; border-radius: 0; font-size: 10px; line-height: 1.1; font-weight: 500; letter-spacing: 0; text-transform: none; white-space: nowrap; }
+.separator, .year { font-weight: 400; color: #777; }
 .child::before {
   position: absolute; content: ""; width: 12px; left: -12px;
-  top: 50%; border-top: 1px solid #a8a8a8;
+  top: 50%; border-top: 1px solid #c1c1c1;
 }
 .fork {
   position: absolute; right: -12px; top: 25%; height: 50%;
-  border-right: 1px solid #a8a8a8; pointer-events: none;
+  border-right: 1px solid #c1c1c1; pointer-events: none;
 }
 .fork::after {
   position: absolute; content: ""; width: 12px; left: -12px;
-  top: 50%; border-top: 1px solid #a8a8a8;
+  top: 50%; border-top: 1px solid #c1c1c1;
 }
 .mobile { display: none; }
 
@@ -73,10 +73,10 @@
     min-width: 0;
     width: 100%;
     padding: 4px 0 5px;
-    border-bottom: 1px solid #bcbcbc;
+    border-bottom: 1px solid #d0d0d0;
   }
   .mobileNode .name {
-    font-weight: 400;
+    font-weight: 700;
     letter-spacing: -.2px;
     line-height: 1.22;
     font-size: clamp(10.5px, 2.8vw, 15px);
@@ -84,12 +84,13 @@
   }
   .mobileNode .info {
     font-size: clamp(9px, 2.35vw, 12px);
-    padding-top: 3px;
+    gap: 3px;
+    padding-top: 4px;
     line-height: 1.18;
   }
-  .mobileNode .level { font-weight: 700; }
-  .mobileParent .name { font-size: clamp(11px, 3.1vw, 17px); font-weight: 600; }
-  .mobileGrandparent .name { font-size: clamp(10.5px, 2.9vw, 16px); font-weight: 500; }
+  .mobileNode .level { font-size: clamp(8px, 2.15vw, 10px); font-weight: 500; padding: 2px 4px; border-radius: 0; }
+  .mobileParent .name { font-size: clamp(11px, 3.1vw, 17px); font-weight: 700; }
+  .mobileGrandparent .name { font-size: clamp(10.5px, 2.9vw, 16px); font-weight: 700; }
 
   /* Connect the middle of each parent pair to the next generation. */
   .mobileParent::after, .mobileGrandparent::after {
@@ -98,7 +99,7 @@
     top: 25%;
     height: 50%;
     right: -8px;
-    border-right: 1px solid #a8a8a8;
+    border-right: 1px solid #c1c1c1;
     pointer-events: none;
   }
   .mobileGrandparent::before, .mobileAncestor::before {
@@ -107,7 +108,7 @@
     top: 50%;
     left: -8px;
     width: 8px;
-    border-top: 1px solid #a8a8a8;
+    border-top: 1px solid #c1c1c1;
     pointer-events: none;
   }
 }
