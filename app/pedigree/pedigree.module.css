@@ -1,19 +1,19 @@
-/* Matches the light neutral grey supplied for the standalone pedigree. */
+/* Optimus black-and-white pedigree theme, used by static, live and editor previews. */
 .surface {
   min-height: 100vh;
   min-height: 100dvh;
   display: flex;
   align-items: safe center;
   justify-content: center;
-  background: #eaeaea;
+  background: #000;
   overflow-x: clip;
 }
 .wrapper {
   width: 100%;
   margin-inline: auto;
   padding: 10px 12px;
-  color: #111;
-  background: #eaeaea;
+  color: #fff;
+  background: #000;
   font-family: Arial, Helvetica, sans-serif;
 }
 .desktop {
@@ -27,24 +27,24 @@
   row-gap: 5px;
 }
 .desktopNode { min-width: 0; position: relative; display: flex; align-items: center; }
-.card { min-width: 0; width: 100%; padding: 5px 5px 6px 0; border-bottom: 1px solid #bfbfbf; }
-.root .card { border-bottom: 2px solid #111; }
+.card { min-width: 0; width: 100%; padding: 5px 5px 6px 0; border-bottom: 1px solid #777; }
+.root .card { border-bottom: 2px solid #fff; }
 .name { display: block; font-weight: 700; font-size: 15px; line-height: 1.22; overflow-wrap: anywhere; letter-spacing: -.25px; }
 .root .name { font-size: 18px; }
 .info { display: block; padding-top: 4px; font-size: 12px; line-height: 1.15; white-space: normal; }
-.level { font-weight: 750; color: #111; }
-.separator, .year { font-weight: 400; color: #777; }
+.level { font-weight: 750; color: #fff; }
+.separator, .year { font-weight: 400; color: #c3c3c3; }
 .child::before {
   position: absolute; content: ""; width: 12px; left: -12px;
-  top: 50%; border-top: 1px solid #b8b8b8;
+  top: 50%; border-top: 1px solid #858585;
 }
 .fork {
   position: absolute; right: -12px; top: 25%; height: 50%;
-  border-right: 1px solid #b8b8b8; pointer-events: none;
+  border-right: 1px solid #858585; pointer-events: none;
 }
 .fork::after {
   position: absolute; content: ""; width: 12px; left: -12px;
-  top: 50%; border-top: 1px solid #b8b8b8;
+  top: 50%; border-top: 1px solid #858585;
 }
 .mobile { display: none; }
 
@@ -73,7 +73,7 @@
     min-width: 0;
     width: 100%;
     padding: 4px 0 5px;
-    border-bottom: 1px solid #bdbdbd;
+    border-bottom: 1px solid #777;
   }
   .mobileNode .name {
     font-weight: 400;
@@ -98,7 +98,7 @@
     top: 25%;
     height: 50%;
     right: -8px;
-    border-right: 1px solid #b5b5b5;
+    border-right: 1px solid #858585;
     pointer-events: none;
   }
   .mobileGrandparent::before, .mobileAncestor::before {
@@ -107,7 +107,7 @@
     top: 50%;
     left: -8px;
     width: 8px;
-    border-top: 1px solid #b5b5b5;
+    border-top: 1px solid #858585;
     pointer-events: none;
   }
 }
