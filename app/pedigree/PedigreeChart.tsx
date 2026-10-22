@@ -1,7 +1,10 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import styles from "./pedigree.module.css";
 import type { HorseDetails } from "./pedigree-data";
 
-type Props = { horses: HorseDetails[] };
+type Props = { horses: HorseDetails[]; videos?: string[] };
 
 /* Four generations on desktop; mobile starts with parents and includes great-grandparents. */
 const desktopLayout = [
@@ -26,10 +29,24 @@ const mobileLayout = [
   ...Array.from({ length: 8 }, (_, i) => ({ col: 3, row: i + 1, span: 1 })),
 ]
 
-function HorseText({ horse }: { horse: HorseDetails }) {
+function HorseText({ horse, videoId, openVideo }: {
+  horse: HorseDetails;
+  videoId?: string;
+  openVideo: (videoId: string) => void;
+}) {
+  const name = horse.name.trim() || "—";
   return (
     <>
-      <span className={styles.name}>{horse.name.trim() || "—"}</span>
+      <span className={styles.name}>
+        {videoId ? (
+          <button type="button" className={styles.videoName}
+            aria-label={"Bekijk video van " + name}
+            onClick={() => openVideo(videoId)}>
+            <span>{name}</span>
+            <span className={styles.youtubeBadge} aria-hidden="true">▶</span>
+          </button>
+        ) : name}
+      </span>
       {(horse.level.trim() || horse.year.trim()) && (
         <span className={styles.info}>
           {horse.level.trim() && <strong className={styles.level}>{horse.level.trim()}</strong>}
@@ -41,7 +58,37 @@ function HorseText({ horse }: { horse: HorseDetails }) {
   );
 }
 
-export default function PedigreeChart({ horses }: Props) {
+export default function PedigreeChart({ horses, videos = [] }: Props) {
+  const [activeVideo, setActiveVideo] = useState<string | null>(null);
+  useEffect(() => {
+    if (!activeVideo) return;
+    const keydown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setActiveVideo(null);
+    };
+    document.addEventListener("keydown", keydown);
+    return () => document.removeEventListener("keydown", keydown);
+  }, [activeVideo]);
+  function openVideo(videoId: string) {
+    if (!/^[A-Za-z0-9_-]{11}$/.test(videoId)) return;
+    if (window.parent !== window) {
+      // The parent PWeb source can open a true full-screen popup. Older PWeb
+      // codes without the listener fall back to a local iframe popup.
+      let accepted = false;
+      const onAck = (event: MessageEvent) => {
+        if (event.source === window.parent &&
+            event.data?.type === "optimus:pedigree-video-opened" &&
+            event.data?.videoId === videoId) accepted = true;
+      };
+      window.addEventListener("message", onAck);
+      window.parent.postMessage({ type: "optimus:pedigree-horse-video", videoId }, "*");
+      window.setTimeout(() => {
+        window.removeEventListener("message", onAck);
+        if (!accepted) setActiveVideo(videoId);
+      }, 250);
+    } else {
+      setActiveVideo(videoId);
+    }
+  }
   return (
     <section className={styles.wrapper} aria-label="Horse pedigree">
       <div className={styles.desktop}>
@@ -57,7 +104,7 @@ export default function PedigreeChart({ horses }: Props) {
               key={index}
               style={{ gridColumn: position.col, gridRow: `${position.row} / span ${position.span}` }}
             >
-              <div className={styles.card}><HorseText horse={horse} /></div>
+              <div className={styles.card}><HorseText horse={horse} videoId={videos[index]} openVideo={openVideo} /></div>
               {position.span > 1 && <span className={styles.fork} aria-hidden="true" />}
             </div>
           );
@@ -80,12 +127,24 @@ export default function PedigreeChart({ horses }: Props) {
                 ].join(" ")}
                 style={{ gridColumn: position.col, gridRow: `${position.row} / span ${position.span}` }}
               >
-                <div className={styles.mobileCard}><HorseText horse={horse} /></div>
+                <div className={styles.mobileCard}><HorseText horse={horse} videoId={videos[index]} openVideo={openVideo} /></div>
               </div>
             );
           })}
         </div>
       </div>
+      {activeVideo && (
+        <div className={styles.videoOverlay} role="dialog" aria-modal="true"
+          aria-label="Paardenvideo" onClick={() => setActiveVideo(null)}>
+          <button type="button" className={styles.videoClose} aria-label="Sluit video"
+            onClick={() => setActiveVideo(null)}>×</button>
+          <div className={styles.videoWindow} onClick={(event) => event.stopPropagation()}>
+            <iframe title="Horse video"
+              src={"https://www.youtube-nocookie.com/embed/" + activeVideo + "?autoplay=1&rel=0"}
+              allow="autoplay;encrypted-media;picture-in-picture;fullscreen" allowFullScreen />
+          </div>
+        </div>
+      )}
     </section>
   );
 }

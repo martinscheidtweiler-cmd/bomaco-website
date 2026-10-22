@@ -125,3 +125,56 @@
   .mobileParent::after, .mobileGrandparent::after { right: -6px; }
   .mobileGrandparent::before, .mobileAncestor::before { left: -6px; width: 6px; }
 }
+
+/* Clickable horse names and YouTube icons in the live pedigree. */
+.videoName {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  margin: 0;
+  padding: 0;
+  font: inherit;
+  font-weight: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.videoName:hover > span:first-child { text-decoration: underline; text-underline-offset: 2px; }
+.videoName:focus-visible { outline: 2px solid #333; outline-offset: 2px; }
+.youtubeBadge {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  flex: none;
+  width: 13px;
+  height: 10px;
+  background: #ff0033;
+  color: white;
+  border-radius: 3px;
+  font: 700 7px/1 Arial,sans-serif;
+}
+.videoOverlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2147483647;
+  background: rgba(0,0,0,.92);
+  padding: 16px;
+}
+.videoWindow { position: relative; width: min(96vw,800px); aspect-ratio: 16/9; }
+.videoWindow iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.videoClose {
+  position: fixed; right: 20px; top: 20px; width: 42px; height: 42px; border: 0;
+  border-radius: 50%; background: #fff; color: #111; font-size: 26px; cursor: pointer; z-index: 1;
+}
+@media (max-width:767px) {
+  .videoOverlay { padding: 0; }
+  .videoWindow { width: 100vw; }
+  .videoClose { top: calc(15px + env(safe-area-inset-top)); right: 15px; }
+}

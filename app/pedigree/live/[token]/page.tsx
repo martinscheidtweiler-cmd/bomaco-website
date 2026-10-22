@@ -29,11 +29,10 @@ export default async function LivePedigree({ params }: Props) {
   // Only an explicitly published pedigree may be read anonymously.
   // The RPC exposes its 15 horse entries, never users or private team rows.
   let result: unknown;
+  let videoResult: unknown = [];
   try {
-    const response = await fetch(`${endpoint}/rest/v1/rpc/get_published_pedigree`, {
+    const request = (name: string) => fetch(`${endpoint}/rest/v1/rpc/${name}`, {
       method: "POST",
-      // Supabase publishable keys are not JWTs: send them via apikey only.
-      // Legacy JWT-style anon keys may still be used as Bearer credentials.
       headers: {
         apikey: anonKey,
         ...(anonKey.startsWith("eyJ") ? { Authorization: `Bearer ${anonKey}` } : {}),
@@ -42,13 +41,39 @@ export default async function LivePedigree({ params }: Props) {
       body: JSON.stringify({ p_token: token }),
       cache: "no-store",
     });
+    const [response, videosResponse] = await Promise.all([
+      request("get_published_pedigree"),
+      request("get_published_pedigree_videos"),
+    ]);
     if (!response.ok) notFound();
     result = await response.json();
+    if (videosResponse.ok) videoResult = await videosResponse.json();
   } catch {
     notFound();
   }
 
   const horses = cleanHorses(result);
   if (!horses) notFound();
-  return <main className={styles.surface}><PedigreeChart horses={horses} /></main>;
+  // Show public horse videos only when they are attached to a published pedigree.
+  // Validate links, and pass only YouTube video IDs to the browser.
+  const videoId = (raw: unknown): string => {
+    if (typeof raw !== "string" || !raw) return "";
+    try {
+      const url = new URL(raw);
+      if (url.protocol !== "https:") return "";
+      const host = url.hostname.toLowerCase().replace(/^www\./, "");
+      const value = host === "youtu.be"
+        ? url.pathname.slice(1).split("/")[0]
+        : ["youtube.com", "m.youtube.com", "youtube-nocookie.com"].includes(host)
+          ? (url.searchParams.get("v") || url.pathname.match(/\/(?:embed|shorts|live)\/([A-Za-z0-9_-]{11})/)?.[1] || "")
+          : "";
+      return /^[A-Za-z0-9_-]{11}$/.test(value) ? value : "";
+    } catch {
+      return "";
+    }
+  };
+  const videos = Array.isArray(videoResult)
+    ? horses.map((_, index) => videoId(videoResult[index]))
+    : [];
+  return <main className={styles.surface}><PedigreeChart horses={horses} videos={videos} /></main>;
 }
