@@ -47,8 +47,8 @@ export function defaultDescription(horses: HorseDetails[]): LotDescription {
   return { sections: [
     { title: "SIRE", horse: horses[1]?.name || "", items: [] },
     { title: "DAM", horse: horses[2]?.name || "", items: [] },
-    { title: "2ND DAM", horse: "", items: [] },
-    { title: "3RD DAM", horse: "", items: [] },
+    { title: "2ND DAM", horse: horses[6]?.name || "", items: [] },
+    { title: "3RD DAM", horse: horses[14]?.name || "", items: [] },
     { title: "4TH DAM", horse: "", items: [] },
   ] };
 }
@@ -92,8 +92,9 @@ function horseMark(name: string, profiles: HorseProfile[]) {
   const metricMatch = rawLevel.match(/(?:^|\s)1[.,](\d{2})\s*m?$/i);
   const jumpLevel = metricMatch ? "1" + metricMatch[1] : rawLevel.replace(/^level\s*/i, "").trim();
   const birthYear = (video?.birth_year || "").trim();
-  const detail = jumpLevel ? " " + jumpLevel
-    : /^20(1[8-9]|2[0-9])$/.test(birthYear) ? " °" + birthYear : "";
+  const nameHasLevel = jumpLevel && new RegExp("(?:\\s|\\()"+jumpLevel+"\\)?$","i").test(name.trim());
+  const detail = jumpLevel && !nameHasLevel ? " " + jumpLevel
+    : !jumpLevel && /^20(1[8-9]|2[0-9])$/.test(birthYear) ? " °" + birthYear : "";
   return '<strong>' + escapeHtml(name) + escapeHtml(detail) +
     (id ? ' <button type="button" class="optimus-managed-video" data-youtube="' + id +
       '" aria-label="Watch ' + escapeHtml(name) + ' video"><span class="camas-youtube-icon">&#9654;</span></button>' : "") +
