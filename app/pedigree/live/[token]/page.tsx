@@ -32,9 +32,11 @@ export default async function LivePedigree({ params }: Props) {
   try {
     const response = await fetch(`${endpoint}/rest/v1/rpc/get_published_pedigree`, {
       method: "POST",
+      // Supabase publishable keys are not JWTs: send them via apikey only.
+      // Legacy JWT-style anon keys may still be used as Bearer credentials.
       headers: {
         apikey: anonKey,
-        Authorization: `Bearer ${anonKey}`,
+        ...(anonKey.startsWith("eyJ") ? { Authorization: `Bearer ${anonKey}` } : {}),
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ p_token: token }),
