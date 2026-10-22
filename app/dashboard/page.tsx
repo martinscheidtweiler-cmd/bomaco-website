@@ -166,9 +166,33 @@ export default function AuctionDashboard() {
     setDraftHorses((prev) => prev.map((h, i) => i === index ? { ...h, [field]: value } : h));
     setDirtyPedigree(true);
   }
-  function updateSection(index: number, field: "title" | "horse", value: string) {
+  function updateSection(index: number, field: "title" | "horse" | "note", value: string) {
     setDraftDescription((prev) => ({ sections: prev.sections.map((s, i) =>
       i === index ? { ...s, [field]: value } : s) }));
+    setDirtyDescription(true);
+  }
+  function updateSectionNotes(section: number, multiline: string) {
+    setDraftDescription((prev) => ({ sections: prev.sections.map((s, i) =>
+      i === section ? { ...s, notes: multiline.split("\n").slice(0, 12).map((line) => line.slice(0, 200)) } : s) }));
+    setDirtyDescription(true);
+  }
+  function updateChild(section: number, item: number, child: number, field: "horse" | "note", value: string) {
+    setDraftDescription((prev) => ({ sections: prev.sections.map((s, i) =>
+      i === section ? { ...s, items: s.items.map((v, j) => j === item
+        ? { ...v, children: (v.children || []).map((c, k) => k === child ? { ...c, [field]: value } : c) }
+        : v) } : s) }));
+    setDirtyDescription(true);
+  }
+  function addChild(section: number, item: number) {
+    setDraftDescription((prev) => ({ sections: prev.sections.map((s, i) =>
+      i === section ? { ...s, items: s.items.map((v, j) =>
+        j === item ? { ...v, children: [...(v.children || []), { horse: "", note: "" }] } : v) } : s) }));
+    setDirtyDescription(true);
+  }
+  function removeChild(section: number, item: number, child: number) {
+    setDraftDescription((prev) => ({ sections: prev.sections.map((s, i) =>
+      i === section ? { ...s, items: s.items.map((v, j) =>
+        j === item ? { ...v, children: (v.children || []).filter((_, k) => k !== child) } : v) } : s) }));
     setDirtyDescription(true);
   }
   function updateItem(section: number, item: number, field: "horse" | "note", value: string) {
@@ -253,7 +277,7 @@ export default function AuctionDashboard() {
   async function saveDescription() {
     if (!cloud || !selected || isBusy) return;
     const listedNames = new Set(draftDescription.sections.flatMap((section) =>
-      [section.horse, ...section.items.map((item) => item.horse)].map(normalizeHorseName)));
+      [section.horse, ...section.items.flatMap((item) => [item.horse, ...(item.children || []).map((child) => child.horse)])].map(normalizeHorseName)));
     const profileChanges = Object.entries(descriptionHorseEdits)
       .filter(([key]) => listedNames.has(key))
       .map(([normalized_name, changed]) => ({
@@ -389,7 +413,11 @@ export default function AuctionDashboard() {
     for (const h of selected.horses) if (h.name.trim()) dictionary.set(normalizeHorseName(h.name), h.name.trim());
     for (const s of draftDescription.sections) {
       if (s.horse.trim()) dictionary.set(normalizeHorseName(s.horse), s.horse.trim());
-      for (const i of s.items) if (i.horse.trim()) dictionary.set(normalizeHorseName(i.horse), i.horse.trim());
+      for (const i of s.items) {
+        if (i.horse.trim()) dictionary.set(normalizeHorseName(i.horse), i.horse.trim());
+        for (const child of i.children || []) if (child.horse.trim())
+          dictionary.set(normalizeHorseName(child.horse), child.horse.trim());
+      }
     }
     return [...dictionary.values()].sort();
   }, [selected, draftDescription]);
@@ -521,6 +549,18 @@ export default function AuctionDashboard() {
                       onChange={(e) => updateDescriptionHorse(section.horse, "video_url", e.target.value)} placeholder="https://youtu.be/..." />
                   </label>
                 </div>
+                <div className={styles.descriptionExtras}>
+                  <label>Extra informatie naast de naam (optioneel)
+                    <input value={section.note || ""} maxLength={200}
+                      onChange={(e) => updateSection(i, "note", e.target.value)}
+                      placeholder={isSire ? "bv. (Ermitage Kalone)" : "bv. WINNER NC CSIO5* La Baule"} />
+                  </label>
+                  <label>Extra zinnen onder {isSire ? "SIRE" : "de moeder"} (één per regel)
+                    <textarea rows={isSire ? 3 : 2} value={(section.notes || []).join("\n")}
+                      onChange={(e) => updateSectionNotes(i, e.target.value)}
+                      placeholder="bv. sister, dam, 2nd dam, ... all jumped 160" />
+                  </label>
+                </div>
                 {!isSire && <>
                   <div className={styles.offspringHeading}>
                     <div><strong>Nakomelingen van {section.horse.trim() || "deze moeder"}</strong>
@@ -564,6 +604,27 @@ export default function AuctionDashboard() {
                             placeholder="https://youtu.be/..." />
                         </label>
                       </div>
+                      <div className={styles.nestedChildren}>
+                        {(item.children || []).map((child, k) => {
+                          const nested = descriptionHorse(child.horse);
+                          return <div key={k} className={styles.nestedChildRow}>
+                            <span className={styles.childIndicator}>↳</span>
+                            <label>Naam<input value={child.horse} list="optimus-description-known-horses" maxLength={120}
+                              onChange={(e) => updateChild(i, j, k, "horse", e.target.value)} placeholder="Nakomeling van dit paard" /></label>
+                            <label>Niveau<input value={nested.level} maxLength={30} disabled={!child.horse.trim()}
+                              onChange={(e) => updateDescriptionHorse(child.horse, "level", e.target.value)} placeholder="160" /></label>
+                            <label>Info<input value={child.note} maxLength={200}
+                              onChange={(e) => updateChild(i, j, k, "note", e.target.value)} placeholder="Prestaties" /></label>
+                            <label>YouTube<input value={nested.video_url} disabled={!child.horse.trim()}
+                              onChange={(e) => updateDescriptionHorse(child.horse, "video_url", e.target.value)} placeholder="https://youtu.be/..." /></label>
+                            <button type="button" aria-label="Onderliggende nakomeling verwijderen"
+                              onClick={() => removeChild(i, j, k)}>×</button>
+                          </div>;
+                        })}
+                        <button type="button" className={styles.childAdd} onClick={() => addChild(i,j)}>
+                          + NAKOMELING VAN {item.horse.trim() || "DIT PAARD"} TOEVOEGEN
+                        </button>
+                      </div>
                     </div>;
                   })}
                 </>}
@@ -579,10 +640,18 @@ export default function AuctionDashboard() {
               {draftDescription.sections.map((section, i) => <div key={i}>
                 <strong>{section.title}: {section.horse}
                   {descriptionHorse(section.horse).level ? " " + descriptionHorse(section.horse).level : ""}</strong>
+                {section.note && <span> {section.note}</span>}
+                {(section.notes || []).filter(Boolean).map((line, j) => <p key={j} className={styles.previewLine}>→ {line}</p>)}
                 {!!section.items.length && <ul>{section.items.filter((v) => v.horse.trim()).map((item, j) =>
                   <li key={j}><strong>{item.horse}{descriptionHorse(item.horse).level
                     ? " " + descriptionHorse(item.horse).level : ""}</strong>
-                    {item.note.trim() && <span> {item.note}</span>}</li>)}</ul>}
+                    {item.note.trim() && <span> {item.note}</span>}
+                    {(item.children || []).some((child) => child.horse.trim()) && <ul>
+                      {(item.children || []).filter((child) => child.horse.trim()).map((child, k) =>
+                        <li key={k}><strong>{child.horse}{descriptionHorse(child.horse).level
+                          ? " " + descriptionHorse(child.horse).level : ""}</strong> {child.note}</li>)}
+                    </ul>}
+                  </li>)}</ul>}
               </div>)}
             </div>
             <div className={styles.footerActions}>
