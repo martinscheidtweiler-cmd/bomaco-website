@@ -52,6 +52,36 @@ export function defaultDescription(horses: HorseDetails[]): LotDescription {
     { title: "4TH DAM", horse: "", items: [] },
   ] };
 }
+// Shared Cristel maternal family. The sire is always read from the selected pedigree.
+// Pregnancy details apply only to Philippa Optima, not to every descendant.
+export function cristelDescription(horses: HorseDetails[], lotName = ""): LotDescription | null {
+  const dam = normalizeHorseName(horses[2]?.name || "");
+  if (!dam.startsWith("cristel")) return null;
+  const philippa = normalizeHorseName(lotName).includes("philippa");
+  const sections: LineSection[] = [
+    { title: "SIRE", horse: horses[1]?.name || "", items: [] },
+    { title: "DAM", horse: "Cristel 160", note: "WINNER NC CSI05* La Baule",
+      items: [{ horse: "Spartacus Optimus 145", note: "" }] },
+    { title: "2nd DAM", horse: "", items: [
+      { horse: "Cristel 160", note: "WINNER NC CSI05* La Baule" },
+      { horse: "Diacento 160", note: "" }, { horse: "Battle Cry 155", note: "" },
+      { horse: "Caesar Optimus 150", note: "" }, { horse: "Klara Optima 145", note: "" },
+    ] },
+    { title: "3rd DAM", horse: "", items: [{ horse: "C-Trenton z 160", note: "" }] },
+    { title: "", horse: "", notes: [
+      "sister, dam, 2nd dam, ... all jumped 160",
+      "brother of 5* GP WINNER 'Like a Diamond'",
+    ], items: [] },
+  ];
+  if (philippa) {
+    sections.unshift({ title: "PREGNANT BROODMARE FOR SALE", horse: "", items: [] });
+    sections.splice(sections.length - 1, 0, {
+      title: "In foal of Excelsior Optimus (Ermitage Kalone)", horse: "", items: [],
+    });
+  }
+  return { sections };
+}
+
 export function safeDescription(value: unknown, horses: HorseDetails[]): LotDescription {
   if (!value || typeof value !== "object") return defaultDescription(horses);
   const sections = (value as LotDescription).sections;
