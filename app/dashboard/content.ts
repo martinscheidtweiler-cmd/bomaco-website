@@ -82,6 +82,31 @@ export function cristelDescription(horses: HorseDetails[], lotName = ""): LotDes
   return { sections };
 }
 
+// Diana's pedigree has Cristel as second dam, not direct dam.
+// Keep her own sire and dam, and shift the Cristel family down one generation.
+export function dianaDescription(horses: HorseDetails[], lotName = ""): LotDescription | null {
+  if (!normalizeHorseName(lotName).includes("diana")) return null;
+  const secondDam = normalizeHorseName(horses[6]?.name || "");
+  if (!secondDam.includes("cristel")) return null;
+  const sire = horses[1]?.name || "Excelsior Optimus (Ermitage Kalone)";
+  const excelsior = normalizeHorseName(sire).includes("excelsior");
+  return { sections: [
+    { title: "SIRE", horse: sire, notes: excelsior ? [
+      "sister, dam, 2nd dam, ... all jumped 160",
+      "brother of 5* GP WINNER 'Like a Diamond'",
+    ] : [], items: [] },
+    { title: "DAM", horse: horses[2]?.name || "", note: "7yo", items: [] },
+    { title: "2nd DAM", horse: "Cristel 160", note: "WINNER NC CSI05* La Baule",
+      items: [{ horse: "Spartacus Optimus 145", note: "" }] },
+    { title: "3rd DAM", horse: "", items: [
+      { horse: "Cristel 160", note: "WINNER NC CSI05* La Baule" },
+      { horse: "Diacento 160", note: "" }, { horse: "Battle Cry 155", note: "" },
+      { horse: "Caesar Optimus 150", note: "" }, { horse: "Klara Optima 145", note: "" },
+    ] },
+    { title: "4th DAM", horse: "", items: [{ horse: "C-Trenton z 160", note: "" }] },
+  ] };
+}
+
 // Shared Anita maternal family, independent of the offspring's sire.
 // Embryo/implantation status is lot-specific and must not be copied to all descendants.
 export function anitaDescription(horses: HorseDetails[]): LotDescription | null {
