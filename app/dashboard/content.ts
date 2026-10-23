@@ -239,7 +239,7 @@ export function generatePWebCode(
   fixed = fixed.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "");
   const runtime = `(function(){
 "use strict";
-if(window.optimusLiveLotInstalledV10)return;
+if(window.optimusLiveLotInstalledV11)return;
 window.optimusLiveLotInstalledV9=true;
 var root=document.querySelector(".optimus-live-embed");
 var iframe=root&&root.querySelector("iframe.optimus-live-lot-iframe");
@@ -503,6 +503,14 @@ function removeAuctionDuplicates(){
  // Keep only the Hippomundo wrapper managed by our page. PWeb sometimes
  // creates another copy in a responsive column with the same iframe URL.
  var canonical=document.getElementById("IframeWrapper");
+ var allFrames=Array.from(document.querySelectorAll('iframe[src*="hippomundo" i],iframe.iframe-height-hippomundo'));
+ var keeper=(canonical&&canonical.querySelector('iframe[src*="hippomundo" i],iframe.iframe-height-hippomundo'))||allFrames[0];
+ allFrames.forEach(function(frame){
+  if(frame===keeper)return;
+  var duplicate=frame.closest("#IframeWrapper,.hippomundo-container,.optimus-hippomundo-container,.embed-responsive,.iframe-wrapper")||frame;
+  if(duplicate.contains(keeper)||duplicate.contains(live))duplicate=frame;
+  duplicate.style.setProperty("display","none","important");
+ });
  document.querySelectorAll('iframe[src*="hippomundo" i]').forEach(function(frame){
   if(canonical&&canonical.contains(frame))return;
   var wrapper=frame.closest(".hippomundo-container,.optimus-hippomundo-container,.embed-responsive,.iframe-wrapper")||frame;
