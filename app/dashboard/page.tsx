@@ -185,7 +185,12 @@ export default function AuctionDashboard() {
   [pedigrees, lots, siteCodes, profiles]);
 
   const matching = pedigrees.filter((p) => p.name.toLowerCase().includes(search.toLowerCase()));
-  const managedSite = selected && draftSite ? draftSite : null;
+  // All auction lots use the same PWeb shell. A new lot can reuse a saved
+  // auction template instead of requiring a manual paste of its old HTML.
+  const templateSite = siteCodes.find((entry) => entry.site === site && entry.base_code.trim());
+  const managedSite = selected && draftSite
+    ? { ...draftSite, base_code: draftSite.base_code.trim() || templateSite?.base_code || "" }
+    : null;
   const currentCode = selected && managedSite
     ? generatePWebCode(selected, draftDescription, managedSite, profiles)
     : "";
@@ -418,7 +423,7 @@ export default function AuctionDashboard() {
     setIsBusy(true);
     const { error } = await cloud.from("optimus_auction_site_codes").upsert({
       owner_id: selected.owner_id, pedigree_id: selected.id, site,
-      base_code: draftSite.base_code,
+      base_code: draftSite.base_code.trim() || managedSite?.base_code || "",
       heights: safeHeights(draftSite.heights),
       crop: Math.max(0, Math.min(20000, Number(draftSite.crop) || 0)),
       updated_at: new Date().toISOString(),
@@ -432,7 +437,7 @@ export default function AuctionDashboard() {
 
   async function copyCode() {
     if (!currentCode || !selected || !draftSite) return;
-    if (!draftSite.base_code.trim()) { setNotice("Plak en bewaar eerst je bestaande volledige PWeb-broncode. Zo blijft de huidige opmaak behouden."); return; }
+    if (!managedSite?.base_code.trim()) { setNotice("Er is nog geen opgeslagen PWeb-sjabloon beschikbaar voor deze website."); return; }
     if (!selected.is_published) { setNotice("Publiceer eerst het live pedigree voor dit lot."); return; }
     if (dirtyPedigree || dirtyDescription || dirtySite) {
       setNotice("Sla eerst alle wijzigingen op voordat je de definitieve broncode kopieert."); return;
@@ -448,7 +453,7 @@ export default function AuctionDashboard() {
 
   async function markApplied() {
     if (!cloud || !selected || !publishedStatus || isBusy) return;
-    if (!draftSite?.base_code.trim() || !selected.is_published) { setNotice("Publiceer eerst het pedigree en bewaar een bestaande volledige PWeb-broncode."); return; }
+    if (!managedSite?.base_code.trim() || !selected.is_published) { setNotice("Publiceer eerst het pedigree en bewaar een bestaande volledige PWeb-broncode."); return; }
     if (dirtyDescription || dirtyPedigree || dirtySite) {
       setNotice("Sla eerst de wijzigingen op."); return;
     }
@@ -458,7 +463,7 @@ export default function AuctionDashboard() {
     if (!publishedStatus.saved) {
       const { error: newError } = await cloud.from("optimus_auction_site_codes").upsert({
         owner_id: selected.owner_id, pedigree_id: selected.id, site,
-        base_code: draftSite?.base_code || "",
+        base_code: managedSite?.base_code || "",
         heights: draftSite?.heights || DEFAULT_HEIGHTS,
         crop: draftSite?.crop ?? 265,
         updated_at: new Date().toISOString(),
@@ -822,8 +827,8 @@ export default function AuctionDashboard() {
               </a>
             </p>}
             <h4>Oorspronkelijke PWeb-basiscode</h4>
-            <p className={styles.help}>Deze code is al opgeslagen. Normaal hoef je hier niets aan te veranderen.</p>
-            {!managedSite.base_code.trim() && <p className={styles.help}><strong>Verplicht voor de eerste export:</strong> plak de oude broncode, zodat de foto’s, biedbox en bestaande opmaak niet verdwijnen.</p>}
+            <p className={styles.help}>De generator gebruikt automatisch het bestaande PWeb-sjabloon van een ander lot als dit lot nog geen eigen basiscode heeft.</p>
+            {!managedSite.base_code.trim() && <p className={styles.help}><strong>Er is nog geen PWeb-sjabloon beschikbaar voor deze website.</strong></p>}
             {!selected.is_published && <p className={styles.help}><strong>Let op:</strong> publiceer ook eerst dit live pedigree op het tabblad Pedigree.</p>}
             <details>
               <summary style={{ cursor: "pointer", fontWeight: 700, fontSize: 12, marginBottom: 12 }}>
