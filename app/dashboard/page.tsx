@@ -7,7 +7,7 @@ import { HORSE_POSITIONS, type HorseDetails } from "../pedigree/pedigree-data";
 import { normalizeHorseName } from "../pedigrees/ancestry";
 import {
   SITES, SITE_LABEL, WIDTH_LABELS, DEFAULT_HEIGHTS,
-  clarissaDescription, ladyDescription, anitaDescription, cristelDescription, defaultDescription, safeDescription, safeHeights,
+  signoritaDescription, clarissaDescription, ladyDescription, anitaDescription, cristelDescription, defaultDescription, safeDescription, safeHeights,
   generatePWebCode, signature, type Site, type SiteCode,
   type LotData, type HorseProfile, type PedigreeRecord, type LotDescription,
 } from "./content";
@@ -147,7 +147,7 @@ export default function AuctionDashboard() {
   useEffect(() => {
     if (!selected) return;
     setDraftHorses(selected.horses.map((h) => ({ ...h })));
-    setDraftDescription(clarissaDescription(selected.horses) || ladyDescription(selected.horses, selected.name) || anitaDescription(selected.horses) || cristelDescription(selected.horses, selected.name) || sharedAncestry(safeDescription(
+    setDraftDescription(signoritaDescription(selected.horses, selected.name) || clarissaDescription(selected.horses) || ladyDescription(selected.horses, selected.name) || anitaDescription(selected.horses) || cristelDescription(selected.horses, selected.name) || sharedAncestry(safeDescription(
       lots.find((l) => l.owner_id === selected.owner_id && l.pedigree_id === selected.id)?.description,
       selected.horses,
     ), selected.horses, lots, pedigrees, selected.id));
