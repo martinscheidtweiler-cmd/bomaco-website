@@ -194,7 +194,7 @@ export function generatePWebCode(
     ...(site.site === "auction" ? [
       // PWeb native ancestry table and Hippomundo are separate from our live lot.
       // Hide only on mobile, including the parent rows to avoid blank spacing.
-      "@media(max-width:767px){.row.ml-0.mr-0.padding-15px-all:has(> .col-md-12.pl-0 > table.table.allcaps),.row.ml-0.mr-0.padding-15px-all:has(table.table.allcaps),#IframeWrapper{display:none!important;height:0!important;min-height:0!important;margin:0!important;padding:0!important}}",
+      "@media(max-width:767px){.row.ml-0.mr-0.padding-15px-all:has(> .col-md-12.pl-0 > table.table.allcaps),.row.ml-0.mr-0.padding-15px-all:has(table.table.allcaps){display:none!important;height:0!important;min-height:0!important;margin:0!important;padding:0!important}#IframeWrapper{display:block!important;height:auto!important;min-height:0!important;margin:0!important;padding:0!important}}",
     ] : []),
 
     ...(site.site === "be" ? [
@@ -239,7 +239,7 @@ export function generatePWebCode(
   fixed = fixed.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "");
   const runtime = `(function(){
 "use strict";
-if(window.optimusLiveLotInstalledV9)return;
+if(window.optimusLiveLotInstalledV10)return;
 window.optimusLiveLotInstalledV9=true;
 var root=document.querySelector(".optimus-live-embed");
 var iframe=root&&root.querySelector("iframe.optimus-live-lot-iframe");
@@ -533,7 +533,18 @@ function askHeight(){
  if(iframe.contentWindow)iframe.contentWindow.postMessage({type:"optimus:lot-measure"},"https://optimusauction.vercel.app");
 }
 iframe.addEventListener("load",askHeight);
-function init(){widen();askHeight();fixBeVisuals();}
+function placeHippomundoBelowLive(){
+ if("__SITE__"!=="auction"||window.innerWidth>767)return;
+ var hip=document.getElementById("IframeWrapper");
+ var live=document.querySelector(".optimus-live-embed");
+ if(!hip||!live)return;
+ var target=live.closest(".optimus-live-wide")||live;
+ if(target.contains(hip))return;
+ if(target.nextElementSibling!==hip)target.insertAdjacentElement("afterend",hip);
+ hip.style.setProperty("display","block","important");
+ hip.style.removeProperty("height");
+}
+function init(){widen();placeHippomundoBelowLive();askHeight();fixBeVisuals();}
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init,{once:true});else init();
 window.addEventListener("load",init,{once:true});
 // PWeb sometimes fills its video list after DOM ready. One bounded retry.
