@@ -156,7 +156,7 @@ export function signature(
   site: SiteCode | undefined, _profiles: HorseProfile[],
 ): string {
   const body = JSON.stringify([
-    "live-lot-iframe-v3-auction-native-grid-v10", pedigree.public_token, pedigree.is_published,
+    "live-lot-iframe-v3-hide-native-pweb-mobile-v11", pedigree.public_token, pedigree.is_published,
     site?.site || "", site?.updated_at || "", site?.base_code || "",
     site?.heights || "", site?.crop ?? "",
   ]);
@@ -191,6 +191,12 @@ export function generatePWebCode(
     ".optimus-live-wide{clear:both!important;padding:0!important;margin-left:0!important;margin-right:0!important}",
     ".optimus-live-wide::after{content:'';display:table;clear:both}",
     ".paard-foto .row.bg-light-gray.mr-0.ml-0.mb-15.padding-15px-all,.paard-foto .padding-20px-all.width-100.pull-left.bg-light-gray.mb-15{display:none!important}",
+    ...(site.site === "auction" ? [
+      // PWeb native ancestry table and Hippomundo are separate from our live lot.
+      // Hide only on mobile, including the parent rows to avoid blank spacing.
+      "@media(max-width:767px){.row.ml-0.mr-0.padding-15px-all:has(> .col-md-12.pl-0 > table.table.allcaps),.row.ml-0.mr-0.padding-15px-all:has(table.table.allcaps),#IframeWrapper{display:none!important;height:0!important;min-height:0!important;margin:0!important;padding:0!important}}",
+    ] : []),
+
     ...(site.site === "be" ? [
       ".row.bg-light-gray.mr-0.ml-0.mb-15.padding-15px-all:has(> .admin-tekst:empty){display:none!important}",
       ".paard-foto #videos,.paard-foto #videos>div,#videos,.optimus-be-videos-section{background:#111!important;background-color:#111!important;color:#fff!important;border-radius:0!important}",
