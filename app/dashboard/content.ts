@@ -108,6 +108,31 @@ export function anitaDescription(horses: HorseDetails[]): LotDescription | null 
   ] };
 }
 
+// Shared Lady Optima maternal family. Sire is always specific to each offspring.
+// Pregnancy status and covering stallion are shown only for the photographed
+// Chacoon Blue broodmare, not automatically on every Lady descendant.
+export function ladyDescription(horses: HorseDetails[], lotName = ""): LotDescription | null {
+  const dam = normalizeHorseName(horses[2]?.name || "");
+  if (!dam.startsWith("lady optima")) return null;
+  const isBroodmare = normalizeHorseName(lotName).includes("chacoon");
+  const sections: LineSection[] = [
+    { title: "SIRE", horse: horses[1]?.name || "", items: [] },
+    { title: "DAM", horse: "Lady Optima 150", items: [] },
+    { title: "2nd DAM", horse: "", items: [
+      { horse: "Lady Optima 150", note: "" },
+      { horse: "Lord Optimus 145", note: "" },
+    ] },
+    { title: "Damline Baloubet du Rouet", horse: "", items: [] },
+  ];
+  if (isBroodmare) {
+    sections.unshift({ title: "PREGNANT BROODMARE FOR SALE", horse: "", items: [] });
+    sections.push({ title: "In foal of Excelsior Optimus (Ermitage Kalone)", horse: "",
+      notes: ["sister, dam, 2nd dam, ... all jumped 160",
+        "brother of 5* GP WINNER 'Like a Diamond'"], items: [] });
+  }
+  return { sections };
+}
+
 export function safeDescription(value: unknown, horses: HorseDetails[]): LotDescription {
   if (!value || typeof value !== "object") return defaultDescription(horses);
   const sections = (value as LotDescription).sections;
