@@ -244,8 +244,8 @@ export function generatePWebCode(
   fixed = fixed.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "");
   const runtime = `(function(){
 "use strict";
-if(window.optimusLiveLotInstalledV13)return;
-window.optimusLiveLotInstalledV13=true;
+if(window.optimusLiveLotInstalledV14)return;
+window.optimusLiveLotInstalledV14=true;
 var root=document.querySelector(".optimus-live-embed");
 var iframe=root&&root.querySelector("iframe.optimus-live-lot-iframe");
 if(!root||!iframe)return;
@@ -266,8 +266,7 @@ function widen(){
     wide.className="optimus-live-wide";
     n.insertAdjacentElement("afterend",wide);
     wide.appendChild(root);
-    var hip=document.getElementById("IframeWrapper");
-    // Hippomundo placement is handled by normalizeHippomundo().
+    // Hippomundo placement is handled after the live section is moved.
 
     function emptyAndSafe(el){
      if(!el||el===gallery||el===document.body)return false;
@@ -525,7 +524,9 @@ function normalizeHippomundo(){
    el.style.setProperty("display","none","important");
   }
  });
- if(!target.contains(keeper)||keeper!==target.lastElementChild){
+ // Always place Hippomundo directly AFTER the entire live iframe section.
+ // Never insert it before the iframe or inside the iframe container.
+ if(target.nextElementSibling!==keeper){
   target.insertAdjacentElement("afterend",keeper);
  }
  document.querySelectorAll('iframe[src*="hippomundo" i],iframe.iframe-height-hippomundo').forEach(function(frame){
@@ -560,7 +561,7 @@ function askHeight(){
 }
 iframe.addEventListener("load",askHeight);
 function placeHippomundoBelowLive(){normalizeHippomundo();}
-function init(){widen();placeHippomundoBelowLive();askHeight();fixBeVisuals();}
+function init(){widen();placeHippomundoBelowLive();askHeight();fixBeVisuals();placeHippomundoBelowLive();}
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init,{once:true});else init();
 window.addEventListener("load",init,{once:true});
 // PWeb sometimes fills its video list after DOM ready. One bounded retry.
