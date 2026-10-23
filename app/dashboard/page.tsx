@@ -20,6 +20,37 @@ const cloud = process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SU
 type Tab = "pedigree" | "description" | "videos" | "sites";
 type HorseDescriptionEdit = { display_name: string; level: string; video_url: string; birth_year: string };
 
+/** Reuse whole ancestry sections for a recognized horse, independently of the foal's sex. */
+function sharedAncestry(
+  own: LotDescription, horseList: HorseDetails[], records: LotData[],
+  pedigrees: PedigreeRecord[], currentId: string,
+): LotDescription {
+  const available = new Map<string, { section: LotDescription["sections"][number]; updated: string }>();
+  for (const lot of records) {
+    if (lot.pedigree_id === currentId) continue;
+    const pedigree = pedigrees.find((p) => p.id === lot.pedigree_id && p.owner_id === lot.owner_id);
+    if (!pedigree) continue;
+    for (const section of safeDescription(lot.description, pedigree.horses).sections) {
+      const key = normalizeHorseName(section.horse);
+      if (!key || !section.horse.trim()) continue;
+      const existing = available.get(key);
+      if (!existing || lot.updated_at > existing.updated) {
+        available.set(key, { section, updated: lot.updated_at });
+      }
+    }
+  }
+  return { sections: own.sections.map((section, index) => {
+    // Keep the current foal's sire section independent. The maternal sections
+    // follow the pedigree's named horses and can be reused across siblings.
+    if (index === 0) return section;
+    const horse = section.horse || (index === 1 ? horseList[2]?.name : index === 2 ? horseList[6]?.name : index === 3 ? horseList[14]?.name : "");
+    const match = available.get(normalizeHorseName(horse || ""));
+    if (!match) return section;
+    const hasOwnContent = Boolean(section.note?.trim() || section.notes?.some((n) => n.trim()) || section.items.length);
+    return hasOwnContent ? section : { ...match.section, title: section.title, horse: horse || match.section.horse };
+  }) };
+}
+
 function makeSite(pedigree: PedigreeRecord, site: Site): SiteCode {
   return {
     owner_id: pedigree.owner_id, pedigree_id: pedigree.id, site,
@@ -116,10 +147,10 @@ export default function AuctionDashboard() {
   useEffect(() => {
     if (!selected) return;
     setDraftHorses(selected.horses.map((h) => ({ ...h })));
-    setDraftDescription(safeDescription(
+    setDraftDescription(sharedAncestry(safeDescription(
       lots.find((l) => l.owner_id === selected.owner_id && l.pedigree_id === selected.id)?.description,
       selected.horses,
-    ));
+    ), selected.horses, lots, pedigrees, selected.id));
     setDirtyPedigree(false);
     setDirtyDescription(false);
     setDescriptionHorseEdits({});
@@ -329,7 +360,37 @@ export default function AuctionDashboard() {
       description: draftDescription, updated_at: new Date().toISOString(),
     }, { onConflict: "owner_id,pedigree_id" });
     if (error) { setNotice("Beschrijving opslaan mislukt: " + error.message); setIsBusy(false); return; }
-    setNotice("Beschrijving opgeslagen. De live iframe haalt wijzigingen automatisch op; PWeb hoeft niet bijgewerkt te worden.");
+    // Propagate changed ancestry sections to all lots sharing that named horse.
+    // Do not overwrite each sibling's own sire or foal-specific data.
+    const changed = new Map(draftDescription.sections.slice(1)
+      .filter((section) => normalizeHorseName(section.horse))
+      .map((section) => [normalizeHorseName(section.horse), section]));
+    const siblings = lots.filter((lot) => lot.pedigree_id !== selected.id).flatMap((lot) => {
+      const pedigree = pedigrees.find((p) => p.id === lot.pedigree_id && p.owner_id === lot.owner_id);
+      if (!pedigree) return [];
+      const original = safeDescription(lot.description, pedigree.horses);
+      let touched = false;
+      const sections = original.sections.map((section, index) => {
+        if (index === 0) return section;
+        const name = section.horse || (index === 1 ? pedigree.horses[2]?.name : index === 2 ? pedigree.horses[6]?.name : index === 3 ? pedigree.horses[14]?.name : "");
+        const shared = changed.get(normalizeHorseName(name || ""));
+        if (!shared) return section;
+        touched = true;
+        return { ...shared, title: section.title, horse: name || shared.horse };
+      });
+      return touched ? [{ owner_id: lot.owner_id, pedigree_id: lot.pedigree_id,
+        description: { sections }, updated_at: new Date().toISOString() }] : [];
+    });
+    if (siblings.length) {
+      const { error: siblingError } = await cloud.from("optimus_auction_lot_descriptions")
+        .upsert(siblings, { onConflict: "owner_id,pedigree_id" });
+      if (siblingError) {
+        setNotice("Beschrijving opgeslagen, maar synchronisatie met andere veulens mislukt: " + siblingError.message);
+        setIsBusy(false);
+        return;
+      }
+    }
+    setNotice("Beschrijving opgeslagen en gedeelde moederlijnen bijgewerkt bij " + siblings.length + " andere veulens.");
     setDirtyDescription(false);
     await refresh();
   }
