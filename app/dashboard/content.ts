@@ -156,7 +156,7 @@ export function signature(
   site: SiteCode | undefined, _profiles: HorseProfile[],
 ): string {
   const body = JSON.stringify([
-    "live-lot-iframe-v3-hide-native-pweb-mobile-v11", pedigree.public_token, pedigree.is_published,
+    "live-lot-iframe-v3-approved-auction-v13", pedigree.public_token, pedigree.is_published,
     site?.site || "", site?.updated_at || "", site?.base_code || "",
     site?.heights || "", site?.crop ?? "",
   ]);
@@ -191,6 +191,11 @@ export function generatePWebCode(
     ".optimus-live-wide{clear:both!important;padding:0!important;margin-left:0!important;margin-right:0!important}",
     ".optimus-live-wide::after{content:'';display:table;clear:both}",
     ".paard-foto .row.bg-light-gray.mr-0.ml-0.mb-15.padding-15px-all,.paard-foto .padding-20px-all.width-100.pull-left.bg-light-gray.mb-15{display:none!important}",
+    ...(site.site === "auction" ? [
+      "[id=\"IframeWrapper\"].optimus-hippomundo-duplicate{display:none!important;height:0!important;min-height:0!important;max-height:0!important;margin:0!important;padding:0!important;overflow:hidden!important}",
+      "[id=\"IframeWrapper\"].optimus-hippomundo-primary{display:block!important}",
+      ".paard-foto .padding-20px-top.padding-20px-bottom.width-100.pull-left.bg-light-gray.mb-15,.paard-foto .padding-20px-top.padding-20px-bottom.width-100.pull-left.bg-light-gray.mb-15 > div,.paard-foto .row > .col-md-12.no-padding-lr.sm-padding-15px-lr:has(> .padding-20px-top.padding-20px-bottom.width-100.pull-left.bg-light-gray.mb-15){background:#fff!important;background-color:#fff!important;box-shadow:none!important;border-color:transparent!important}",
+    ] : []),
     ...(site.site === "auction" ? [
       // PWeb native ancestry table and Hippomundo are separate from our live lot.
       // Hide only on mobile, including the parent rows to avoid blank spacing.
@@ -239,8 +244,8 @@ export function generatePWebCode(
   fixed = fixed.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "");
   const runtime = `(function(){
 "use strict";
-if(window.optimusLiveLotInstalledV12)return;
-window.optimusLiveLotInstalledV9=true;
+if(window.optimusLiveLotInstalledV13)return;
+window.optimusLiveLotInstalledV13=true;
 var root=document.querySelector(".optimus-live-embed");
 var iframe=root&&root.querySelector("iframe.optimus-live-lot-iframe");
 if(!root||!iframe)return;
@@ -262,7 +267,7 @@ function widen(){
     n.insertAdjacentElement("afterend",wide);
     wide.appendChild(root);
     var hip=document.getElementById("IframeWrapper");
-    if(hip&&gallery.contains(hip))wide.appendChild(hip);
+    // Hippomundo placement is handled by normalizeHippomundo().
 
     function emptyAndSafe(el){
      if(!el||el===gallery||el===document.body)return false;
@@ -496,31 +501,49 @@ function hideAuctionNativeAncestry(){
   el.style.setProperty("display","none","important");
  });
 }
-function removeAuctionDuplicates(){
+function normalizeHippomundo(){
  if("__SITE__"!=="auction")return;
  var live=document.querySelector(".optimus-live-embed");
  if(!live)return;
- var wrappers=Array.from(document.querySelectorAll('[id="IframeWrapper"]'));
+ var wrappers=Array.from(document.querySelectorAll('[id="IframeWrapper"]'))
+  .filter(function(el){return !!el.querySelector('iframe[src*="hippomundo" i],iframe.iframe-height-hippomundo');});
+ if(!wrappers.length)return;
  var wide=live.closest(".optimus-live-wide");
- var keeper=(wide&&wrappers.find(function(w){return wide.contains(w);}))||wrappers[0];
- wrappers.forEach(function(w){
-  if(w===keeper)return;
-  w.style.setProperty("display","none","important");
-  w.style.setProperty("height","0","important");
+ var target=wide||live;
+ var keeper=wrappers.find(function(el){return el.classList.contains("optimus-hippomundo-primary");})||
+  wrappers.find(function(el){return target.contains(el);})||wrappers[0];
+ keeper.classList.add("optimus-hippomundo-primary");
+ wrappers.forEach(function(el){
+  if(el===keeper){
+   el.classList.remove("optimus-hippomundo-duplicate");
+   el.style.removeProperty("display");
+   el.style.removeProperty("height");
+   el.style.removeProperty("min-height");
+   el.style.removeProperty("max-height");
+  }else{
+   el.classList.add("optimus-hippomundo-duplicate");
+   el.style.setProperty("display","none","important");
+  }
  });
+ if(!target.contains(keeper)||keeper!==target.lastElementChild){
+  target.insertAdjacentElement("afterend",keeper);
+ }
  document.querySelectorAll('iframe[src*="hippomundo" i],iframe.iframe-height-hippomundo').forEach(function(frame){
-  if(keeper&&keeper.contains(frame))return;
-  (frame.closest('[id="IframeWrapper"]')||frame).style.setProperty("display","none","important");
+  if(keeper.contains(frame))return;
+  var parent=frame.closest('[id="IframeWrapper"]')||frame;
+  parent.style.setProperty("display","none","important");
  });
- // PWeb's native pedigree can be a table, not .pedigree-tree.
- // Restrict removal to pedigree-labelled elements before our live iframe,
- // avoiding the auction bid box and gallery.
+}
+function removeAuctionDuplicates(){
+ if("__SITE__"!=="auction")return;
+ normalizeHippomundo();
+ var live=document.querySelector(".optimus-live-embed");
+ if(!live)return;
  var liveY=live.getBoundingClientRect().top+window.scrollY;
  document.querySelectorAll(".optimus-pedigree-container,.optimus-pedigree,.pedigree-tree,[class*=pedigree],[id*=pedigree]").forEach(function(el){
-  if(el===live||el.contains(live)||el.closest(".optimus-live-embed,#IframeWrapper"))return;
+  if(el===live||el.contains(live)||el.closest(".optimus-live-embed,[id=IframeWrapper]"))return;
   var y=el.getBoundingClientRect().top+window.scrollY;
-  if(y>liveY+100)return;
-  if(el.closest(".rev_slider_wrapper")||el.querySelector("img,video"))return;
+  if(y>liveY+100||el.closest(".rev_slider_wrapper")||el.querySelector("img,video"))return;
   el.style.setProperty("display","none","important");
  });
 }
@@ -536,18 +559,7 @@ function askHeight(){
  if(iframe.contentWindow)iframe.contentWindow.postMessage({type:"optimus:lot-measure"},"https://optimusauction.vercel.app");
 }
 iframe.addEventListener("load",askHeight);
-function placeHippomundoBelowLive(){
- if("__SITE__"!=="auction"||window.innerWidth>767)return;
- var live=document.querySelector(".optimus-live-embed");
- if(!live)return;
- var target=live.closest(".optimus-live-wide")||live;
- var wrappers=Array.from(document.querySelectorAll('[id="IframeWrapper"]'));
- var hip=wrappers.find(function(w){return target.contains(w);})||wrappers[0];
- if(!hip)return;
- if(!target.contains(hip)&&target.nextElementSibling!==hip)target.insertAdjacentElement("afterend",hip);
- hip.style.setProperty("display","block","important");
- hip.style.removeProperty("height");
-}
+function placeHippomundoBelowLive(){normalizeHippomundo();}
 function init(){widen();placeHippomundoBelowLive();askHeight();fixBeVisuals();}
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init,{once:true});else init();
 window.addEventListener("load",init,{once:true});
