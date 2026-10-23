@@ -8,6 +8,7 @@
 .list > li { margin: 0 0 5px 0; padding: 0 0 0 5px; font-size: 15px; font-weight: 400; }
 .list > li:last-child { margin-bottom: 0; }
 .list strong, .subList strong { font-weight: 600; }
+.level { font-weight: 800; }
 .note { font-weight: 400; font-size: 11px; color: #555; white-space: normal; }
 .extraNote { margin: 3px 0 6px 20px; font-style: italic; font-size: 15px; }
 .subList { padding-left: 21px; margin: 4px 0 6px 0; list-style-type: circle; }
