@@ -170,6 +170,35 @@ export function clarissaDescription(horses: HorseDetails[]): LotDescription | nu
   ] };
 }
 
+// Signorita Optima maternal family. The Antwerp championship belongs to Diva only.
+export function signoritaDescription(horses: HorseDetails[], lotName = ""): LotDescription | null {
+  const dam = normalizeHorseName(horses[2]?.name || "");
+  if (!dam.startsWith("signorita")) return null;
+  const sire = horses[1]?.name || "";
+  const excelsior = normalizeHorseName(sire).includes("excelsior optimus");
+  const diva = normalizeHorseName(lotName).includes("diva");
+  return { sections: [
+    ...(diva ? [{ title: "WINNER Antwerp Foal Championship", horse: "", items: [] }] : []),
+    { title: "SIRE", horse: sire, notes: excelsior ? [
+      "sister, dam, 2nd dam, ... all jumped 160",
+      "brother of 5* GP WINNER 'Like a Diamond'",
+    ] : [], items: [] },
+    { title: "2nd DAM", horse: "", items: [
+      { horse: "Socrates van de Kruishoeve 145", note: "" },
+    ] },
+    { title: "3rd DAM", horse: "Fragence de Chalus", items: [
+      { horse: "Mylord Carthago 160", note: "" },
+      { horse: "Bamako de Muze 160", note: "" },
+      { horse: "Arc en Cile de Muze 160", note: "" },
+      { horse: "Norton D'eole 160", note: "" },
+      { horse: "Iroio 160", note: "" },
+      { horse: "De Muze Jules 160", note: "" },
+      { horse: "Mr. Newman 160", note: "" },
+      { horse: "Qoup de Coeur de Muze 160", note: "" },
+    ] },
+  ] };
+}
+
 export function safeDescription(value: unknown, horses: HorseDetails[]): LotDescription {
   if (!value || typeof value !== "object") return defaultDescription(horses);
   const sections = (value as LotDescription).sections;
