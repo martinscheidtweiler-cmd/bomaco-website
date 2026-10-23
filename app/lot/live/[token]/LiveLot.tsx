@@ -163,7 +163,7 @@ export default function LiveLot({ horses, description, profiles, site }: Props) 
   return (
     <main ref={root} className={styles.root} data-optimus-site={site}>
       <div className={styles.description}>
-        {description.sections.map(section)}
+        {description.sections.filter((section) => section.visible !== false).map(section)}
       </div>
       <button type="button" className={styles.hipJump} onClick={jumpHippomundo}>
         SEE CERTIFIED HIPPOMUNDO PEDIGREE

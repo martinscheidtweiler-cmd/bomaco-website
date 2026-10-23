@@ -166,6 +166,26 @@ export default function AuctionDashboard() {
     setDraftHorses((prev) => prev.map((h, i) => i === index ? { ...h, [field]: value } : h));
     setDirtyPedigree(true);
   }
+  function updateSectionVisibility(index: number, visible: boolean) {
+    setDraftDescription((prev) => ({ sections: prev.sections.map((section, i) =>
+      i === index ? { ...section, visible } : section) }));
+    setDirtyDescription(true);
+  }
+  function moveSection(index: number, direction: -1 | 1) {
+    setDraftDescription((prev) => {
+      const next = [...prev.sections];
+      const target = index + direction;
+      if (target < 0 || target >= next.length) return prev;
+      [next[index], next[target]] = [next[target], next[index]];
+      return { sections: next };
+    });
+    setDirtyDescription(true);
+  }
+  function removeSection(index: number) {
+    if (!window.confirm("Dit volledige onderdeel met nakomelingen verwijderen? Je kan het ook gewoon verbergen.")) return;
+    setDraftDescription((prev) => ({ sections: prev.sections.filter((_, i) => i !== index) }));
+    setDirtyDescription(true);
+  }
   function updateSection(index: number, field: "title" | "horse" | "note", value: string) {
     setDraftDescription((prev) => ({ sections: prev.sections.map((s, i) =>
       i === index ? { ...s, [field]: value } : s) }));
@@ -518,8 +538,10 @@ export default function AuctionDashboard() {
           {tab === "description" && <section>
             <h3>Beschrijving & moederlijn</h3>
             <p className={styles.help}>
-              Vul bij elke moeder in welke paarden ze heeft gegeven. Voeg zoveel nakomelingen toe als nodig.
-              Springniveau en video zijn centrale paardgegevens: wijzigingen verschijnen ook bij andere loten.
+              Vul elke moederlijn en haar nakomelingen in. Je kunt extra generaties, prestaties,
+              tekstregels en video's toevoegen. Schakel per onderdeel <strong>Tonen op website</strong>
+              aan of uit zonder de opgeslagen gegevens te verliezen. Dezelfde paardgegevens
+              en video's werken automatisch in alle live iframes.
             </p>
             <datalist id="optimus-description-known-horses">
               {profiles.map((p) => <option key={p.normalized_name} value={p.display_name} />)}
@@ -527,10 +549,24 @@ export default function AuctionDashboard() {
             {draftDescription.sections.map((section, i) => {
               const isSire = section.title.trim().toUpperCase() === "SIRE";
               const motherInfo = descriptionHorse(section.horse);
-              return <div className={styles.damBlock} key={i}>
+              return <div className={section.visible === false ? styles.damBlockHidden : styles.damBlock} key={i}>
                 <div className={styles.damTitle}>
                   <span className={styles.damIndex}>{section.title || "DAMLINE"}</span>
-                  <span className={styles.damCount}>{isSire ? "Vader" : section.items.length + " nakomelingen"}</span>
+                  <span className={styles.damCount}>{section.visible === false
+                    ? "VERBORGEN" : isSire ? "Vader" : section.items.length + " nakomelingen"}</span>
+                </div>
+                <div className={styles.sectionControls}>
+                  <label className={styles.visibilitySwitch}>
+                    <input type="checkbox" checked={section.visible !== false}
+                      onChange={(e) => updateSectionVisibility(i, e.target.checked)} />
+                    <span>{section.visible === false ? "Verborgen op website" : "Tonen op website"}</span>
+                  </label>
+                  <div className={styles.sectionOrdering}>
+                    <button type="button" disabled={i === 0} onClick={() => moveSection(i, -1)} title="Blok omhoog">↑</button>
+                    <button type="button" disabled={i === draftDescription.sections.length - 1}
+                      onClick={() => moveSection(i, 1)} title="Blok omlaag">↓</button>
+                    <button type="button" onClick={() => removeSection(i)} title="Blok definitief verwijderen">×</button>
+                  </div>
                 </div>
                 <div className={styles.damHorseFields}>
                   <label>Onderdeel
@@ -631,13 +667,13 @@ export default function AuctionDashboard() {
               </div>;
             })}
             <button className={styles.linkButton} type="button" onClick={() => {
-              setDraftDescription((prev) => ({ sections: [...prev.sections, { title: "DAMLINE", horse: "", items: [] }] }));
+              setDraftDescription((prev) => ({ sections: [...prev.sections, { title: "5TH DAM", horse: "", visible: true, items: [] }] }));
               setDirtyDescription(true);
             }}>+ EXTRA MOEDERLIJN TOEVOEGEN</button>
 
             <div className={styles.descriptionPreview}>
               <h4>Voorbeeld van de beschrijving</h4>
-              {draftDescription.sections.map((section, i) => <div key={i}>
+              {draftDescription.sections.filter((section) => section.visible !== false).map((section, i) => <div key={i}>
                 <strong>{section.title}: {section.horse}
                   {descriptionHorse(section.horse).level ? " " + descriptionHorse(section.horse).level : ""}</strong>
                 {section.note && <span> {section.note}</span>}
