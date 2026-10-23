@@ -117,12 +117,14 @@ export default function LiveLot({ horses, description, profiles, site }: Props) 
       : !level && /^20(1[8-9]|2[0-9])$/.test(year) ? " °" + year : "";
     const video = youtubeId(profile?.video_url || "");
     const label = name + detail;
+    const levelMatch = label.match(/^(.*?)(\s+)(1[2-7]\d)$/);
+    const styledLabel = levelMatch ? <>{levelMatch[1]}{levelMatch[2]}<span className={styles.level}>{levelMatch[3]}</span></> : label;
     return video ? (
       <button type="button" className={styles.videoName} onClick={() => openVideo(video)}
         aria-label={"Bekijk video van " + name}>
-        <span>{label}</span><span className={styles.youtube} aria-hidden="true">▶</span>
+        <span>{styledLabel}</span><span className={styles.youtube} aria-hidden="true">▶</span>
       </button>
-    ) : <span>{label}</span>;
+    ) : <span>{styledLabel}</span>;
   };
 
   const offspring = (item: LineItem, index: number, nested = false) => {
