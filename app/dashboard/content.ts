@@ -239,7 +239,7 @@ export function generatePWebCode(
   fixed = fixed.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "");
   const runtime = `(function(){
 "use strict";
-if(window.optimusLiveLotInstalledV11)return;
+if(window.optimusLiveLotInstalledV12)return;
 window.optimusLiveLotInstalledV9=true;
 var root=document.querySelector(".optimus-live-embed");
 var iframe=root&&root.querySelector("iframe.optimus-live-lot-iframe");
@@ -500,22 +500,17 @@ function removeAuctionDuplicates(){
  if("__SITE__"!=="auction")return;
  var live=document.querySelector(".optimus-live-embed");
  if(!live)return;
- // Keep only the Hippomundo wrapper managed by our page. PWeb sometimes
- // creates another copy in a responsive column with the same iframe URL.
- var canonical=document.getElementById("IframeWrapper");
- var allFrames=Array.from(document.querySelectorAll('iframe[src*="hippomundo" i],iframe.iframe-height-hippomundo'));
- var keeper=(canonical&&canonical.querySelector('iframe[src*="hippomundo" i],iframe.iframe-height-hippomundo'))||allFrames[0];
- allFrames.forEach(function(frame){
-  if(frame===keeper)return;
-  var duplicate=frame.closest("#IframeWrapper,.hippomundo-container,.optimus-hippomundo-container,.embed-responsive,.iframe-wrapper")||frame;
-  if(duplicate.contains(keeper)||duplicate.contains(live))duplicate=frame;
-  duplicate.style.setProperty("display","none","important");
+ var wrappers=Array.from(document.querySelectorAll('[id="IframeWrapper"]'));
+ var wide=live.closest(".optimus-live-wide");
+ var keeper=(wide&&wrappers.find(function(w){return wide.contains(w);}))||wrappers[0];
+ wrappers.forEach(function(w){
+  if(w===keeper)return;
+  w.style.setProperty("display","none","important");
+  w.style.setProperty("height","0","important");
  });
- document.querySelectorAll('iframe[src*="hippomundo" i]').forEach(function(frame){
-  if(canonical&&canonical.contains(frame))return;
-  var wrapper=frame.closest(".hippomundo-container,.optimus-hippomundo-container,.embed-responsive,.iframe-wrapper")||frame;
-  if(wrapper.contains(live)||wrapper.contains(canonical))wrapper=frame;
-  wrapper.style.setProperty("display","none","important");
+ document.querySelectorAll('iframe[src*="hippomundo" i],iframe.iframe-height-hippomundo').forEach(function(frame){
+  if(keeper&&keeper.contains(frame))return;
+  (frame.closest('[id="IframeWrapper"]')||frame).style.setProperty("display","none","important");
  });
  // PWeb's native pedigree can be a table, not .pedigree-tree.
  // Restrict removal to pedigree-labelled elements before our live iframe,
@@ -543,12 +538,13 @@ function askHeight(){
 iframe.addEventListener("load",askHeight);
 function placeHippomundoBelowLive(){
  if("__SITE__"!=="auction"||window.innerWidth>767)return;
- var hip=document.getElementById("IframeWrapper");
  var live=document.querySelector(".optimus-live-embed");
- if(!hip||!live)return;
+ if(!live)return;
  var target=live.closest(".optimus-live-wide")||live;
- if(target.contains(hip))return;
- if(target.nextElementSibling!==hip)target.insertAdjacentElement("afterend",hip);
+ var wrappers=Array.from(document.querySelectorAll('[id="IframeWrapper"]'));
+ var hip=wrappers.find(function(w){return target.contains(w);})||wrappers[0];
+ if(!hip)return;
+ if(!target.contains(hip)&&target.nextElementSibling!==hip)target.insertAdjacentElement("afterend",hip);
  hip.style.setProperty("display","block","important");
  hip.style.removeProperty("height");
 }
