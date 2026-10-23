@@ -134,6 +134,42 @@ export function ladyDescription(horses: HorseDetails[], lotName = ""): LotDescri
   return { sections };
 }
 
+// Shared Clarissa maternal line; sire and sire-specific remarks are per lot.
+export function clarissaDescription(horses: HorseDetails[]): LotDescription | null {
+  const dam = normalizeHorseName(horses[2]?.name || "");
+  if (!dam.startsWith("clarissa")) return null;
+  const sire = horses[1]?.name || "";
+  const excelsior = normalizeHorseName(sire).includes("excelsior optimus");
+  return { sections: [
+    { title: "SIRE", horse: sire, notes: excelsior ? [
+      "sister, dam, 2nd dam, ... all jumped 160",
+      "brother of 5* GP WINNER 'Like a Diamond'",
+    ] : [], items: [] },
+    { title: "DAM", horse: "4yo", items: [] },
+    { title: "2nd DAM", horse: "Exquise du Pachis 160", items: [] },
+    { title: "3rd DAM", horse: "", items: [
+      { horse: "Exquise du Pachis 160", note: "" },
+      { horse: "Angie du Pachis 150", note: "" },
+      { horse: "Arena du Pachis 150", note: "" },
+      { horse: "Coeurgano 150", note: "" },
+      { horse: "Albatros du Pachis 145", note: "" },
+    ] },
+    { title: "4th DAM", horse: "Intradella 160", items: [] },
+    { title: "5th DAM", horse: "Femke P", items: [
+      { horse: "Fritzy 160", note: "" },
+      { horse: "Kwikstaart 160", note: "" },
+      { horse: "Moujik de Souhan 160", note: "" },
+      { horse: "Intradella 160", note: "" },
+      { horse: "Linotte de Sohan 150", note: "", children: [
+        { horse: "Virtuose d'hyrencourt 160", note: "" },
+        { horse: "Chic Chin d'Hyrencourt", note: "" },
+        { horse: "Havens Chicago 160", note: "" },
+      ] },
+      { horse: "...", note: "", children: [{ horse: "Otto de Kalvarie 160", note: "" }] },
+    ] },
+  ] };
+}
+
 export function safeDescription(value: unknown, horses: HorseDetails[]): LotDescription {
   if (!value || typeof value !== "object") return defaultDescription(horses);
   const sections = (value as LotDescription).sections;
