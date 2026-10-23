@@ -567,7 +567,7 @@ window.addEventListener("load",init,{once:true});
 // PWeb sometimes fills its video list after DOM ready. One bounded retry.
 window.setTimeout(fixBeVisuals,800);
 window.setTimeout(fixBeVisuals,2200);
-})();`.replace("__SITE__", site.site);
+})();`.replaceAll("__SITE__", site.site);
   return fixed + "\n" + marker + "\n" +
     '<style id="optimus-dashboard-override">\n' + css + "\n</style>\n" +
     '<script id="optimus-dashboard-live-runtime">\n' + runtime + "\n</script>\n" +
