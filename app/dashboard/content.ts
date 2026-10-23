@@ -114,7 +114,8 @@ export function anitaDescription(horses: HorseDetails[]): LotDescription | null 
 export function ladyDescription(horses: HorseDetails[], lotName = ""): LotDescription | null {
   const dam = normalizeHorseName(horses[2]?.name || "");
   if (!dam.startsWith("lady optima")) return null;
-  const isBroodmare = normalizeHorseName(lotName).includes("chacoon");
+  // The image does not identify which specific lot is pregnant. Do not infer it from the sire.
+  const isBroodmare = false;
   const sections: LineSection[] = [
     { title: "SIRE", horse: horses[1]?.name || "", items: [] },
     { title: "DAM", horse: "Lady Optima 150", items: [] },
