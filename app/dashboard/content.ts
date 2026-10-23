@@ -145,7 +145,7 @@ export function clarissaDescription(horses: HorseDetails[]): LotDescription | nu
       "sister, dam, 2nd dam, ... all jumped 160",
       "brother of 5* GP WINNER 'Like a Diamond'",
     ] : [], items: [] },
-    { title: "DAM", horse: "4yo", items: [] },
+    { title: "DAM", horse: horses[2]?.name || "Clarissa", note: "4yo", items: [] },
     { title: "2nd DAM", horse: "Exquise du Pachis 160", items: [] },
     { title: "3rd DAM", horse: "", items: [
       { horse: "Exquise du Pachis 160", note: "" },
