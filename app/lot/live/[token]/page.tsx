@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { cleanHorses } from "../../../pedigree/pedigree-data";
-import { clarissaDescription, ladyDescription, anitaDescription, cristelDescription, defaultDescription, safeDescription, type HorseProfile } from "../../../dashboard/content";
+import { signoritaDescription, clarissaDescription, ladyDescription, anitaDescription, cristelDescription, defaultDescription, safeDescription, type HorseProfile } from "../../../dashboard/content";
 import LiveLot from "./LiveLot";
 
 export const dynamic = "force-dynamic";
@@ -66,7 +66,7 @@ export default async function LiveLotPage({ params, searchParams }: Props) {
   return (
     <LiveLot
       horses={horses}
-      description={clarissaDescription(horses) || ladyDescription(horses, String(horses[0]?.name || '')) || anitaDescription(horses) || cristelDescription(horses, String(horses[0]?.name || data.name || data.lot_name || "")) || (() => { const parsed = safeDescription(data.description, horses); return parsed.sections.length ? parsed : defaultDescription(horses); })()}
+      description={signoritaDescription(horses, String(horses[0]?.name || data.name || '')) || clarissaDescription(horses) || ladyDescription(horses, String(horses[0]?.name || '')) || anitaDescription(horses) || cristelDescription(horses, String(horses[0]?.name || data.name || data.lot_name || "")) || (() => { const parsed = safeDescription(data.description, horses); return parsed.sections.length ? parsed : defaultDescription(horses); })()}
       profiles={profiles}
       site={site === "auction" ? "auction" : "be"}
     />
