@@ -237,7 +237,247 @@ export function generatePWebCode(
   // Old page-mutating scripts caused PWeb to hang; keep only one bounded,
   // delegated message listener. Do not move PWeb's gallery or bidding widgets.
   fixed = fixed.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "");
-  const runtime = "(function(){\n\"use strict\";\nif(window.optimusLiveLotInstalledV9)return;\nwindow.optimusLiveLotInstalledV9=true;\nvar root=document.querySelector(\".optimus-live-embed\");\nvar iframe=root&&root.querySelector(\"iframe.optimus-live-lot-iframe\");\nif(!root||!iframe)return;\nfunction widen(){\n if(root.closest(\".optimus-live-wide\"))return;\n var n=root;\n while(n&&n!==document.body){\n  if(n.classList&&n.classList.contains(\"row\")){\n   var cols=Array.from(n.children).filter(function(x){return x.matches('[class*=\"col-md-\"],[class*=\"col-lg-\"]');});\n   var gallery=cols.find(function(x){return x.contains(root)&&x.matches(\".col-lg-8,.col-md-8\");});\n   var auction=cols.find(function(x){return x!==gallery&&x.matches(\".col-lg-4,.col-md-4\");});\n   if(gallery&&auction&&n.parentElement){\n    // The PWeb HTML block originally lives inside a light-grey wrapper.\n    // When its live iframe moves below the photo/bid columns, that empty\n    // wrapper remains as the thin grey strip visible on desktop.\n    var oldSlot=root.parentElement;\n    var wide=document.createElement(\"div\");\n    wide.className=\"optimus-live-wide\";\n    n.insertAdjacentElement(\"afterend\",wide);\n    wide.appendChild(root);\n    var hip=document.getElementById(\"IframeWrapper\");\n    if(hip&&gallery.contains(hip))wide.appendChild(hip);\n\n    function emptyAndSafe(el){\n     if(!el||el===gallery||el===document.body)return false;\n     if(el.querySelector(\"img,iframe,video,canvas,svg,input,textarea,form\"))return false;\n     if((el.innerText||\"\").trim())return false;\n     return !Array.from(el.querySelectorAll(\"a,button,[role=button]\")).some(function(control){\n      var s=window.getComputedStyle(control),r=control.getBoundingClientRect();\n      return s.display!==\"none\"&&s.visibility!==\"hidden\"&&r.width>0&&r.height>0;\n     });\n    }\n    // Only collapse genuinely empty wrappers on the former HTML slot path.\n    // Never modify the picture gallery, auction column or download buttons.\n    var placeholder=oldSlot;\n    while(placeholder&&placeholder!==gallery&&gallery.contains(placeholder)){\n     var next=placeholder.parentElement;\n     if(emptyAndSafe(placeholder)){\n      var r=placeholder.getBoundingClientRect();\n      if(r.height>0&&r.height<180&&r.width>300){\n       placeholder.style.setProperty(\"display\",\"none\",\"important\");\n      }\n     }\n     placeholder=next;\n    }\n\n    function alignWithContainer(){\n     // No inherited left-padding or accumulated offsets.\n     // The live iframe aligns with the visible content box on both viewports.\n     wide.style.setProperty(\"padding\",\"0px\",\"important\");\n     wide.style.setProperty(\"margin-left\",\"0px\",\"important\");\n     wide.style.setProperty(\"margin-right\",\"0px\",\"important\");\n     root.style.setProperty(\"padding\",\"0px\",\"important\");\n     root.style.setProperty(\"margin-left\",\"0px\",\"important\");\n     root.style.setProperty(\"width\",\"100%\",\"important\");\n     var panel=videosPanel();\n     var photo=Array.from(gallery.querySelectorAll(\"img\")).find(function(img){\n      var b=img.getBoundingClientRect();return b.width>300&&b.height>120;\n     });\n     var ref=window.innerWidth<992&&panel?panel:photo;\n     if(!ref&&panel)ref=panel;\n     if(!ref)return;\n     var box=ref.getBoundingClientRect();\n     var current=wide.getBoundingClientRect();\n     var dx=box.left-current.left;\n     if(Math.abs(dx)<=120&&box.width>240){\n      wide.style.setProperty(\"position\",\"relative\",\"important\");\n      wide.style.setProperty(\"left\",dx+\"px\",\"important\");\n      wide.style.setProperty(\"width\",box.width+\"px\",\"important\");\n      wide.style.setProperty(\"max-width\",\"none\",\"important\");\n     }\n    }\n    if(\"__SITE__\"===\"be\"){\n     alignWithContainer();\n     window.addEventListener(\"resize\",function(){\n      window.requestAnimationFrame(alignWithContainer);\n     },{passive:true});\n    }\n    return;\n   }\n  }\n  n=n.parentElement;\n }\n}\nvar oldOverflow=null;\nfunction closeVideo(){\n var popup=document.getElementById(\"optimus-live-video-overlay\");\n if(popup){popup.classList.remove(\"open\");var video=popup.querySelector(\"iframe\");if(video)video.src=\"about:blank\";}\n if(oldOverflow!==null){document.body.style.overflow=oldOverflow;oldOverflow=null;}\n}\nfunction video(id){\n if(!/^[A-Za-z0-9_-]{11}$/.test(id||\"\"))return;\n var popup=document.getElementById(\"optimus-live-video-overlay\");\n if(!popup){\n  popup=document.createElement(\"div\");\n  popup.id=\"optimus-live-video-overlay\";\n  popup.setAttribute(\"role\",\"dialog\");\n  popup.setAttribute(\"aria-label\",\"Paardenvideo\");\n  popup.setAttribute(\"aria-modal\",\"true\");\n  popup.innerHTML='<div class=\"optimus-video-frame\"><iframe title=\"Horse video\" src=\"about:blank\" allow=\"autoplay;encrypted-media;picture-in-picture;fullscreen\" allowfullscreen></iframe></div><button type=\"button\" aria-label=\"Close video\">&times;</button>';\n  document.body.appendChild(popup);\n  popup.addEventListener(\"click\",function(e){if(e.target===popup||e.target.closest(\"button\"))closeVideo();});\n }\n var frame=popup.querySelector(\"iframe\");\n if(frame)frame.src=\"https://www.youtube-nocookie.com/embed/\"+id+\"?autoplay=1&rel=0\";\n popup.classList.add(\"open\");\n if(oldOverflow===null)oldOverflow=document.body.style.overflow;\n document.body.style.overflow=\"hidden\";\n}\nwindow.addEventListener(\"message\",function(event){\n if(event.origin!==\"https://optimusauction.vercel.app\"||event.source!==iframe.contentWindow)return;\n var data=event.data;\n if(!data||typeof data!==\"object\")return;\n if(data.type===\"optimus:lot-height\"){\n  var height=Number(data.height);\n  if(Number.isFinite(height)&&height>100&&height<20000)iframe.style.setProperty(\"height\",Math.ceil(height)+\"px\",\"important\");\n }\n if(data.type===\"optimus:hippomundo-jump\"){\n  var hippomundo=document.getElementById(\"IframeWrapper\");\n  if(hippomundo)hippomundo.scrollIntoView({behavior:\"smooth\",block:\"start\"});\n }\n if(data.type===\"optimus:pedigree-horse-video\"&&/^[A-Za-z0-9_-]{11}$/.test(data.videoId||\"\")){\n  video(data.videoId);\n  if(event.source&&event.source.postMessage)event.source.postMessage({type:\"optimus:pedigree-video-opened\",videoId:data.videoId},event.origin);\n }\n});\ndocument.addEventListener(\"keydown\",function(e){if(e.key===\"Escape\")closeVideo();});\nfunction videosPanel(){\n var headings=document.querySelectorAll(\"h1,h2,h3,h4,h5,h6\");\n for(var i=0;i<headings.length;i++){\n  var heading=headings[i];\n  if(!/^videos?$/i.test((heading.textContent||\"\").trim())&&\n     !/^video['’]s$/i.test((heading.textContent||\"\").trim()))continue;\n  var ancestor=heading.parentElement;\n  for(var n=0;n<7&&ancestor&&ancestor!==document.body;n++,ancestor=ancestor.parentElement){\n   if(ancestor.contains(root)||ancestor.contains(document.getElementById(\"IframeWrapper\")))break;\n   var r=ancestor.getBoundingClientRect();\n   if(r.width<220||r.height<100||r.height>650)continue;\n   var actions=Array.from(ancestor.querySelectorAll(\"a,button\"));\n   var visibleAction=actions.some(function(link){\n    var lr=link.getBoundingClientRect(),style=window.getComputedStyle(link);\n    return lr.width>65&&lr.height>10&&style.display!==\"none\"&&style.visibility!==\"hidden\";\n   });\n   if(visibleAction)return ancestor;\n  }\n }\n var native=document.getElementById(\"videos\");\n if(native){\n  var box=native.getBoundingClientRect();\n  if(box.width>220&&box.height>60&&box.height<650)return native;\n  var parent=native.parentElement;\n  if(parent&&parent.getBoundingClientRect().width>220)return parent;\n }\n return null;\n}\nfunction isGrey(color){\n var matched=(color||\"\").match(/^rgba?\\(\\s*(\\d+)[,\\s]+(\\d+)[,\\s]+(\\d+)/);\n if(!matched)return false;\n var r=Number(matched[1]),g=Number(matched[2]),b=Number(matched[3]);\n return r>=215&&r<=245&&Math.abs(r-g)<=3&&Math.abs(r-b)<=3;\n}\nfunction styleNativeVideos(panel){\n if(!panel)return;\n panel.classList.add(\"optimus-be-videos-section\");\n panel.style.setProperty(\"background\",\"#111\",\"important\");\n panel.style.setProperty(\"color\",\"#fff\",\"important\");\n panel.querySelectorAll(\"div,section,article,ul,li\").forEach(function(el){\n  if(isGrey(window.getComputedStyle(el).backgroundColor)){\n   el.style.setProperty(\"background-color\",\"transparent\",\"important\");\n  }\n });\n panel.querySelectorAll(\"h1,h2,h3,h4,h5,h6,p,strong,span,label,i\").forEach(function(el){\n  el.style.setProperty(\"color\",\"#fff\",\"important\");\n });\n panel.querySelectorAll(\"a,button\").forEach(function(el){\n  var r=el.getBoundingClientRect();\n  if(r.width<40||r.height<10)return;\n  el.style.setProperty(\"background-color\",\"#111\",\"important\");\n  el.style.setProperty(\"color\",\"#fff\",\"important\");\n  el.style.setProperty(\"border-color\",\"#f1f1f1\",\"important\");\n  el.style.setProperty(\"border-radius\",\"0\",\"important\");\n });\n}\nfunction hideKnownPwebPlaceholders(){\n // Exact PWeb containers identified in the live page inspector.\n // Remove only when no visible text or media is present.\n document.querySelectorAll(\".row.bg-light-gray.mr-0.ml-0.mb-15.padding-15px-all, .padding-20px-all.width-100.pull-left.bg-light-gray.mb-15\").forEach(function(el){\n  if(el.closest(\".optimus-live-embed,.optimus-live-wide,#IframeWrapper\"))return;\n  if(el.querySelector(\"img,iframe,video,canvas,input,textarea,form\"))return;\n  if((el.innerText||\"\").trim())return;\n  if(Array.from(el.querySelectorAll(\"a,button\")).some(function(c){\n   var b=c.getBoundingClientRect();return b.width>4&&b.height>4;\n  }))return;\n  el.style.setProperty(\"display\",\"none\",\"important\");\n });\n}\nfunction hideEmptyGreyBars(panel){\n var live=document.querySelector(\".optimus-live-embed\");\n if(!live)return;\n // Grey PWeb placeholders are separate blocks immediately above the Videos\n // section on mobile and above the live lot on desktop. Their backgrounds\n // are rgb(234,234,234). Do not use innerText: invisible PWeb widget labels\n // can leave innerText despite the boxes being visually blank.\n var anchors=[live.getBoundingClientRect()];\n if(panel)anchors.push(panel.getBoundingClientRect());\n var candidates=[];\n document.querySelectorAll(\"div,section,article\").forEach(function(el){\n  if(el===panel||(panel&&el.contains(panel))||el===live||el.contains(live))return;\n  if(el.closest(\".optimus-live-embed,.optimus-live-wide,#IframeWrapper,.optimus-be-videos-section\"))return;\n  var rect=el.getBoundingClientRect();\n  if(rect.width<200||rect.height<14||rect.height>110)return;\n  if(!isGrey(window.getComputedStyle(el).backgroundColor))return;\n  if(el.querySelector(\"img,video,iframe,canvas,svg,input,textarea,form\"))return;\n  // Never hide a visible link or a user-facing action.\n  if(Array.from(el.querySelectorAll(\"a,button,[role=button]\")).some(function(c){\n   var b=c.getBoundingClientRect(),style=window.getComputedStyle(c);\n   return b.width>10&&b.height>10&&style.display!==\"none\"&&\n     style.visibility!==\"hidden\"&&Number(style.opacity)>0;\n  }))return;\n  var near=anchors.some(function(anchor){\n   var distance=anchor.top-rect.bottom;\n   var overlap=Math.min(anchor.right,rect.right)-Math.max(anchor.left,rect.left);\n   return distance>=-8&&distance<=300&&overlap>Math.min(rect.width,anchor.width)*.60;\n  });\n  if(near)candidates.push(el);\n });\n // Only top-level matching rectangles; collapsing a nested child alone\n // can leave a second grey background visible.\n candidates.sort(function(a,b){return a.compareDocumentPosition(b)&Node.DOCUMENT_POSITION_CONTAINED_BY?-1:1;});\n candidates.forEach(function(el){\n  if(el.dataset.optimusGreyHidden)return;\n  if(candidates.some(function(parent){return parent!==el&&parent.contains(el)}))return;\n  el.dataset.optimusGreyHidden=\"1\";\n  el.style.setProperty(\"display\",\"none\",\"important\");\n });\n}\nfunction hideAuctionNativeAncestry(){
+  const runtime = `(function(){
+"use strict";
+if(window.optimusLiveLotInstalledV9)return;
+window.optimusLiveLotInstalledV9=true;
+var root=document.querySelector(".optimus-live-embed");
+var iframe=root&&root.querySelector("iframe.optimus-live-lot-iframe");
+if(!root||!iframe)return;
+function widen(){
+ if(root.closest(".optimus-live-wide"))return;
+ var n=root;
+ while(n&&n!==document.body){
+  if(n.classList&&n.classList.contains("row")){
+   var cols=Array.from(n.children).filter(function(x){return x.matches('[class*="col-md-"],[class*="col-lg-"]');});
+   var gallery=cols.find(function(x){return x.contains(root)&&x.matches(".col-lg-8,.col-md-8");});
+   var auction=cols.find(function(x){return x!==gallery&&x.matches(".col-lg-4,.col-md-4");});
+   if(gallery&&auction&&n.parentElement){
+    // The PWeb HTML block originally lives inside a light-grey wrapper.
+    // When its live iframe moves below the photo/bid columns, that empty
+    // wrapper remains as the thin grey strip visible on desktop.
+    var oldSlot=root.parentElement;
+    var wide=document.createElement("div");
+    wide.className="optimus-live-wide";
+    n.insertAdjacentElement("afterend",wide);
+    wide.appendChild(root);
+    var hip=document.getElementById("IframeWrapper");
+    if(hip&&gallery.contains(hip))wide.appendChild(hip);
+
+    function emptyAndSafe(el){
+     if(!el||el===gallery||el===document.body)return false;
+     if(el.querySelector("img,iframe,video,canvas,svg,input,textarea,form"))return false;
+     if((el.innerText||"").trim())return false;
+     return !Array.from(el.querySelectorAll("a,button,[role=button]")).some(function(control){
+      var s=window.getComputedStyle(control),r=control.getBoundingClientRect();
+      return s.display!=="none"&&s.visibility!=="hidden"&&r.width>0&&r.height>0;
+     });
+    }
+    // Only collapse genuinely empty wrappers on the former HTML slot path.
+    // Never modify the picture gallery, auction column or download buttons.
+    var placeholder=oldSlot;
+    while(placeholder&&placeholder!==gallery&&gallery.contains(placeholder)){
+     var next=placeholder.parentElement;
+     if(emptyAndSafe(placeholder)){
+      var r=placeholder.getBoundingClientRect();
+      if(r.height>0&&r.height<180&&r.width>300){
+       placeholder.style.setProperty("display","none","important");
+      }
+     }
+     placeholder=next;
+    }
+
+    function alignWithContainer(){
+     // No inherited left-padding or accumulated offsets.
+     // The live iframe aligns with the visible content box on both viewports.
+     wide.style.setProperty("padding","0px","important");
+     wide.style.setProperty("margin-left","0px","important");
+     wide.style.setProperty("margin-right","0px","important");
+     root.style.setProperty("padding","0px","important");
+     root.style.setProperty("margin-left","0px","important");
+     root.style.setProperty("width","100%","important");
+     var panel=videosPanel();
+     var photo=Array.from(gallery.querySelectorAll("img")).find(function(img){
+      var b=img.getBoundingClientRect();return b.width>300&&b.height>120;
+     });
+     var ref=window.innerWidth<992&&panel?panel:photo;
+     if(!ref&&panel)ref=panel;
+     if(!ref)return;
+     var box=ref.getBoundingClientRect();
+     var current=wide.getBoundingClientRect();
+     var dx=box.left-current.left;
+     if(Math.abs(dx)<=120&&box.width>240){
+      wide.style.setProperty("position","relative","important");
+      wide.style.setProperty("left",dx+"px","important");
+      wide.style.setProperty("width",box.width+"px","important");
+      wide.style.setProperty("max-width","none","important");
+     }
+    }
+    if("__SITE__"==="be"){
+     alignWithContainer();
+     window.addEventListener("resize",function(){
+      window.requestAnimationFrame(alignWithContainer);
+     },{passive:true});
+    }
+    return;
+   }
+  }
+  n=n.parentElement;
+ }
+}
+var oldOverflow=null;
+function closeVideo(){
+ var popup=document.getElementById("optimus-live-video-overlay");
+ if(popup){popup.classList.remove("open");var video=popup.querySelector("iframe");if(video)video.src="about:blank";}
+ if(oldOverflow!==null){document.body.style.overflow=oldOverflow;oldOverflow=null;}
+}
+function video(id){
+ if(!/^[A-Za-z0-9_-]{11}$/.test(id||""))return;
+ var popup=document.getElementById("optimus-live-video-overlay");
+ if(!popup){
+  popup=document.createElement("div");
+  popup.id="optimus-live-video-overlay";
+  popup.setAttribute("role","dialog");
+  popup.setAttribute("aria-label","Paardenvideo");
+  popup.setAttribute("aria-modal","true");
+  popup.innerHTML='<div class="optimus-video-frame"><iframe title="Horse video" src="about:blank" allow="autoplay;encrypted-media;picture-in-picture;fullscreen" allowfullscreen></iframe></div><button type="button" aria-label="Close video">&times;</button>';
+  document.body.appendChild(popup);
+  popup.addEventListener("click",function(e){if(e.target===popup||e.target.closest("button"))closeVideo();});
+ }
+ var frame=popup.querySelector("iframe");
+ if(frame)frame.src="https://www.youtube-nocookie.com/embed/"+id+"?autoplay=1&rel=0";
+ popup.classList.add("open");
+ if(oldOverflow===null)oldOverflow=document.body.style.overflow;
+ document.body.style.overflow="hidden";
+}
+window.addEventListener("message",function(event){
+ if(event.origin!=="https://optimusauction.vercel.app"||event.source!==iframe.contentWindow)return;
+ var data=event.data;
+ if(!data||typeof data!=="object")return;
+ if(data.type==="optimus:lot-height"){
+  var height=Number(data.height);
+  if(Number.isFinite(height)&&height>100&&height<20000)iframe.style.setProperty("height",Math.ceil(height)+"px","important");
+ }
+ if(data.type==="optimus:hippomundo-jump"){
+  var hippomundo=document.getElementById("IframeWrapper");
+  if(hippomundo)hippomundo.scrollIntoView({behavior:"smooth",block:"start"});
+ }
+ if(data.type==="optimus:pedigree-horse-video"&&/^[A-Za-z0-9_-]{11}$/.test(data.videoId||"")){
+  video(data.videoId);
+  if(event.source&&event.source.postMessage)event.source.postMessage({type:"optimus:pedigree-video-opened",videoId:data.videoId},event.origin);
+ }
+});
+document.addEventListener("keydown",function(e){if(e.key==="Escape")closeVideo();});
+function videosPanel(){
+ var headings=document.querySelectorAll("h1,h2,h3,h4,h5,h6");
+ for(var i=0;i<headings.length;i++){
+  var heading=headings[i];
+  if(!/^videos?$/i.test((heading.textContent||"").trim())&&
+     !/^video['’]s$/i.test((heading.textContent||"").trim()))continue;
+  var ancestor=heading.parentElement;
+  for(var n=0;n<7&&ancestor&&ancestor!==document.body;n++,ancestor=ancestor.parentElement){
+   if(ancestor.contains(root)||ancestor.contains(document.getElementById("IframeWrapper")))break;
+   var r=ancestor.getBoundingClientRect();
+   if(r.width<220||r.height<100||r.height>650)continue;
+   var actions=Array.from(ancestor.querySelectorAll("a,button"));
+   var visibleAction=actions.some(function(link){
+    var lr=link.getBoundingClientRect(),style=window.getComputedStyle(link);
+    return lr.width>65&&lr.height>10&&style.display!=="none"&&style.visibility!=="hidden";
+   });
+   if(visibleAction)return ancestor;
+  }
+ }
+ var native=document.getElementById("videos");
+ if(native){
+  var box=native.getBoundingClientRect();
+  if(box.width>220&&box.height>60&&box.height<650)return native;
+  var parent=native.parentElement;
+  if(parent&&parent.getBoundingClientRect().width>220)return parent;
+ }
+ return null;
+}
+function isGrey(color){
+ var matched=(color||"").match(/^rgba?\\(\\s*(\\d+)[,\\s]+(\\d+)[,\\s]+(\\d+)/);
+ if(!matched)return false;
+ var r=Number(matched[1]),g=Number(matched[2]),b=Number(matched[3]);
+ return r>=215&&r<=245&&Math.abs(r-g)<=3&&Math.abs(r-b)<=3;
+}
+function styleNativeVideos(panel){
+ if(!panel)return;
+ panel.classList.add("optimus-be-videos-section");
+ panel.style.setProperty("background","#111","important");
+ panel.style.setProperty("color","#fff","important");
+ panel.querySelectorAll("div,section,article,ul,li").forEach(function(el){
+  if(isGrey(window.getComputedStyle(el).backgroundColor)){
+   el.style.setProperty("background-color","transparent","important");
+  }
+ });
+ panel.querySelectorAll("h1,h2,h3,h4,h5,h6,p,strong,span,label,i").forEach(function(el){
+  el.style.setProperty("color","#fff","important");
+ });
+ panel.querySelectorAll("a,button").forEach(function(el){
+  var r=el.getBoundingClientRect();
+  if(r.width<40||r.height<10)return;
+  el.style.setProperty("background-color","#111","important");
+  el.style.setProperty("color","#fff","important");
+  el.style.setProperty("border-color","#f1f1f1","important");
+  el.style.setProperty("border-radius","0","important");
+ });
+}
+function hideKnownPwebPlaceholders(){
+ // Exact PWeb containers identified in the live page inspector.
+ // Remove only when no visible text or media is present.
+ document.querySelectorAll(".row.bg-light-gray.mr-0.ml-0.mb-15.padding-15px-all, .padding-20px-all.width-100.pull-left.bg-light-gray.mb-15").forEach(function(el){
+  if(el.closest(".optimus-live-embed,.optimus-live-wide,#IframeWrapper"))return;
+  if(el.querySelector("img,iframe,video,canvas,input,textarea,form"))return;
+  if((el.innerText||"").trim())return;
+  if(Array.from(el.querySelectorAll("a,button")).some(function(c){
+   var b=c.getBoundingClientRect();return b.width>4&&b.height>4;
+  }))return;
+  el.style.setProperty("display","none","important");
+ });
+}
+function hideEmptyGreyBars(panel){
+ var live=document.querySelector(".optimus-live-embed");
+ if(!live)return;
+ // Grey PWeb placeholders are separate blocks immediately above the Videos
+ // section on mobile and above the live lot on desktop. Their backgrounds
+ // are rgb(234,234,234). Do not use innerText: invisible PWeb widget labels
+ // can leave innerText despite the boxes being visually blank.
+ var anchors=[live.getBoundingClientRect()];
+ if(panel)anchors.push(panel.getBoundingClientRect());
+ var candidates=[];
+ document.querySelectorAll("div,section,article").forEach(function(el){
+  if(el===panel||(panel&&el.contains(panel))||el===live||el.contains(live))return;
+  if(el.closest(".optimus-live-embed,.optimus-live-wide,#IframeWrapper,.optimus-be-videos-section"))return;
+  var rect=el.getBoundingClientRect();
+  if(rect.width<200||rect.height<14||rect.height>110)return;
+  if(!isGrey(window.getComputedStyle(el).backgroundColor))return;
+  if(el.querySelector("img,video,iframe,canvas,svg,input,textarea,form"))return;
+  // Never hide a visible link or a user-facing action.
+  if(Array.from(el.querySelectorAll("a,button,[role=button]")).some(function(c){
+   var b=c.getBoundingClientRect(),style=window.getComputedStyle(c);
+   return b.width>10&&b.height>10&&style.display!=="none"&&
+     style.visibility!=="hidden"&&Number(style.opacity)>0;
+  }))return;
+  var near=anchors.some(function(anchor){
+   var distance=anchor.top-rect.bottom;
+   var overlap=Math.min(anchor.right,rect.right)-Math.max(anchor.left,rect.left);
+   return distance>=-8&&distance<=300&&overlap>Math.min(rect.width,anchor.width)*.60;
+  });
+  if(near)candidates.push(el);
+ });
+ // Only top-level matching rectangles; collapsing a nested child alone
+ // can leave a second grey background visible.
+ candidates.sort(function(a,b){return a.compareDocumentPosition(b)&Node.DOCUMENT_POSITION_CONTAINED_BY?-1:1;});
+ candidates.forEach(function(el){
+  if(el.dataset.optimusGreyHidden)return;
+  if(candidates.some(function(parent){return parent!==el&&parent.contains(el)}))return;
+  el.dataset.optimusGreyHidden="1";
+  el.style.setProperty("display","none","important");
+ });
+}
+function hideAuctionNativeAncestry(){
  if("__SITE__"!=="auction")return;
  var live=document.querySelector(".optimus-live-embed");
  if(!live)return;
@@ -281,7 +521,25 @@ function removeAuctionDuplicates(){
   el.style.setProperty("display","none","important");
  });
 }
-function fixBeVisuals(){\n var panel=videosPanel();\n if(\"__SITE__\"===\"be\")styleNativeVideos(panel);\n hideKnownPwebPlaceholders();\n hideEmptyGreyBars(panel);\n removeAuctionDuplicates();\n hideAuctionNativeAncestry();\n}\nfunction askHeight(){\n if(iframe.contentWindow)iframe.contentWindow.postMessage({type:\"optimus:lot-measure\"},\"https://optimusauction.vercel.app\");\n}\niframe.addEventListener(\"load\",askHeight);\nfunction init(){widen();askHeight();fixBeVisuals();}\nif(document.readyState===\"loading\")document.addEventListener(\"DOMContentLoaded\",init,{once:true});else init();\nwindow.addEventListener(\"load\",init,{once:true});\n// PWeb sometimes fills its video list after DOM ready. One bounded retry.\nwindow.setTimeout(fixBeVisuals,800);\nwindow.setTimeout(fixBeVisuals,2200);\n})();".replace("__SITE__", site.site);
+function fixBeVisuals(){
+ var panel=videosPanel();
+ if("__SITE__"==="be")styleNativeVideos(panel);
+ hideKnownPwebPlaceholders();
+ hideEmptyGreyBars(panel);
+ removeAuctionDuplicates();
+ hideAuctionNativeAncestry();
+}
+function askHeight(){
+ if(iframe.contentWindow)iframe.contentWindow.postMessage({type:"optimus:lot-measure"},"https://optimusauction.vercel.app");
+}
+iframe.addEventListener("load",askHeight);
+function init(){widen();askHeight();fixBeVisuals();}
+if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init,{once:true});else init();
+window.addEventListener("load",init,{once:true});
+// PWeb sometimes fills its video list after DOM ready. One bounded retry.
+window.setTimeout(fixBeVisuals,800);
+window.setTimeout(fixBeVisuals,2200);
+})();`.replace("__SITE__", site.site);
   return fixed + "\n" + marker + "\n" +
     '<style id="optimus-dashboard-override">\n' + css + "\n</style>\n" +
     '<script id="optimus-dashboard-live-runtime">\n' + runtime + "\n</script>\n" +
