@@ -156,7 +156,7 @@ export function signature(
   site: SiteCode | undefined, _profiles: HorseProfile[],
 ): string {
   const body = JSON.stringify([
-    "live-lot-iframe-v3" + (site?.site === "be" ? "-be-exact-pweb-placeholder-cleanup-v6" : ""), pedigree.public_token, pedigree.is_published,
+    "live-lot-iframe-v3-grey-cleanup-all-sites-v8", pedigree.public_token, pedigree.is_published,
     site?.site || "", site?.updated_at || "", site?.base_code || "",
     site?.heights || "", site?.crop ?? "",
   ]);
@@ -190,8 +190,8 @@ export function generatePWebCode(
     ".optimus-live-embed iframe{display:block!important;width:100%!important;max-width:100%!important;height:900px;border:0!important;margin:0!important;padding:0!important;overflow:hidden!important;background:#fff!important}",
     ".optimus-live-wide{clear:both!important;padding:0!important;margin-left:0!important;margin-right:0!important}",
     ".optimus-live-wide::after{content:'';display:table;clear:both}",
+    ".paard-foto .row.bg-light-gray.mr-0.ml-0.mb-15.padding-15px-all,.paard-foto .padding-20px-all.width-100.pull-left.bg-light-gray.mb-15{display:none!important}",
     ...(site.site === "be" ? [
-      ".paard-foto .row.bg-light-gray.mr-0.ml-0.mb-15.padding-15px-all,.paard-foto .padding-20px-all.width-100.pull-left.bg-light-gray.mb-15{display:none!important}",
       ".row.bg-light-gray.mr-0.ml-0.mb-15.padding-15px-all:has(> .admin-tekst:empty){display:none!important}",
       ".paard-foto #videos,.paard-foto #videos>div,#videos,.optimus-be-videos-section{background:#111!important;background-color:#111!important;color:#fff!important;border-radius:0!important}",
       "#videos h1,#videos h2,#videos h3,#videos h4,#videos p,#videos span,#videos a,#videos button,.optimus-be-videos-section h1,.optimus-be-videos-section h2,.optimus-be-videos-section a{color:#fff!important}",
