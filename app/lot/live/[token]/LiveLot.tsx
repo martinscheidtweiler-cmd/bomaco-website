@@ -153,10 +153,6 @@ export default function LiveLot({ horses, description, profiles, site }: Props) 
     </section>;
   };
 
-  function jumpHippomundo() {
-    window.parent.postMessage({ type: "optimus:hippomundo-jump" }, "*");
-  }
-
   const pedigreeVideos = horses.map((horse) =>
     youtubeId(profileMap.get(normalizeHorseName(horse.name))?.video_url || ""));
 
@@ -165,9 +161,6 @@ export default function LiveLot({ horses, description, profiles, site }: Props) 
       <div className={styles.description}>
         {description.sections.filter((section) => section.visible !== false).map(section)}
       </div>
-      <button type="button" className={styles.hipJump} onClick={jumpHippomundo}>
-        SEE CERTIFIED HIPPOMUNDO PEDIGREE
-      </button>
       <div className={styles.pedigree}>
         <PedigreeChart horses={horses} videos={pedigreeVideos} />
       </div>
