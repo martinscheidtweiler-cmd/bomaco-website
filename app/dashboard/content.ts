@@ -82,6 +82,32 @@ export function cristelDescription(horses: HorseDetails[], lotName = ""): LotDes
   return { sections };
 }
 
+// Shared Anita maternal family, independent of the offspring's sire.
+// Embryo/implantation status is lot-specific and must not be copied to all descendants.
+export function anitaDescription(horses: HorseDetails[]): LotDescription | null {
+  const dam = normalizeHorseName(horses[2]?.name || "");
+  if (!dam.startsWith("anita")) return null;
+  return { sections: [
+    { title: "SIRE", horse: horses[1]?.name || "", items: [] },
+    { title: "DAM", horse: "Anita 150", items: [
+      { horse: "Panamarenko Optimus 160", note: "" },
+      { horse: "Rosanna Optima 145", note: "" },
+      { horse: "Nixon du Park", note: "Approved KWPN" },
+    ] },
+    { title: "2nd DAM", horse: "", items: [
+      { horse: "Beau Gosse du Park 160", note: "" },
+      { horse: "Exploi du Park 150", note: "" },
+      { horse: "Anita du Park du Park 150", note: "" },
+      { horse: "Hope du Park 145", note: "" },
+    ] },
+    { title: "3rd DAM", horse: "", items: [
+      { horse: "Diabolo du Park 160", note: "CSI5* GP WINNER" },
+      { horse: "Rosanna du Park 160", note: "" },
+      { horse: "Tisele du Park du Park 160", note: "" },
+    ] },
+  ] };
+}
+
 export function safeDescription(value: unknown, horses: HorseDetails[]): LotDescription {
   if (!value || typeof value !== "object") return defaultDescription(horses);
   const sections = (value as LotDescription).sections;
