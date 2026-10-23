@@ -66,7 +66,7 @@ export default async function LiveLotPage({ params, searchParams }: Props) {
   return (
     <LiveLot
       horses={horses}
-      description={cristelDescription(horses, String(data.name || data.lot_name || "")) || (() => { const parsed = safeDescription(data.description, horses); return parsed.sections.length ? parsed : defaultDescription(horses); })()}
+      description={cristelDescription(horses, String(horses[0]?.name || data.name || data.lot_name || "")) || (() => { const parsed = safeDescription(data.description, horses); return parsed.sections.length ? parsed : defaultDescription(horses); })()}
       profiles={profiles}
       site={site === "auction" ? "auction" : "be"}
     />
