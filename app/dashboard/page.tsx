@@ -383,7 +383,7 @@ export default function AuctionDashboard() {
         return { ...shared, title: section.title, horse: name || shared.horse };
       });
       return touched ? [{ owner_id: lot.owner_id, pedigree_id: lot.pedigree_id,
-        description: { sections }, updated_at: new Date().toISOString() }] : [];
+        description: { ...original, sections }, updated_at: new Date().toISOString() }] : [];
     });
     if (siblings.length) {
       const { error: siblingError } = await cloud.from("optimus_auction_lot_descriptions")
@@ -608,6 +608,7 @@ export default function AuctionDashboard() {
               aan of uit zonder de opgeslagen gegevens te verliezen. Dezelfde paardgegevens
               en video's werken automatisch in alle live iframes.
             </p>
+            <div className={styles.descriptionBlock}><label>Tekst bovenaan (optioneel, één regel per zin)<textarea rows={4} value={draftDescription.topText || ""} onChange={(e) => { setDraftDescription((prev) => ({ ...prev, topText: e.target.value })); setDirtyDescription(true); }} placeholder="Pregnant with FEMALE embryo from Excelsior Optimus" /></label></div>
             <datalist id="optimus-description-known-horses">
               {profiles.map((p) => <option key={p.normalized_name} value={p.display_name} />)}
             </datalist>
@@ -755,6 +756,7 @@ export default function AuctionDashboard() {
                   </li>)}</ul>}
               </div>)}
             </div>
+            <div className={styles.descriptionBlock}><label>Tekst onderaan (optioneel, één regel per zin)<textarea rows={4} value={draftDescription.bottomText || ""} onChange={(e) => { setDraftDescription((prev) => ({ ...prev, bottomText: e.target.value })); setDirtyDescription(true); }} placeholder="Extra informatie na de moederlijn" /></label></div>
             <div className={styles.footerActions}>
               <button className={styles.primary} type="button" disabled={isBusy || !dirtyDescription}
                 onClick={saveDescription}>VOLLEDIGE BESCHRIJVING OPSLAAN</button>
