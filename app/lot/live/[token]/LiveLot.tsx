@@ -141,7 +141,7 @@ export default function LiveLot({ horses, description, profiles, site }: Props) 
   };
 
   const headingLabel = (title: string) => {
-    const match = title.match(/^([2-9])(st|nd|rd|th)\\s+DAM$/i);
+    const match = title.match(/^([2-9])(st|nd|rd|th)\s+DAM$/i);
     return match ? <>{match[1]}<sup>{match[2].toLowerCase()}</sup> DAM</> : title;
   };
 
