@@ -10,7 +10,7 @@ export const SITE_LABEL: Record<Site, string> = {
 
 export type LineItem = { horse: string; note: string; children?: LineItem[] };
 export type LineSection = { title: string; horse: string; visible?: boolean; note?: string; notes?: string[]; items: LineItem[] };
-export type LotDescription = { sections: LineSection[] };
+export type LotDescription = { sections: LineSection[]; topText?: string; bottomText?: string };
 export type HorseProfile = {
   normalized_name: string;
   display_name: string;
@@ -291,7 +291,7 @@ export function safeDescription(value: unknown, horses: HorseDetails[]): LotDesc
   if (!value || typeof value !== "object") return defaultDescription(horses);
   const sections = (value as LotDescription).sections;
   if (!Array.isArray(sections)) return defaultDescription(horses);
-  return { sections: sections.slice(0, 12).map((section) => ({
+  return { topText: String((value as LotDescription).topText || "").slice(0, 2000), bottomText: String((value as LotDescription).bottomText || "").slice(0, 2000), sections: sections.slice(0, 12).map((section) => ({
     title: String(section.title || "").slice(0, 60),
     horse: String(section.horse || "").slice(0, 120),
     visible: section.visible !== false,
@@ -357,7 +357,8 @@ function descriptionHtml(description: LotDescription, profiles: HorseProfile[]):
       (item.note.trim() ? ' <span class="optimus-horse-note">' + escapeHtml(item.note) + "</span>" : "") +
       children + "</li>";
   }
-  return description.sections.map((section) => {
+  const extra = (value: string) => value.trim() ? '<div class="optimus-description-section">' + value.split("\n").filter(Boolean).map((line) => '<p class="optimus-extended-note">' + escapeHtml(line) + '</p>').join("") + '</div>' : '';
+  return extra(description.topText || "") + description.sections.map((section) => {
     const ordinal = section.title.match(/^([2-9])(st|nd|rd|th)\s+DAM$/i);
     const formattedTitle = ordinal
       ? ordinal[1] + "<sup>" + ordinal[2].toLowerCase() + "</sup> DAM"
@@ -373,7 +374,7 @@ function descriptionHtml(description: LotDescription, profiles: HorseProfile[]):
       notes +
       (lines ? '<ul class="optimus-horse-list">' + lines + "</ul>" : "") +
       "</div>";
-  }).join("");
+  }).join("") + extra(description.bottomText || "");
 }
 function numberOr(value: unknown, fallback: number) {
   const x = Number(value);
