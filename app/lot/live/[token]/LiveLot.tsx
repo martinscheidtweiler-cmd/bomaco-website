@@ -166,9 +166,9 @@ export default function LiveLot({ horses, description, profiles, site }: Props) 
   return (
     <main ref={root} className={styles.root} data-optimus-site={site}>
       <div className={styles.description}>
-        {(description.topText || "").trim() && <div className={styles.section}>{description.topText!.split("\n").filter(Boolean).map((line, i) => <p key={i} className={styles.extraNote}>{line}</p>)}</div>}
+        {(description.topText || "").trim() && <div className={styles.section}>{description.topText!.split("\n").filter(Boolean).map((line, i) => <p key={i} className={i === 0 ? styles.heading : styles.introNote}>{line}</p>)}</div>}
         {description.sections.filter((section) => section.visible !== false).map(section)}
-        {(description.bottomText || "").trim() && <div className={styles.section}>{description.bottomText!.split("\n").filter(Boolean).map((line, i) => <p key={i} className={styles.extraNote}>{line}</p>)}</div>}
+        {(description.bottomText || "").trim() && <div className={styles.section}>{description.bottomText!.split("\n").filter(Boolean).map((line, i) => <p key={i} className={i === 0 ? styles.heading : styles.introNote}>{line}</p>)}</div>}
       </div>
       <div className={styles.pedigree}>
         <PedigreeChart horses={horses} videos={pedigreeVideos} />
