@@ -295,7 +295,11 @@ function descriptionHtml(description: LotDescription, profiles: HorseProfile[]):
       children + "</li>";
   }
   return description.sections.map((section) => {
-    const heading = escapeHtml(section.title) + ": " +
+    const ordinal = section.title.match(/^([2-9])(st|nd|rd|th)\\s+DAM$/i);
+    const formattedTitle = ordinal
+      ? ordinal[1] + "<sup>" + ordinal[2].toLowerCase() + "</sup> DAM"
+      : escapeHtml(section.title);
+    const heading = formattedTitle + ": " +
       (section.horse.trim() ? horseMark(section.horse, profiles) : "") +
       (section.note?.trim() ? ' <span class="optimus-horse-note">' + escapeHtml(section.note) + "</span>" : "");
     const lines = section.items.map((item) => itemHtml(item, true)).join("");
