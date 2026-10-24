@@ -147,11 +147,10 @@ export default function AuctionDashboard() {
   useEffect(() => {
     if (!selected) return;
     setDraftHorses(selected.horses.map((h) => ({ ...h })));
-    setDraftDescription(embryoDescription(selected.horses, selected.name) || dianaDescription(selected.horses, selected.name) || signoritaDescription(selected.horses, selected.name) || clarissaDescription(selected.horses) || ladyDescription(selected.horses, selected.name) || anitaDescription(selected.horses) || cristelDescription(selected.horses, selected.name) || sharedAncestry(safeDescription(
-      lots.find((l) => l.owner_id === selected.owner_id && l.pedigree_id === selected.id)?.description,
-      selected.horses,
-    ), selected.horses, lots, pedigrees, selected.id));
-    setDirtyPedigree(false);
+    setDraftDescription(selectedLot?.description && Array.isArray(selectedLot.description.sections) && selectedLot.description.sections.length
+      ? safeDescription(selectedLot.description, selected.horses)
+      : (embryoDescription(selected.horses, selected.name) || dianaDescription(selected.horses, selected.name) || signoritaDescription(selected.horses, selected.name) || clarissaDescription(selected.horses) || ladyDescription(selected.horses, selected.name) || anitaDescription(selected.horses) || cristelDescription(selected.horses, selected.name) || sharedAncestry(safeDescription(null, selected.horses), selected.horses, lots, pedigrees, selected.id)));
+        setDirtyPedigree(false);
     setDirtyDescription(false);
     setDescriptionHorseEdits({});
     setProfileName("");
