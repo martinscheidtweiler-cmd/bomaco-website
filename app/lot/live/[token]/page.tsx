@@ -66,7 +66,9 @@ export default async function LiveLotPage({ params, searchParams }: Props) {
   return (
     <LiveLot
       horses={horses}
-      description={embryoDescription(horses, String(horses[0]?.name || data.name || '')) || dianaDescription(horses, String(horses[0]?.name || data.name || '')) || signoritaDescription(horses, String(horses[0]?.name || data.name || '')) || clarissaDescription(horses) || ladyDescription(horses, String(horses[0]?.name || '')) || anitaDescription(horses) || cristelDescription(horses, String(horses[0]?.name || data.name || data.lot_name || "")) || (() => { const parsed = safeDescription(data.description, horses); return parsed.sections.length ? parsed : defaultDescription(horses); })()}
+      description={data.description && Array.isArray(data.description.sections) && data.description.sections.length
+        ? safeDescription(data.description, horses)
+        : (embryoDescription(horses, String(horses[0]?.name || data.name || '')) || dianaDescription(horses, String(horses[0]?.name || data.name || '')) || signoritaDescription(horses, String(horses[0]?.name || data.name || '')) || clarissaDescription(horses) || ladyDescription(horses, String(horses[0]?.name || '')) || anitaDescription(horses) || cristelDescription(horses, String(horses[0]?.name || data.name || data.lot_name || "")) || defaultDescription(horses))}
       profiles={profiles}
       site={site === "auction" ? "auction" : "be"}
     />
