@@ -6,6 +6,11 @@ import type { HorseDetails } from "./pedigree-data";
 
 type Props = { horses: HorseDetails[]; videos?: string[] };
 
+function formatLevel(value: string): string {
+  const level = value.trim().replace(/^level\s*/i, "").trim();
+  return level ? "Level " + level : "";
+}
+
 /* Four generations on desktop; mobile starts with parents and includes great-grandparents. */
 const desktopLayout = [
   { col: 1, row: 1, span: 8 },
@@ -49,7 +54,7 @@ function HorseText({ horse, videoId, openVideo }: {
       </span>
       {(horse.level.trim() || horse.year.trim()) && (
         <span className={styles.info}>
-          {horse.level.trim() && <strong className={styles.level}>{horse.level.trim()}</strong>}
+          {horse.level.trim() && <strong className={styles.level}>{formatLevel(horse.level)}</strong>}
           {horse.level.trim() && horse.year.trim() && <span className={styles.separator}> · </span>}
           {horse.year.trim() && <span className={styles.year}>{horse.year.trim()}</span>}
         </span>
