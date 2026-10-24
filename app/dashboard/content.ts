@@ -52,6 +52,69 @@ export function defaultDescription(horses: HorseDetails[]): LotDescription {
     { title: "4TH DAM", horse: "", items: [] },
   ] };
 }
+// Embryo-specific descriptions: sex comes from the actual lot title, never from the sire.
+export function embryoDescription(horses: HorseDetails[], lotName = ""): LotDescription | null {
+  const name = normalizeHorseName(lotName);
+  if (!name.includes("embryo")) return null;
+  const sire = normalizeHorseName(horses[1]?.name || "");
+  const dam = normalizeHorseName(horses[2]?.name || "");
+  const sex = name.includes("female") ? "FEMALE" : name.includes("male") ? "MALE" : "";
+  if (!sex) return null;
+  const header: LineSection = { title: sex + " EMBRYO - IMPLANTED", horse: "", items: [] };
+  const item = (horse: string, note = "", children?: LineItem[]): LineItem => ({ horse, note, ...(children ? { children } : {}) });
+  if (dam.includes("cacacha") && (sire.includes("impress") || sire.includes("united touch") || sire.includes("toulon"))) {
+    const impress = sire.includes("impress");
+    const sireName = impress ? "Impress-K van 't Kattenheye Z" : sire.includes("toulon") ? "Toulon" : "United Touch";
+    return { sections: [
+      header,
+      { title: "SIRE", horse: sireName, items: impress ? [
+        item("World Vice-Champion"), item("European Team Champion"),
+      ] : [] },
+      { title: "DAM", horse: "Cacacha vh Schaeck 160", items: [
+        item("Like a Diamond 165", "CSI5* GP WINNER"),
+        item("Chili vh Schaeck 155"),
+        item("Excelsior Optimus °2020", "approved BWP"),
+        item("Like Ermitage °2021", "approved KWPN"),
+      ] },
+      { title: "2nd DAM", horse: "Fortis Fortuna 160", items: [
+        item("H5 just the Music 165"), item("Cacacha vh Schaeck 160"),
+        item("B52 F 150"), item("Ciemusic 150"),
+      ] },
+      { title: "3rd DAM", horse: "", items: [
+        item("Fortis Fortuna 160"), item("E-Muze Yek 160"),
+      ] },
+      { title: "4th DAM", horse: "", items: [
+        item("Funky Music 160", "", [
+          item("El Torreo de Muze 160"), item("Breitling du Paradis 160"),
+        ]),
+        item("Quarts Music 160"), item("Krapuul 160"),
+      ] },
+    ] };
+  }
+  if (dam.startsWith("cristel") && (sire.includes("ermitage") || sire.includes("heartbreaker") || sire.includes("united touch"))) {
+    return { sections: [
+      header,
+      { title: "SIRE", horse: sire.includes("ermitage") ? "Ermitage Kalone" : sire.includes("heartbreaker") ? "Heartbreaker" : "United Touch", items: [] },
+      { title: "DAM", horse: "Cristel 160", note: "WINNER NC CSI05* La Baule",
+        items: [item("Spartacus Optimus 145")] },
+      { title: "2nd DAM", horse: "", items: [
+        item("Cristel 160", "WINNER NC CSI05* La Baule"),
+        item("Diacento 160"), item("Battle Cry 155"),
+        item("Caesar Optimus 150"), item("Klara Optima 145"),
+      ] },
+      { title: "3rd DAM", horse: "", items: [item("C-Trenton z 160")] },
+    ] };
+  }
+  if (dam.startsWith("anita") && sire.includes("colestus")) {
+    const family = anitaDescription(horses);
+    return family ? { sections: [
+      header, { title: "SIRE", horse: "Colestus", items: [] },
+      ...family.sections.filter((section) => section.title !== "SIRE"),
+    ] } : null;
+  }
+  return null;
+}
+
 // Shared Cristel maternal family. The sire is always read from the selected pedigree.
 // Pregnancy details apply only to Philippa Optima, not to every descendant.
 export function cristelDescription(horses: HorseDetails[], lotName = ""): LotDescription | null {
