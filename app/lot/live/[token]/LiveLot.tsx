@@ -140,10 +140,15 @@ export default function LiveLot({ horses, description, profiles, site }: Props) 
     </li>;
   };
 
+  const headingLabel = (title: string) => {
+    const match = title.match(/^([2-9])(st|nd|rd|th)\\s+DAM$/i);
+    return match ? <>{match[1]}<sup>{match[2].toLowerCase()}</sup> DAM</> : title;
+  };
+
   const section = (data: LineSection, index: number) => {
     return <section key={index} className={styles.section}>
       <h2 className={styles.heading}>
-        {data.title || "DAM"}: {data.horse.trim() && <strong>{horseLabel(data.horse)}</strong>}
+        {headingLabel(data.title || "DAM")}: {data.horse.trim() && <strong>{horseLabel(data.horse)}</strong>}
         {data.note?.trim() && <span className={styles.note}> {data.note}</span>}
       </h2>
       {(data.notes || []).filter(Boolean).map((note, i) => (
