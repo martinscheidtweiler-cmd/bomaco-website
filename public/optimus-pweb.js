@@ -11,6 +11,18 @@
 
   var site = root.getAttribute("data-optimus-site") === "be" ? "be" : "auction";
   var origin = "https://optimusauction.vercel.app";
+
+  // Autoload the approved .auction styles for previously installed lot embeds.
+  // New dashboard snippets already contain the add-on tag and are not duplicated.
+  if (site === "auction" &&
+      !document.querySelector('script[src*="/optimus-auction-pweb.js"]')) {
+    var auctionAddon = document.createElement("script");
+    auctionAddon.id = "optimus-auction-bridge-autoload";
+    auctionAddon.src = origin + "/optimus-auction-pweb.js";
+    auctionAddon.async = true;
+    document.head.appendChild(auctionAddon);
+  }
+
   var oldOverflow = null;
   var sizes = (root.getAttribute("data-optimus-heights") || "").split(",").map(Number);
   var defaults = [2600, 3500, 4800, 5400, 5900, 6300, 6800];
