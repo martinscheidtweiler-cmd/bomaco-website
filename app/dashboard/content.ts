@@ -396,9 +396,8 @@ export function signature(
   site: SiteCode | undefined, _profiles: HorseProfile[],
 ): string {
   const body = JSON.stringify([
-    "live-lot-iframe-v3-approved-auction-v13", pedigree.public_token, pedigree.is_published,
-    site?.site || "", site?.updated_at || "", site?.base_code || "",
-    site?.heights || "", site?.crop ?? "",
+    "shared-pweb-bridge-v1", pedigree.public_token, pedigree.is_published,
+    site?.site || "", site?.heights || "", site?.crop ?? "",
   ]);
   let hash = 2166136261;
   for (let i = 0; i < body.length; i++) {
@@ -812,4 +811,34 @@ window.setTimeout(fixBeVisuals,2200);
     '<style id="optimus-dashboard-override">\n' + css + "\n</style>\n" +
     '<script id="optimus-dashboard-live-runtime">\n' + runtime + "\n</script>\n" +
     "<!-- OPTIMUS DASHBOARD MANAGED CONTENT END -->";
+}
+
+
+/**
+ * Small, standard PWeb installation code.
+ * Every lot loads the same JS file; only the public lot token, target site,
+ * and saved Hippomundo dimensions are specific to this lot.
+ * Replacing public/optimus-pweb.js updates all installed PWeb pages together.
+ */
+export function generateSharedPWebCode(
+  pedigree: PedigreeRecord, _description: LotDescription,
+  site: SiteCode, _profiles: HorseProfile[],
+): string {
+  const token = encodeURIComponent(pedigree.public_token || "");
+  const page = "https://optimusauction.vercel.app/lot/live/" + token +
+    "?site=" + encodeURIComponent(site.site);
+  const heights = safeHeights(site.heights).join(",");
+  const crop = Math.max(0, Math.min(20000, numberOr(site.crop, 265)));
+  return [
+    "<!-- OPTIMUS AUCTION — CENTRAL PWEB BRIDGE. Replace all prior HTML with this snippet. -->",
+    '<div class="optimus-live-embed" data-optimus-site="' + site.site +
+      '" data-optimus-heights="' + heights + '" data-optimus-crop="' + crop + '">',
+    '  <iframe class="optimus-live-lot-iframe" src="' + page +
+      '" title="' + escapeHtml(pedigree.name) +
+      ' - Live description and pedigree" width="100%" height="900" scrolling="no" loading="eager"' +
+      ' style="display:block;width:100%;height:900px;border:0;overflow:hidden"></iframe>',
+    "</div>",
+    '<script src="https://optimusauction.vercel.app/optimus-pweb.js" defer></script>',
+    "<!-- OPTIMUS AUCTION — END CENTRAL PWEB BRIDGE -->",
+  ].join("\n");
 }
