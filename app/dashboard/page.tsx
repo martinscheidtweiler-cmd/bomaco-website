@@ -8,7 +8,7 @@ import { normalizeHorseName } from "../pedigrees/ancestry";
 import {
   SITES, SITE_LABEL, WIDTH_LABELS, DEFAULT_HEIGHTS,
   embryoDescription, dianaDescription, signoritaDescription, clarissaDescription, ladyDescription, anitaDescription, cristelDescription, defaultDescription, safeDescription, safeHeights,
-  generatePWebCode, signature, type Site, type SiteCode,
+  generateSharedPWebCode, signature, type Site, type SiteCode,
   type LotData, type HorseProfile, type PedigreeRecord, type LotDescription,
 } from "./content";
 import styles from "./dashboard.module.css";
@@ -184,14 +184,10 @@ export default function AuctionDashboard() {
   [pedigrees, lots, siteCodes, profiles]);
 
   const matching = pedigrees.filter((p) => p.name.toLowerCase().includes(search.toLowerCase()));
-  // All auction lots use the same PWeb shell. A new lot can reuse a saved
-  // auction template instead of requiring a manual paste of its old HTML.
-  const templateSite = siteCodes.find((entry) => entry.site === site && entry.base_code.trim());
-  const managedSite = selected && draftSite
-    ? { ...draftSite, base_code: draftSite.base_code.trim() || templateSite?.base_code || "" }
-    : null;
+  // Identical PWeb bridge and runtime on every lot; only the token/site/settings vary.
+  const managedSite = draftSite;
   const currentCode = selected && managedSite
-    ? generatePWebCode(selected, draftDescription, managedSite, profiles)
+    ? generateSharedPWebCode(selected, draftDescription, managedSite, profiles)
     : "";
   const publishedStatus = selected ? statusFor(selected, site) : null;
   const currentSignature = selected && managedSite
@@ -430,13 +426,12 @@ export default function AuctionDashboard() {
     }, { onConflict: "owner_id,pedigree_id,site" });
     if (error) { setNotice("Website-instellingen opslaan mislukt: " + error.message); setIsBusy(false); return; }
     setDirtySite(false);
-    setNotice("Hippomundo-/website-instellingen opgeslagen. Kopieer hiervoor opnieuw de vaste PWeb-code.");
+    setNotice("Hippomundo-instellingen opgeslagen. Alleen gewijzigde afmetingen moet je opnieuw naar PWeb kopiëren.");
     await refresh();
   }
 
   async function copyCode() {
     if (!currentCode || !selected || !draftSite) return;
-    if (!managedSite?.base_code.trim()) { setNotice("Er is nog geen opgeslagen PWeb-sjabloon beschikbaar voor deze website."); return; }
     if (!selected.is_published) { setNotice("Publiceer eerst het live pedigree voor dit lot."); return; }
     if (dirtyPedigree || dirtyDescription || dirtySite) {
       setNotice("Sla eerst alle wijzigingen op voordat je de definitieve broncode kopieert."); return;
@@ -444,7 +439,7 @@ export default function AuctionDashboard() {
     try {
       await navigator.clipboard.writeText(currentCode);
       setCopiedSignature(currentSignature);
-      setNotice("Vaste broncode gekopieerd. Plak die in PWeb; wijzigingen aan moederlijn, video's en pedigree volgen nadien automatisch.");
+      setNotice("Centrale PWeb-code gekopieerd. Vervang de volledige oude HTML van dit veulen één keer; daarna lopen de opmaak, videoknoppen, beschrijving en pedigree via Optimus.");
     } catch {
       setNotice("Automatisch kopiëren geblokkeerd. Selecteer de broncode en kopieer handmatig.");
     }
@@ -452,7 +447,7 @@ export default function AuctionDashboard() {
 
   async function markApplied() {
     if (!cloud || !selected || !publishedStatus || isBusy) return;
-    if (!managedSite?.base_code.trim() || !selected.is_published) { setNotice("Publiceer eerst het pedigree en bewaar een bestaande volledige PWeb-broncode."); return; }
+    if (!selected.is_published) { setNotice("Publiceer eerst het live pedigree."); return; }
     if (dirtyDescription || dirtyPedigree || dirtySite) {
       setNotice("Sla eerst de wijzigingen op."); return;
     }
@@ -796,8 +791,8 @@ export default function AuctionDashboard() {
           </section>}
 
           {tab === "sites" && managedSite && <section>
-            <h3>Vaste PWeb-code & Hippomundo</h3>
-            <p className={styles.help}>Installeer deze vaste broncode per veulen één keer op PWeb. Beschrijving, video's en pedigree verschijnen daarna automatisch via de live iframe. Alleen gewijzigde website-instellingen of Hippomundo-afmetingen vereisen nieuwe code.</p>
+            <h3>Centrale PWeb-code & Hippomundo</h3>
+            <p className={styles.help}>Vervang bij ieder veulen één keer de volledige oude HTML door deze korte code. Alle veulens gebruiken daarna dezelfde centrale opmaak en videoknoppen van Optimus Auction; enkel het veulen-ID, de website en Hippomundo-afmetingen verschillen. Toekomstige wijzigingen aan de centrale code verschijnen automatisch zonder opnieuw te plakken.</p>
             <div className={styles.siteTabs}>
               {SITES.map((s) => <button key={s} className={s === site ? styles.tabActive : ""}
                 onClick={() => { if (dirtySite && !window.confirm("Niet-opgeslagen site-instellingen weggooien?")) return; setSite(s); }}>
@@ -827,20 +822,19 @@ export default function AuctionDashboard() {
                 Bekijk actuele beschrijving, video's en pedigree
               </a>
             </p>}
-            <h4>Oorspronkelijke PWeb-basiscode</h4>
-            <p className={styles.help}>De generator gebruikt automatisch het bestaande PWeb-sjabloon van een ander lot als dit lot nog geen eigen basiscode heeft.</p>
-            {!managedSite.base_code.trim() && <p className={styles.help}><strong>Er is nog geen PWeb-sjabloon beschikbaar voor deze website.</strong></p>}
+            <h4>Oude PWeb-code (archief)</h4>
+            <p className={styles.help}>De nieuwe centrale code gebruikt dit oude sjabloon niet meer. Bewaar het alleen als referentie. Let op: als je de nieuwe code installeert, vervang dan de volledige oude HTML en plak ze niet onder de vorige code.</p>
             {!selected.is_published && <p className={styles.help}><strong>Let op:</strong> publiceer ook eerst dit live pedigree op het tabblad Pedigree.</p>}
             <details>
               <summary style={{ cursor: "pointer", fontWeight: 700, fontSize: 12, marginBottom: 12 }}>
-                Geavanceerd: oorspronkelijke broncode bekijken of aanpassen
+                Geavanceerd: oude broncode bekijken of bewaren
               </summary>
               <textarea className={styles.baseCode} spellCheck={false} value={managedSite.base_code}
                 onChange={(e) => updateSite("base_code", e.target.value)}
                 placeholder="Volledige PWeb-broncode..." />
             </details>
             <button className={styles.primary} disabled={!dirtySite || isBusy} onClick={saveSite}>HIPPOMUNDO-/WEBSITE-INSTELLINGEN OPSLAAN</button>
-            <h4>Vaste PWeb-code — eenmalig kopiëren</h4>
+            <h4>Nieuwe standaardcode — eenmalig per veulen kopiëren</h4>
             <details>
               <summary style={{ cursor: "pointer", fontWeight: 700, fontSize: 12, marginBottom: 12 }}>
                 Technische code bekijken (normaal niet nodig)
@@ -849,12 +843,12 @@ export default function AuctionDashboard() {
                 aria-label={"Gegenereerde code voor " + SITE_LABEL[site]} onFocus={(e) => e.currentTarget.select()} />
             </details>
             <div className={styles.footerActions}>
-              <button className={styles.primary} disabled={isBusy || dirtySite || dirtyDescription || dirtyPedigree || !managedSite.base_code.trim() || !selected.is_published} onClick={copyCode}>
-                <span> <span aria-hidden="true">⧉</span> EENMALIGE PWEB-CODE KOPIËREN</span>
+              <button className={styles.primary} disabled={isBusy || dirtySite || dirtyDescription || dirtyPedigree || !selected.is_published} onClick={copyCode}>
+                <span> <span aria-hidden="true">⧉</span> STANDAARDCODE KOPIËREN</span>
               </button>
               <button className={styles.appliedButton}
-                disabled={isBusy || dirtySite || dirtyDescription || dirtyPedigree || !managedSite.base_code.trim() || !selected.is_published}
-                onClick={markApplied}>✓ VASTE CODE STAAT ONLINE</button>
+                disabled={isBusy || dirtySite || dirtyDescription || dirtyPedigree || !selected.is_published}
+                onClick={markApplied}>✓ STANDAARDCODE STAAT ONLINE</button>
             </div>
             {copiedSignature === currentSignature && <p className={styles.help}>✓ Deze versie is gekopieerd. Vergeet de bevestiging niet na het plakken.</p>}
           </section>}
