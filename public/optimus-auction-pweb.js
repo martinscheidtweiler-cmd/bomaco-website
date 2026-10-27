@@ -175,8 +175,13 @@
 
   function bindVideoReference(button,native) {
     if(!native)return;
-    var raw=native.outerHTML+" "+(native.parentElement?native.parentElement.outerHTML:"");
-    var id=findYoutubeId(raw);
+    // Read this button's own URL first. A shared parent may contain
+    // multiple video URLs, so it must not supply a different video's ID.
+    var id=findYoutubeId(native.outerHTML);
+    if(!id&&native.parentElement){
+      var siblings=native.parentElement.querySelectorAll("a,button,[role='button'],[onclick],[data-toggle],[data-target],.btn");
+      if(siblings.length===1)id=findYoutubeId(native.parentElement.outerHTML);
+    }
     if(id)button.setAttribute("data-optimus-youtube-id",id);
   }
 
@@ -282,7 +287,11 @@
     });
     if(matches.length===1){
       var one=matches[0];
-      var id=findYoutubeId(one.outerHTML+" "+(one.parentElement?one.parentElement.outerHTML:""));
+      var id=findYoutubeId(one.outerHTML);
+      if(!id&&one.parentElement){
+        var siblings=one.parentElement.querySelectorAll("a,button,[role='button'],[onclick],[data-toggle],[data-target],.btn");
+        if(siblings.length===1)id=findYoutubeId(one.parentElement.outerHTML);
+      }
       if(id)return id;
     }
     // With several videos, never guess and play the wrong one.
