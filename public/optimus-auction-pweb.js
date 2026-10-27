@@ -18,6 +18,8 @@
     '.optimus-auction-video-button > span:first-child,.optimus-auction-vet-report > i:first-child,.optimus-auction-vet-report > span:first-child,.optimus-auction-vet-report > svg:first-child{grid-column:1!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;width:18px!important;min-width:18px!important;max-width:18px!important;margin:0!important;padding:0!important;line-height:1!important;text-align:center!important}',
     '.optimus-auction-video-button > span:last-child{grid-column:2!important;display:inline-flex!important;align-items:baseline!important;justify-content:flex-start!important;flex-wrap:wrap!important;column-gap:8px!important;row-gap:2px!important;min-width:0!important;line-height:1.4!important;text-align:left!important}',
     '.optimus-auction-video-kind{display:inline-block!important;align-self:baseline!important;flex:0 0 auto!important;font:400 11px/1.4 Poppins,Montserrat,Arial,sans-serif!important;color:#b7b7b7!important;white-space:nowrap!important;margin:0!important;padding:0!important;letter-spacing:0!important;text-transform:none!important}',
+    '.optimus-auction-vet-report.optimus-auction-multi-document{margin-bottom:9px!important}',
+    '.optimus-auction-video-button + .optimus-auction-video-button{margin-top:9px!important}',
     '.optimus-auction-hidden-panel{display:none!important;height:0!important;min-height:0!important;padding:0!important;margin:0!important;overflow:hidden!important}',
     '@media(max-width:767px){.page-title-small.optimus-mobile-title-ready .optimus-mobile-title-content .omt-sex{font-size:19px!important}}'
   ].join("\n");
@@ -37,44 +39,83 @@
     return true;
   }
 
+  // A lot can have several reports (vet, X-rays, certificates, etc.).
+  // Keep its original labels whenever more than one distinct file is present.
+  function isVeterinaryFile(link) {
+    var label=link.getAttribute("data-optimus-vet-original")||link.textContent||"";
+    var href=link.getAttribute("href")||"";
+    return /vet[\s_-]*(?:check|report)|veterinary|veterinair|klinisch[\s_-]*verslag/i.test(label+" "+href);
+  }
+
   function reports(onlyVisible) {
-    return Array.from(document.querySelectorAll("a[href]")).filter(function (link) {
-      if (link.closest(".optimus-live-embed,#IframeWrapper")) return false;
-      if (onlyVisible && !visible(link)) return false;
-      var label = link.getAttribute("data-optimus-vet-original") || link.textContent || "";
-      var href = link.getAttribute("href") || "";
-      return /vet[\s_-]*(?:check|report)|veterinary|veterinair|klinisch[\s_-]*verslag/i.test(label + " " + href) &&
-        (/vet[\s_-]*(?:check|report)|veterinary|veterinair/i.test(label) || /\.pdf(?:\?|$)/i.test(href));
+    var links=Array.from(document.querySelectorAll("a[href]"));
+    var fileRoots=links.filter(function(link) { return isVeterinaryFile(link); }).map(function(link) {
+      return link.closest(".padding-20px-top.padding-20px-bottom.width-100.pull-left.bg-light-gray.mb-15,.optimus-download-parent") ||
+        link.closest(".bg-light-gray,.bg-light-grey");
+    }).filter(Boolean);
+
+    return links.filter(function(link) {
+      if(link.closest(".optimus-live-embed,#IframeWrapper,#videos,.optimus-auction-video-holder"))return false;
+      if(onlyVisible&&!visible(link))return false;
+      var href=link.getAttribute("href")||"";
+      var text=link.getAttribute("data-optimus-vet-original")||link.textContent||"";
+      var fileHref=/\/userfiles\/file\/(?:paard\/)?/i.test(href) ||
+        /\.(?:pdf|docx?|xlsx?|zip|txt)(?:[?#]|$)/i.test(href) || link.hasAttribute("download");
+      if(/\.(?:mp4|mov|avi|webm|jpe?g|png|gif|webp)(?:[?#]|$)/i.test(href))return false;
+      if(isVeterinaryFile(link))return true;
+      var samePanel=fileRoots.some(function(root){return root.contains(link);});
+      var namedDocument=/x[\s-]?rays?|radiograph|document|medical|klinisch|veterinary|veterinair|certificate|scan|ultrasound|passport|pregnancy|echo|report/i.test(text);
+      return fileHref && (samePanel || /\/userfiles\/file\/paard\//i.test(href) || namedDocument);
     });
   }
 
-  function formatReport(link) {
-    if (!link) return;
-    link.classList.add("optimus-auction-vet-report");
-    if (!link.hasAttribute("data-optimus-vet-original")) {
-      link.setAttribute("data-optimus-vet-original", (link.textContent || "").trim());
-    }
-    link.setAttribute("aria-label", "Vet report");
-    var walker = document.createTreeWalker(link, NodeFilter.SHOW_TEXT);
-    var textNodes = [];
-    while (walker.nextNode()) textNodes.push(walker.currentNode);
-    var target = textNodes.find(function (node) {
-      return /vet[\s_-]*(?:check|report)|veterinary|veterinair/i.test(node.nodeValue || "");
+  function distinctCount(links) {
+    var keys=new Set();
+    links.forEach(function(link) {
+      var name=(link.getAttribute("data-optimus-vet-original")||link.textContent||"").replace(/\s+/g," ").trim().toLowerCase();
+      var href=(link.getAttribute("href")||"").trim();
+      keys.add(href || name);
     });
-    if (target && !/^\s*VET REPORT\s*$/.test(target.nodeValue || "")) {
-      var prefix = ((target.nodeValue || "").match(/^\s*[↓⇩↧⬇]*\s*/) || [""])[0];
-      target.nodeValue = prefix + "VET REPORT";
-    }
-    var parent = link.parentElement;
-    for (var i = 0; i < 7 && parent && parent !== document.body; i++, parent = parent.parentElement) {
-      if (parent.classList && (parent.classList.contains("bg-light-gray") || parent.classList.contains("bg-light-grey")) &&
-        !parent.querySelector("img,iframe,video,form,.page-title-small")) {
-        parent.classList.add("optimus-auction-vet-parent");
-        if (parent.classList.contains("padding-20px-top") && parent.classList.contains("padding-20px-bottom")) {
-          parent.classList.add("optimus-auction-vet-tight");
-        }
+    return keys.size;
+  }
+
+  function formatReport(link, isOnlyDocument) {
+    if(!link)return;
+    link.classList.add("optimus-auction-vet-report");
+    if(!link.hasAttribute("data-optimus-vet-original"))
+      link.setAttribute("data-optimus-vet-original",(link.textContent||"").trim());
+    var originally=link.getAttribute("data-optimus-vet-original")||"";
+    var walker=document.createTreeWalker(link,NodeFilter.SHOW_TEXT);
+    var nodes=[];
+    while(walker.nextNode())nodes.push(walker.currentNode);
+    var target=nodes.find(function(node){
+      return /vet[\s_-]*(?:check|report)|veterinary|veterinair/i.test(node.nodeValue||"");
+    });
+    if(isOnlyDocument && isVeterinaryFile(link)){
+      link.setAttribute("aria-label","Vet report");
+      if(target && !/^\s*VET REPORT\s*$/.test(target.nodeValue||"")){
+        var prefix=((target.nodeValue||"").match(/^\s*[↓⇩↧⬇]*\s*/)||[""])[0];
+        target.nodeValue=prefix+"VET REPORT";
       }
-      if (parent.classList && parent.classList.contains("paard-foto")) break;
+    }else{
+      // Multiple files: do not rename any of them, including the vet check.
+      if(link.getAttribute("aria-label")==="Vet report")link.setAttribute("aria-label",originally);
+      if(target && /^\s*VET REPORT\s*$/.test(target.nodeValue||"") && originally &&
+        !/^\s*VET REPORT\s*$/i.test(originally))target.nodeValue=originally;
+    }
+    link.classList.toggle("optimus-auction-multi-document",!isOnlyDocument);
+
+    // Remove the grey background only from the file block, never gallery/bid rows.
+    var parent=link.parentElement;
+    for(var i=0;i<7&&parent&&parent!==document.body;i++,parent=parent.parentElement){
+      if(parent.classList&&(parent.classList.contains("bg-light-gray")||
+          parent.classList.contains("bg-light-grey"))&&
+          !parent.querySelector("img,iframe,video,form,.page-title-small")){
+        parent.classList.add("optimus-auction-vet-parent");
+        if(parent.classList.contains("padding-20px-top")&&parent.classList.contains("padding-20px-bottom"))
+          parent.classList.add("optimus-auction-vet-tight");
+      }
+      if(parent.classList&&parent.classList.contains("paard-foto"))break;
     }
   }
 
@@ -113,45 +154,106 @@
     return native && native !== panel ? [native] : [];
   }
 
+  function videoActionKey(node) {
+    var label=(node.textContent||node.getAttribute("aria-label")||node.getAttribute("title")||"").replace(/\s+/g," ").trim().toLowerCase();
+    var href=node.getAttribute("href")||node.getAttribute("onclick")||node.getAttribute("data-video-id")||node.getAttribute("data-youtube-id")||"";
+    return label+"|"+href;
+  }
+
+  function distinctVideoActions() {
+    var seen=new Set(),actions=[];
+    videoPanels(false).forEach(function(panel){
+      videoActions(panel).forEach(function(action){
+        var key=videoActionKey(action);
+        if(seen.has(key))return;
+        seen.add(key);
+        actions.push(action);
+      });
+    });
+    return actions.slice(0,20);
+  }
+
+  function bindVideoReference(button,native) {
+    if(!native)return;
+    var raw=native.outerHTML+" "+(native.parentElement?native.parentElement.outerHTML:"");
+    var id=findYoutubeId(raw);
+    if(id)button.setAttribute("data-optimus-youtube-id",id);
+  }
+
+  function addVideoButton(holder,native) {
+    var label=(native.textContent||native.getAttribute("aria-label")||"LEG CONFORMATION & WALK").replace(/\s+/g," ").trim();
+    if(!label||label.length>120)label="LEG CONFORMATION & WALK";
+    var button=document.createElement("button");
+    button.type="button";
+    button.setAttribute("aria-label",label);
+    var icon=document.createElement("span");
+    icon.textContent="▶";
+    icon.setAttribute("aria-hidden","true");
+    var title=document.createElement("span");
+    title.textContent=label;
+    button.appendChild(icon);
+    button.appendChild(title);
+    bindVideoReference(button,native);
+    button.addEventListener("click",function(){native.click();});
+    holder.appendChild(button);
+    return button;
+  }
+
+  function ensureAllVideoButtons(holder) {
+    if(!holder)return;
+    var actions=distinctVideoActions();
+    var buttons=Array.from(holder.querySelectorAll("button"));
+    var used=new Set();
+    actions.forEach(function(native) {
+      var text=(native.textContent||native.getAttribute("aria-label")||"").replace(/\s+/g," ").trim().toLowerCase();
+      var match=buttons.find(function(button) {
+        if(used.has(button))return false;
+        return (button.getAttribute("aria-label")||"").replace(/\s+/g," ").trim().toLowerCase()===text;
+      });
+      if(match){
+        used.add(match);
+        bindVideoReference(match,native);
+      }else{
+        var added=addVideoButton(holder,native);
+        used.add(added);
+        buttons.push(added);
+      }
+    });
+  }
+
   function decorate(holder) {
-    if (!holder) return;
+    if(!holder)return;
     holder.classList.add("optimus-auction-video-holder");
-    Array.from(holder.querySelectorAll("button")).forEach(function (button) {
+    var buttons=Array.from(holder.querySelectorAll("button"));
+    var multiple=distinctVideoActions().length>1||buttons.length>1;
+    buttons.forEach(function(button){
       button.classList.add("optimus-auction-video-button");
-      if (button.querySelector(".optimus-auction-video-kind")) return;
-      var spans = Array.from(button.children).filter(function (el) { return el.tagName === "SPAN"; });
-      var label = spans[spans.length - 1];
-      if (!label || label === spans[0]) return;
-      var kind = document.createElement("small");
-      kind.className = "optimus-auction-video-kind";
-      kind.textContent = "video";
+      var spans=Array.from(button.children).filter(function(el){return el.tagName==="SPAN";});
+      var label=spans[spans.length-1];
+      if(!label||label===spans[0])return;
+      var existing=label.querySelector(".optimus-auction-video-kind");
+      if(multiple){
+        // Several videos: keep every exact original video title.
+        if(existing)existing.remove();
+        return;
+      }
+      if(existing)return;
+      var kind=document.createElement("small");
+      kind.className="optimus-auction-video-kind";
+      kind.textContent="video";
       label.appendChild(kind);
     });
   }
 
-  function makeHolder(report, panel, id) {
-    var actions = videoActions(panel);
-    if (!actions.length || !report || panel.contains(report)) return null;
-    var holder = document.createElement("div");
-    holder.id = id;
-    actions.forEach(function (native) {
-      var label = (native.textContent || native.getAttribute("aria-label") || "LEG CONFORMATION & WALK").replace(/\s+/g, " ").trim();
-      if (!label || label.length > 120) label = "LEG CONFORMATION & WALK";
-      var button = document.createElement("button");
-      button.type = "button";
-      button.setAttribute("aria-label", label);
-      var icon = document.createElement("span");
-      icon.textContent = "▶";
-      icon.setAttribute("aria-hidden", "true");
-      var text = document.createElement("span");
-      text.textContent = label;
-      button.appendChild(icon);
-      button.appendChild(text);
-      button.addEventListener("click", function () { native.click(); });
-      holder.appendChild(button);
-    });
-    if (!holder.children.length) return null;
-    report.insertAdjacentElement("afterend", holder);
+  function makeHolder(report,panel,id) {
+    var actions=videoActions(panel);
+    if(!actions.length||!report||panel.contains(report))return null;
+    var holder=document.createElement("div");
+    holder.id=id;
+    actions.forEach(function(native){addVideoButton(holder,native);});
+    if(!holder.children.length)return null;
+    report.insertAdjacentElement("afterend",holder);
+    ensureAllVideoButtons(holder);
     decorate(holder);
     panel.classList.add("optimus-auction-hidden-panel");
     return holder;
@@ -171,20 +273,25 @@
   }
 
   function youtubeForButton(button) {
-    var label = (button.getAttribute("aria-label") || button.textContent || "").replace(/\s+video\s*$/i, "").toLowerCase().trim();
-    var panels = videoPanels(false);
-    for (var i = 0; i < panels.length; i++) {
-      var actions = videoActions(panels[i]);
-      for (var j = 0; j < actions.length; j++) {
-        var native = actions[j];
-        var name = (native.textContent || native.getAttribute("aria-label") || "").toLowerCase().trim();
-        if (label && name && name !== label && !name.includes(label)) continue;
-        var raw = native.outerHTML + " " + (native.parentElement ? native.parentElement.outerHTML : "");
-        var match = findYoutubeId(raw);
-        if (match) return match;
-      }
-      var fromPanel = findYoutubeId(panels[i].outerHTML);
-      if (fromPanel) return fromPanel;
+    var direct=button.getAttribute("data-optimus-youtube-id");
+    if(direct && /^[A-Za-z0-9_-]{11}$/.test(direct))return direct;
+
+    var label=(button.getAttribute("aria-label")||button.textContent||"").replace(/\s+video\s*$/i,"").toLowerCase().trim();
+    var matches=distinctVideoActions().filter(function(action){
+      return (action.textContent||action.getAttribute("aria-label")||"").replace(/\s+/g," ").trim().toLowerCase()===label;
+    });
+    if(matches.length===1){
+      var one=matches[0];
+      var id=findYoutubeId(one.outerHTML+" "+(one.parentElement?one.parentElement.outerHTML:""));
+      if(id)return id;
+    }
+    // With several videos, never guess and play the wrong one.
+    // Its original PWeb click handler remains a functional fallback.
+    if(distinctVideoActions().length!==1)return null;
+    var panels=videoPanels(false);
+    for(var i=0;i<panels.length;i++){
+      var fromPanel=findYoutubeId(panels[i].outerHTML);
+      if(fromPanel)return fromPanel;
     }
     return null;
   }
@@ -239,33 +346,40 @@
   document.addEventListener("keydown", function (event) { if (event.key === "Escape") closePopup(); });
 
   function apply() {
-    reports(false).forEach(formatReport);
-    var central = document.getElementById("optimus-pweb-video-actions");
-    if (central) decorate(central);
-    var mobile = window.matchMedia("(max-width:767px)").matches;
-    var displayedReports = reports(true);
-    var report = displayedReports.find(function (el) { return !el.closest(".hidden-xs"); }) || displayedReports[0];
-    if (!report) return;
-    var next = report.nextElementSibling;
-    if (next && next.id === "optimus-pweb-video-actions" && next.querySelector("button")) {
-      decorate(next);
-      var visiblePanel = videoPanels(true)[0];
-      if (visiblePanel && !visiblePanel.contains(next)) visiblePanel.classList.add("optimus-auction-hidden-panel");
-      return;
+    var docs=reports(false);
+    var count=distinctCount(docs);
+    docs.forEach(function(link){formatReport(link,count<=1);});
+
+    var central=document.getElementById("optimus-pweb-video-actions");
+    if(central){
+      ensureAllVideoButtons(central);
+      decorate(central);
     }
-    var holderId = mobile ? "optimus-auction-mobile-video-actions" : "optimus-auction-desktop-video-actions";
-    var holder = document.getElementById(holderId);
-    if (holder && holder.querySelector("button")) {
-      if (holder.previousElementSibling !== report) report.insertAdjacentElement("afterend", holder);
+    var visibleDocs=reports(true);
+    // Place the video list after the *last* visible document.
+    var report=visibleDocs[visibleDocs.length-1];
+    if(!report)return;
+
+    var holder=central&&central.querySelector("button")?central:
+      document.getElementById(window.matchMedia("(max-width:767px)").matches?
+        "optimus-auction-mobile-video-actions":"optimus-auction-desktop-video-actions");
+
+    if(holder && holder.querySelector("button")){
+      if(holder.previousElementSibling!==report)report.insertAdjacentElement("afterend",holder);
+      ensureAllVideoButtons(holder);
       decorate(holder);
-      var previous = videoPanels(true)[0];
-      if (previous && !previous.contains(holder)) previous.classList.add("optimus-auction-hidden-panel");
+      // Hide only those native panels whose actions have working replacements.
+      videoPanels(true).forEach(function(panel){
+        var natives=videoActions(panel);
+        if(natives.length&&Array.from(holder.querySelectorAll("button")).length>=natives.length &&
+            !panel.contains(holder))panel.classList.add("optimus-auction-hidden-panel");
+      });
       return;
     }
-    if (!mobile && central && central.querySelector("button")) return;
-    var panel = videoPanels(true)[0];
-    if (!panel) return;
-    makeHolder(report, panel, holderId);
+    var panel=videoPanels(true)[0];
+    if(!panel)return;
+    makeHolder(report,panel,window.matchMedia("(max-width:767px)").matches?
+      "optimus-auction-mobile-video-actions":"optimus-auction-desktop-video-actions");
   }
 
   function begin() {
