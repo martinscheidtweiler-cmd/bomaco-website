@@ -30,6 +30,9 @@
       ".page-title-small{background:#000!important;background-color:#000!important;color:#fff!important;border-color:#000!important;box-shadow:none!important}",
       ".page-title-small h1,.page-title-small p,.page-title-small span,.page-title-small strong,.page-title-small label,.page-title-small .display-block{color:#fff!important}",
       ".optimus-mobile-title-content{display:none!important}",
+      "@media(max-width:767px){.page-title-small{display:block!important;visibility:visible!important}}",
+      ".optimus-pweb-empty-grey-hidden{display:none!important;height:0!important;margin:0!important;padding:0!important}",
+      "@media(max-width:767px){.optimus-pweb-native-mobile-pedigree{display:none!important}}",
       "@media(max-width:767px){.page-title-small.optimus-mobile-title-ready{display:block!important;height:auto!important;min-height:0!important;padding:0!important;box-sizing:border-box!important;background:#000!important;color:#fff!important}.page-title-small.optimus-mobile-title-ready > :not(.optimus-mobile-title-content){display:none!important}.page-title-small.optimus-mobile-title-ready > .optimus-mobile-title-content{display:block!important;width:100%!important;box-sizing:border-box!important;margin:0!important;padding:22px 20px 20px!important;text-align:left!important;font-family:Poppins,Montserrat,Arial,sans-serif!important;background:#000!important;color:#fff!important}.optimus-mobile-title-content .omt-name{display:block!important;color:#fff!important;font-size:clamp(21px,5.5vw,26px)!important;line-height:1.2!important;font-weight:650!important;letter-spacing:-.35px!important;margin:0 0 10px!important;text-align:left!important}.optimus-mobile-title-content .omt-line{display:block!important;color:#d2d2d2!important;font-size:clamp(12px,3.2vw,14px)!important;line-height:1.5!important;font-weight:400!important;white-space:normal!important;overflow-wrap:normal!important;margin:0!important}.optimus-mobile-title-content .omt-info{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important;flex-wrap:wrap!important;margin:17px 0 0!important;padding:14px 0 0!important;border-top:1px solid #444!important}.optimus-mobile-title-content .omt-sex{color:#fff!important;font-size:14px!important;line-height:1.3!important;font-weight:600!important;white-space:nowrap!important}.optimus-mobile-title-content .omt-date{color:#d2d2d2!important;font-size:13px!important;line-height:1.3!important;white-space:nowrap!important}}",
       ".optimus-pweb-native-videos-hidden{display:none!important;height:0!important;margin:0!important;padding:0!important;overflow:hidden!important}",
       ".optimus-pweb-video-button{display:flex!important;align-items:center!important;gap:11px!important;width:100%!important;min-height:48px!important;box-sizing:border-box!important;padding:13px 18px!important;margin:0 0 9px!important;background:#111!important;color:#fff!important;border:0!important;border-radius:0!important;text-align:left!important;text-decoration:none!important;font:600 13px/1.4 Poppins,Montserrat,Arial,sans-serif!important;cursor:pointer!important}",
@@ -194,6 +197,100 @@
     return true;
   }
 
+  // Precise native PWeb video box from the live HTML:
+  // .padding-20px-top.width-100.pull-left.bg-light-gray
+  // Do not hide a parent that could include the gallery or bid panel.
+  function fixNativeVideoPanel() {
+    if (document.getElementById("optimus-pweb-video-actions")) return true;
+    var headings = Array.from(document.querySelectorAll("h1,h2,h3,h4,h5,h6"));
+    var heading = headings.find(function (node) {
+      return /^videos?$/i.test((node.textContent || "").trim());
+    });
+    var report = findVetReport();
+    if (!heading || !report) return false;
+    var panel = heading.closest(".padding-20px-top.width-100.pull-left.bg-light-gray,.padding-20px-top.width-100.pull-left.bg-light-grey");
+    if (!panel) {
+      var a = heading.parentElement;
+      for (var depth = 0; depth < 6 && a && a !== document.body; depth++, a = a.parentElement) {
+        if (a.classList && (a.classList.contains("bg-light-gray") || a.classList.contains("bg-light-grey"))) {
+          panel = a;
+          break;
+        }
+      }
+    }
+    if (!panel || panel.contains(root) || panel.contains(report) ||
+        panel.querySelector(".page-title-small,.optimus-live-embed")) return false;
+    var nodes = Array.from(panel.querySelectorAll("a,button,[role='button'],[onclick],[data-toggle],[data-target],.btn"));
+    var actions = nodes.filter(function (node) {
+      var value = (node.textContent || node.getAttribute("aria-label") || node.getAttribute("title") || "").replace(/\s+/g, " ").trim();
+      var href = node.getAttribute("href") || "";
+      return value.length > 2 && value.length < 120 && !/^videos?$|^close$|^sluiten$/i.test(value) &&
+        href !== "#videos" && href !== "#IframeWrapper";
+    });
+    actions = actions.filter(function (node) {
+      return !actions.some(function (other) { return other !== node && node.contains(other); });
+    });
+    if (!actions.length) {
+      var leaf = Array.from(panel.querySelectorAll("span,label,strong,div,p")).find(function (node) {
+        return node.children.length === 0 &&
+          /leg\s+conformation\s*(?:&|and)\s*walk/i.test(node.textContent || "");
+      });
+      if (leaf) {
+        var nativeAction = leaf.closest("a,button,[onclick],[role='button'],[data-toggle],[data-target],.btn") || leaf.parentElement;
+        if (nativeAction && nativeAction !== panel) actions = [nativeAction];
+      }
+    }
+    if (!actions.length || actions.length > 12) return false;
+    var wrapper = document.createElement("div");
+    wrapper.id = "optimus-pweb-video-actions";
+    actions.forEach(function (nativeAction) {
+      var label = (nativeAction.textContent || nativeAction.getAttribute("aria-label") || nativeAction.getAttribute("title") || "").replace(/\s+/g, " ").trim();
+      if (!label) return;
+      var button = document.createElement("button");
+      button.type = "button";
+      button.className = "optimus-pweb-video-button";
+      button.setAttribute("aria-label", label);
+      var symbol = document.createElement("span");
+      symbol.className = "optimus-pweb-play";
+      symbol.textContent = "▶";
+      symbol.setAttribute("aria-hidden", "true");
+      var labelEl = document.createElement("span");
+      labelEl.textContent = label;
+      button.appendChild(symbol);
+      button.appendChild(labelEl);
+      button.addEventListener("click", function () { nativeAction.click(); });
+      wrapper.appendChild(button);
+    });
+    if (!wrapper.children.length) return false;
+    report.classList.add("optimus-pweb-vet-link");
+    report.insertAdjacentElement("afterend", wrapper);
+    panel.classList.add("optimus-pweb-native-videos-hidden");
+    return true;
+  }
+
+  function cleanEmptyPwebBoxes() {
+    var gallery = document.querySelector(".paard-foto");
+    if (!gallery) return;
+    var boxes = gallery.querySelectorAll(
+      ".row.bg-light-gray.mr-0.ml-0.mb-15.padding-15px-all,.padding-20px-all.width-100.pull-left.bg-light-gray.mb-15"
+    );
+    Array.from(boxes).forEach(function (box) {
+      if (box.contains(root) || box.querySelector("img,iframe,video,canvas,form,a,button,input,[onclick]")) return;
+      if ((box.textContent || "").trim()) return;
+      box.classList.add("optimus-pweb-empty-grey-hidden");
+    });
+  }
+
+  function markNativeMobilePedigree() {
+    if (site !== "auction") return;
+    var gallery = document.querySelector(".paard-foto");
+    if (!gallery) return;
+    Array.from(gallery.querySelectorAll(".row.ml-0.mr-0.padding-15px-all")).forEach(function (row) {
+      if (row.contains(root) || row.querySelector("iframe,video,form,.page-title-small")) return;
+      if (row.querySelector("table.table.allcaps")) row.classList.add("optimus-pweb-native-mobile-pedigree");
+    });
+  }
+
   function widenEmbed() {
     if (root.closest(".optimus-live-wide")) return;
     var node = root;
@@ -318,7 +415,9 @@
     addStyles();
     makeMobileTitle();
     widenEmbed();
-    moveNativeVideoActions();
+    fixNativeVideoPanel();
+    cleanEmptyPwebBoxes();
+    markNativeMobilePedigree();
     normalizeHippomundo();
     askHeight();
   }
@@ -330,7 +429,8 @@
   // PWeb can inject its Videos and vet-report links after initial rendering.
   window.setTimeout(makeMobileTitle, 600);
   window.setTimeout(makeMobileTitle, 1800);
-  window.setTimeout(moveNativeVideoActions, 600);
-  window.setTimeout(moveNativeVideoActions, 1800);
-  window.setTimeout(moveNativeVideoActions, 3500);
+  window.setTimeout(fixNativeVideoPanel, 600);
+  window.setTimeout(fixNativeVideoPanel, 1800);
+  window.setTimeout(fixNativeVideoPanel, 3500);
+  window.setTimeout(fixNativeVideoPanel, 7000);
 })();
