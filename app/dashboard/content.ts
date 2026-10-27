@@ -396,7 +396,7 @@ export function signature(
   site: SiteCode | undefined, _profiles: HorseProfile[],
 ): string {
   const body = JSON.stringify([
-    "shared-pweb-bridge-v1", pedigree.public_token, pedigree.is_published,
+    site?.site === "auction" ? "shared-pweb-bridge-v2-auction" : "shared-pweb-bridge-v1", pedigree.public_token, pedigree.is_published,
     site?.site || "", site?.heights || "", site?.crop ?? "",
   ]);
   let hash = 2166136261;
@@ -820,6 +820,83 @@ window.setTimeout(fixBeVisuals,2200);
  * and saved Hippomundo dimensions are specific to this lot.
  * Replacing public/optimus-pweb.js updates all installed PWeb pages together.
  */
+
+/** Auction-only: the original PWeb title is styled and populated before the
+ * deferred central bridge runs, avoiding the grey/type-layout flash. */
+const OPTIMUS_AUCTION_INSTANT_TITLE = String.raw`
+<style id="optimus-auction-instant-title-css">
+.page-title-small,.page-title-small > div,.page-title-small > .container{
+  background:#000!important;background-color:#000!important;border-color:#000!important;box-shadow:none!important
+}
+.page-title-small,.page-title-small h1,.page-title-small p,.page-title-small span,
+.page-title-small strong,.page-title-small label,.page-title-small .display-block{color:#fff!important}
+.optimus-mobile-title-content{display:none!important}
+@media(max-width:767px){
+.page-title-small.optimus-mobile-title-ready{display:block!important;height:auto!important;min-height:0!important;padding:0!important;box-sizing:border-box!important;background:#000!important;color:#fff!important}
+.page-title-small.optimus-mobile-title-ready > :not(.optimus-mobile-title-content){display:none!important}
+.page-title-small.optimus-mobile-title-ready > .optimus-mobile-title-content{display:block!important;width:100%!important;box-sizing:border-box!important;margin:0!important;padding:22px 20px 20px!important;text-align:left!important;font-family:Poppins,Montserrat,Arial,sans-serif!important;background:#000!important;color:#fff!important}
+.optimus-mobile-title-content .omt-name{display:block!important;color:#fff!important;font-size:clamp(21px,5.5vw,26px)!important;line-height:1.2!important;font-weight:650!important;letter-spacing:-.35px!important;margin:0 0 10px!important;text-align:left!important}
+.optimus-mobile-title-content .omt-line{display:block!important;color:#d2d2d2!important;font-size:clamp(12px,3.2vw,14px)!important;line-height:1.5!important;font-weight:400!important;white-space:normal!important;margin:0!important}
+.optimus-mobile-title-content .omt-info{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important;flex-wrap:wrap!important;margin:17px 0 0!important;padding:14px 0 0!important;border-top:1px solid #444!important}
+.optimus-mobile-title-content .omt-sex{color:#fff!important;font-size:19px!important;line-height:1.3!important;font-weight:600!important;white-space:nowrap!important}
+.optimus-mobile-title-content .omt-date{color:#d2d2d2!important;font-size:13px!important;line-height:1.3!important;white-space:nowrap!important}
+}
+</style>
+<script id="optimus-auction-instant-title-script">
+(function(){
+  "use strict";
+  function instantTitle(){
+    var headers=document.querySelectorAll(".page-title-small");
+    for(var i=0;i<headers.length;i++){
+      var header=headers[i];
+      if(header.classList.contains("optimus-mobile-title-ready"))return;
+      var heading=header.querySelector("h1");
+      if(!heading)continue;
+      var source=header.querySelector(".hidden-md.hidden-lg.hidden-sm")||header;
+      var nameNode=source.querySelector("h1")||heading;
+      var name=(nameNode.textContent||"").trim();
+      if(!name)continue;
+      var nodes=Array.from(source.querySelectorAll(".display-block.margin-5px-top,span,p"));
+      var blood=nodes.find(function(node){
+        var text=(node.textContent||"").trim();
+        return text.length>12&&/[x×]/i.test(text)&&text!==name&&text.length<250;
+      });
+      var bloodText=blood?blood.textContent.trim():"";
+      if(!bloodText){
+        var fallback=(header.querySelector(".display-block.margin-5px-top")||{}).textContent||"";
+        if(/[x×]/i.test(fallback))bloodText=fallback.trim();
+      }
+      bloodText=bloodText.replace(/\s+[Xx×]\s+/g," × ").replace(/\s+/g," ").trim();
+      var full=Array.from(source.querySelectorAll("h1,span,p,.display-block")).map(function(el){
+        return (el.textContent||"").trim();
+      }).join(" ").replace(/\s+/g," ");
+      var match=full.match(/\b(mare|stallion|gelding|hengst|merrie|ruin)\b/i);
+      var label=match?match[1]:"";
+      if(label)label=label.charAt(0).toUpperCase()+label.slice(1).toLowerCase();
+      var sign=/^(mare|merrie)$/i.test(label)?"♀ ":/^(stallion|hengst)$/i.test(label)?"♂ ":"";
+      var birth=full.match(/\b\d{2}[-/.]\d{2}[-/.]\d{4}\b/);
+      if(!bloodText||!label||!birth)continue;
+      var card=document.createElement("div");
+      card.className="optimus-mobile-title-content";
+      var nm=document.createElement("div");
+      nm.className="omt-name";nm.textContent=name;
+      var line=document.createElement("div");
+      line.className="omt-line";line.textContent=bloodText;
+      var info=document.createElement("div");info.className="omt-info";
+      var sex=document.createElement("span");sex.className="omt-sex";sex.textContent=sign+label;
+      var date=document.createElement("span");date.className="omt-date";date.textContent=birth[0];
+      info.appendChild(sex);info.appendChild(date);
+      card.appendChild(nm);card.appendChild(line);card.appendChild(info);
+      header.appendChild(card);
+      header.classList.add("optimus-mobile-title-ready");
+      return;
+    }
+  }
+  instantTitle();
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",instantTitle,{once:true});
+})();
+</script>`;
+
 export function generateSharedPWebCode(
   pedigree: PedigreeRecord, _description: LotDescription,
   site: SiteCode, _profiles: HorseProfile[],
@@ -831,6 +908,7 @@ export function generateSharedPWebCode(
   const crop = Math.max(0, Math.min(20000, numberOr(site.crop, 265)));
   return [
     "<!-- OPTIMUS AUCTION — CENTRAL PWEB BRIDGE. Replace all prior HTML with this snippet. -->",
+    ...(site.site === "auction" ? [OPTIMUS_AUCTION_INSTANT_TITLE] : []),
     '<div class="optimus-live-embed" data-optimus-site="' + site.site +
       '" data-optimus-heights="' + heights + '" data-optimus-crop="' + crop + '">',
     '  <iframe class="optimus-live-lot-iframe" src="' + page +
@@ -839,6 +917,9 @@ export function generateSharedPWebCode(
       ' style="display:block;width:100%;height:900px;border:0;overflow:hidden"></iframe>',
     "</div>",
     '<script src="https://optimusauction.vercel.app/optimus-pweb.js" defer></script>',
+    ...(site.site === "auction" ? [
+      '<script src="https://optimusauction.vercel.app/optimus-auction-pweb.js" defer></script>',
+    ] : []),
     "<!-- OPTIMUS AUCTION — END CENTRAL PWEB BRIDGE -->",
   ].join("\n");
 }
