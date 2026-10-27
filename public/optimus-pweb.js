@@ -29,6 +29,8 @@
       ".optimus-live-wide:after{content:'';display:table;clear:both}",
       ".page-title-small{background:#000!important;background-color:#000!important;color:#fff!important;border-color:#000!important;box-shadow:none!important}",
       ".page-title-small h1,.page-title-small p,.page-title-small span,.page-title-small strong,.page-title-small label,.page-title-small .display-block{color:#fff!important}",
+      ".optimus-mobile-title-content{display:none!important}",
+      "@media(max-width:767px){.page-title-small.optimus-mobile-title-ready{display:block!important;height:auto!important;min-height:0!important;padding:0!important;box-sizing:border-box!important;background:#000!important;color:#fff!important}.page-title-small.optimus-mobile-title-ready > :not(.optimus-mobile-title-content){display:none!important}.page-title-small.optimus-mobile-title-ready > .optimus-mobile-title-content{display:block!important;width:100%!important;box-sizing:border-box!important;margin:0!important;padding:22px 20px 20px!important;text-align:left!important;font-family:Poppins,Montserrat,Arial,sans-serif!important;background:#000!important;color:#fff!important}.optimus-mobile-title-content .omt-name{display:block!important;color:#fff!important;font-size:clamp(21px,5.5vw,26px)!important;line-height:1.2!important;font-weight:650!important;letter-spacing:-.35px!important;margin:0 0 10px!important;text-align:left!important}.optimus-mobile-title-content .omt-line{display:block!important;color:#d2d2d2!important;font-size:clamp(12px,3.2vw,14px)!important;line-height:1.5!important;font-weight:400!important;white-space:normal!important;overflow-wrap:normal!important;margin:0!important}.optimus-mobile-title-content .omt-info{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important;flex-wrap:wrap!important;margin:17px 0 0!important;padding:14px 0 0!important;border-top:1px solid #444!important}.optimus-mobile-title-content .omt-sex{color:#fff!important;font-size:14px!important;line-height:1.3!important;font-weight:600!important;white-space:nowrap!important}.optimus-mobile-title-content .omt-date{color:#d2d2d2!important;font-size:13px!important;line-height:1.3!important;white-space:nowrap!important}}",
       ".optimus-pweb-native-videos-hidden{display:none!important;height:0!important;margin:0!important;padding:0!important;overflow:hidden!important}",
       ".optimus-pweb-video-button{display:flex!important;align-items:center!important;gap:11px!important;width:100%!important;min-height:48px!important;box-sizing:border-box!important;padding:13px 18px!important;margin:0 0 9px!important;background:#111!important;color:#fff!important;border:0!important;border-radius:0!important;text-align:left!important;text-decoration:none!important;font:600 13px/1.4 Poppins,Montserrat,Arial,sans-serif!important;cursor:pointer!important}",
       ".optimus-pweb-video-button:hover{background:#282828!important;color:#fff!important}",
@@ -59,6 +61,68 @@
     tag.id = "optimus-central-pweb-style";
     tag.textContent = css.join("\n");
     document.head.appendChild(tag);
+  }
+
+
+  function makeMobileTitle() {
+    var headers = document.querySelectorAll(".page-title-small");
+    for (var i = 0; i < headers.length; i++) {
+      var header = headers[i];
+      if (header.classList.contains("optimus-mobile-title-ready")) return;
+      var heading = header.querySelector("h1");
+      if (!heading) continue;
+      var source = header.querySelector(".hidden-md.hidden-lg.hidden-sm") || header;
+      var nameNode = source.querySelector("h1") || heading;
+      var name = (nameNode.textContent || "").trim();
+      if (!name) continue;
+
+      var values = Array.from(source.querySelectorAll(".display-block.margin-5px-top,span,p"));
+      var bloodline = values.find(function (node) {
+        var t = (node.textContent || "").trim();
+        return t.length > 12 && /[x×]/i.test(t) && t !== name && t.length < 250;
+      });
+      var bloodText = bloodline ? bloodline.textContent.trim() : "";
+      if (!bloodText) {
+        var fallback = (header.querySelector(".display-block.margin-5px-top") || {}).textContent || "";
+        if (/[x×]/i.test(fallback)) bloodText = fallback.trim();
+      }
+      bloodText = bloodText.replace(/\s+[Xx×]\s+/g, " × ").replace(/\s+/g, " ").trim();
+
+      var full = (source.textContent || header.textContent || "").replace(/\s+/g, " ");
+      var sexMatch = full.match(/\b(mare|stallion|gelding|hengst|merrie|ruin)\b/i);
+      var label = sexMatch ? sexMatch[1] : "";
+      if (label) label = label.charAt(0).toUpperCase() + label.slice(1).toLowerCase();
+      var sign = /^(mare|merrie)$/i.test(label) ? "♀ " : /^(stallion|hengst)$/i.test(label) ? "♂ " : "";
+      var dateMatch = full.match(/\b\d{2}[-/.]\d{2}[-/.]\d{4}\b/);
+      var date = dateMatch ? dateMatch[0] : "";
+      // Do not conceal the original PWeb header until its replacement has all key fields.
+      if (!bloodText || !label || !date) continue;
+
+      var card = document.createElement("div");
+      card.className = "optimus-mobile-title-content";
+      var nameEl = document.createElement("div");
+      nameEl.className = "omt-name";
+      nameEl.textContent = name;
+      var lineEl = document.createElement("div");
+      lineEl.className = "omt-line";
+      lineEl.textContent = bloodText;
+      var info = document.createElement("div");
+      info.className = "omt-info";
+      var sex = document.createElement("span");
+      sex.className = "omt-sex";
+      sex.textContent = sign + label;
+      var birth = document.createElement("span");
+      birth.className = "omt-date";
+      birth.textContent = date;
+      info.appendChild(sex);
+      info.appendChild(birth);
+      card.appendChild(nameEl);
+      card.appendChild(lineEl);
+      card.appendChild(info);
+      header.appendChild(card);
+      header.classList.add("optimus-mobile-title-ready");
+      return;
+    }
   }
 
   function findVideoPanel() {
@@ -252,6 +316,7 @@
 
   function init() {
     addStyles();
+    makeMobileTitle();
     widenEmbed();
     moveNativeVideoActions();
     normalizeHippomundo();
@@ -263,6 +328,8 @@
   else init();
   window.addEventListener("load", init, { once: true });
   // PWeb can inject its Videos and vet-report links after initial rendering.
+  window.setTimeout(makeMobileTitle, 600);
+  window.setTimeout(makeMobileTitle, 1800);
   window.setTimeout(moveNativeVideoActions, 600);
   window.setTimeout(moveNativeVideoActions, 1800);
   window.setTimeout(moveNativeVideoActions, 3500);
