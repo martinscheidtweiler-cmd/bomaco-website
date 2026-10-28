@@ -27,6 +27,7 @@
     '.page-title-small.optimus-auction-embryo-desktop-ready .optimus-auction-embryo-desktop-meta{position:absolute!important;z-index:8!important;top:50%!important;right:27px!important;transform:translateY(-50%)!important;display:flex!important;flex-direction:column!important;align-items:flex-end!important;justify-content:center!important;gap:5px!important;min-width:196px!important;max-width:40%!important;margin:0!important;padding:7px 0 7px 18px!important;background:#000!important;color:#fff!important;text-align:right!important;box-sizing:border-box!important;pointer-events:none!important}',
     '.page-title-small.optimus-auction-embryo-desktop-ready .optimus-auction-embryo-desktop-sex{display:block!important;font:600 16px/1.2 Poppins,Montserrat,Arial,sans-serif!important;letter-spacing:0!important;color:#fff!important;white-space:nowrap!important;text-transform:none!important}',
     '.page-title-small.optimus-auction-embryo-desktop-ready .optimus-auction-embryo-desktop-date{display:block!important;font:400 12px/1.25 Poppins,Montserrat,Arial,sans-serif!important;letter-spacing:0!important;color:#c8c8c8!important;white-space:nowrap!important;text-transform:none!important}',
+    '@media(min-width:768px){.page-title-small.optimus-auction-embryo-desktop-ready .optimus-auction-embryo-native-sex-hidden{display:none!important}}',
     '@media(max-width:767px){.page-title-small.optimus-auction-embryo-desktop-ready .optimus-auction-embryo-desktop-meta{display:none!important}}',
     '.optimus-auction-hidden-panel{display:none!important;height:0!important;min-height:0!important;padding:0!important;margin:0!important;overflow:hidden!important}',
     '@media(max-width:767px){.page-title-small.optimus-mobile-title-ready .optimus-mobile-title-content .omt-sex{font-size:19px!important}}'
@@ -386,6 +387,26 @@
     return {sex:sex,label:sex==="female"?"♀ Female Embryo":sex==="male"?"♂ Male Embryo":"Embryo"};
   }
 
+  // PWeb often renders its own sex label in the centre of the desktop header.
+  // Keep that original DOM untouched, but hide its label on desktop whenever
+  // our right-aligned embryo label is present. Otherwise the text appears twice.
+  function hideDuplicateNativeEmbryoSex(header, meta) {
+    var exact=/^[\s♀♂]*(?:female|male)\s+embryo(?:\s*[-–]\s*implanted)?\s*$/i;
+    var selector="span,strong,b,label,p,div,h2,h3,h4,h5,h6";
+    var candidates=Array.from(header.querySelectorAll(selector));
+    candidates.forEach(function(node) {
+      if (node===meta || meta.contains(node) || node.contains(meta) ||
+          node.closest(".optimus-mobile-title-content")) return;
+      var text=(node.textContent||"").trim();
+      if(!exact.test(text))return;
+      // Hide only the innermost sex-only element. Never the title/date column.
+      var inner=Array.from(node.children).some(function(child) {
+        return exact.test((child.textContent||"").trim());
+      });
+      if(!inner) node.classList.add("optimus-auction-embryo-native-sex-hidden");
+    });
+  }
+
   function addEmbryoDesktopGender() {
     var info=embryoIdentity();
     if(!info)return;
@@ -416,6 +437,7 @@
       if(dateNode)dateNode.textContent=dateLabel;
       if(dateNode)dateNode.style.display=dateLabel?"":"none";
       header.classList.add("optimus-auction-embryo-desktop-ready");
+      hideDuplicateNativeEmbryoSex(header,block);
     });
   }
 
