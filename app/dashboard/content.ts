@@ -396,7 +396,7 @@ export function signature(
   site: SiteCode | undefined, _profiles: HorseProfile[],
 ): string {
   const body = JSON.stringify([
-    site?.site === "auction" ? "shared-pweb-bridge-v2-auction" : "shared-pweb-bridge-v1", pedigree.public_token, pedigree.is_published,
+    site?.site === "auction" && /\bembryos?\b/i.test(pedigree.name) ? "shared-pweb-bridge-v3-embryo" : site?.site === "auction" ? "shared-pweb-bridge-v2-auction" : "shared-pweb-bridge-v1", pedigree.public_token, pedigree.is_published,
     site?.site || "", site?.heights || "", site?.crop ?? "",
   ]);
   let hash = 2166136261;
@@ -845,6 +845,9 @@ const OPTIMUS_AUCTION_INSTANT_TITLE = String.raw`
 <script id="optimus-auction-instant-title-script">
 (function(){
   "use strict";
+  var script=document.currentScript;
+  var isEmbryo=script&&script.getAttribute("data-optimus-kind")==="embryo";
+  var embryoSex=script?(script.getAttribute("data-optimus-embryo-sex")||""):"";
   function instantTitle(){
     var headers=document.querySelectorAll(".page-title-small");
     for(var i=0;i<headers.length;i++){
@@ -875,7 +878,16 @@ const OPTIMUS_AUCTION_INSTANT_TITLE = String.raw`
       if(label)label=label.charAt(0).toUpperCase()+label.slice(1).toLowerCase();
       var sign=/^(mare|merrie)$/i.test(label)?"♀ ":/^(stallion|hengst)$/i.test(label)?"♂ ":"";
       var birth=full.match(/\b\d{2}[-/.]\d{2}[-/.]\d{4}\b/);
-      if(!bloodText||!label||!birth)continue;
+      var dateText=birth?birth[0]:"";
+      if(isEmbryo){
+        // Embryos are not born foals: never label their sex "Mare"/"Stallion"
+        // and never present an expected foaling date as a date of birth.
+        label=embryoSex==="female"?"Female Embryo":embryoSex==="male"?"Male Embryo":"Embryo";
+        sign=embryoSex==="female"?"♀ ":embryoSex==="male"?"♂ ":"";
+        var expectedYear=full.match(/(?:°|expected|due|verwacht)\s*(?:in\s*)?(20\d{2})\b/i);
+        dateText=birth?"Expected "+birth[0]:expectedYear?"Expected "+expectedYear[1]:"";
+      }
+      if(!bloodText||(!isEmbryo&&(!label||!birth)))continue;
       var card=document.createElement("div");
       card.className="optimus-mobile-title-content";
       var nm=document.createElement("div");
@@ -884,8 +896,8 @@ const OPTIMUS_AUCTION_INSTANT_TITLE = String.raw`
       line.className="omt-line";line.textContent=bloodText;
       var info=document.createElement("div");info.className="omt-info";
       var sex=document.createElement("span");sex.className="omt-sex";sex.textContent=sign+label;
-      var date=document.createElement("span");date.className="omt-date";date.textContent=birth[0];
-      info.appendChild(sex);info.appendChild(date);
+      var date=document.createElement("span");date.className="omt-date";date.textContent=dateText;
+      info.appendChild(sex);if(dateText)info.appendChild(date);
       card.appendChild(nm);card.appendChild(line);card.appendChild(info);
       header.appendChild(card);
       header.classList.add("optimus-mobile-title-ready");
@@ -906,10 +918,20 @@ export function generateSharedPWebCode(
     "?site=" + encodeURIComponent(site.site);
   const heights = safeHeights(site.heights).join(",");
   const crop = Math.max(0, Math.min(20000, numberOr(site.crop, 265)));
+  const isEmbryo = site.site === "auction" && /\bembryos?\b/i.test(pedigree.name);
+  const embryoSex = /\bfemale\b/i.test(pedigree.name) ? "female"
+    : /\bmale\b/i.test(pedigree.name) ? "male" : "";
+  const titleBootstrap = isEmbryo
+    ? OPTIMUS_AUCTION_INSTANT_TITLE.replace(
+        '<script id="optimus-auction-instant-title-script">',
+        '<script id="optimus-auction-instant-title-script" data-optimus-kind="embryo" data-optimus-embryo-sex="' + embryoSex + '">',
+      )
+    : OPTIMUS_AUCTION_INSTANT_TITLE;
   return [
     "<!-- OPTIMUS AUCTION — CENTRAL PWEB BRIDGE. Replace all prior HTML with this snippet. -->",
-    ...(site.site === "auction" ? [OPTIMUS_AUCTION_INSTANT_TITLE] : []),
+    ...(site.site === "auction" ? [titleBootstrap] : []),
     '<div class="optimus-live-embed" data-optimus-site="' + site.site +
+      (isEmbryo ? '" data-optimus-lot-kind="embryo" data-optimus-embryo-sex="' + embryoSex : '') +
       '" data-optimus-heights="' + heights + '" data-optimus-crop="' + crop + '">',
     '  <iframe class="optimus-live-lot-iframe" src="' + page +
       '" title="' + escapeHtml(pedigree.name) +
