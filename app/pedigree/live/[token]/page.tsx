@@ -4,13 +4,13 @@ import PedigreeChart from "../../PedigreeChart";
 import styles from "../../pedigree.module.css";
 import { cleanHorses } from "../../pedigree-data";
 
-// Embed pages always fetch the latest saved version. Never cache pedigrees.
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
+// Public information is refreshed in the background; failures retain the last good page.
+export const revalidate = 60;
+export async function generateStaticParams() { return []; }
 
 export const metadata: Metadata = {
   title: "Live pedigree | Optimus Auction",
-  description: "Always-current, four-generation sport horse pedigree.",
+  description: "Four-generation sport horse pedigree.",
   robots: { index: false, follow: false },
 };
 
@@ -24,14 +24,12 @@ export default async function LivePedigree({ params }: Props) {
 
   const endpoint = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!endpoint || !anonKey) notFound();
+  if (!endpoint || !anonKey) throw new Error("Public embed configuration missing");
 
   // Only an explicitly published pedigree may be read anonymously.
   // The RPC exposes its 15 horse entries, never users or private team rows.
-  let result: unknown;
-  let videoResult: unknown = [];
-  try {
-    const request = (name: string) => fetch(`${endpoint}/rest/v1/rpc/${name}`, {
+  const request = async (name: string): Promise<unknown> => {
+    const response = await fetch(`${endpoint}/rest/v1/rpc/${name}`, {
       method: "POST",
       headers: {
         apikey: anonKey,
@@ -39,21 +37,20 @@ export default async function LivePedigree({ params }: Props) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ p_token: token }),
-      cache: "no-store",
+      cache: "force-cache",
+      next: { revalidate: 60 },
+      signal: AbortSignal.timeout(8000),
     });
-    const [response, videosResponse] = await Promise.all([
-      request("get_published_pedigree"),
-      request("get_published_pedigree_videos"),
-    ]);
-    if (!response.ok) notFound();
-    result = await response.json();
-    if (videosResponse.ok) videoResult = await videosResponse.json();
-  } catch {
-    notFound();
-  }
-
+    if (!response.ok) throw new Error(`Public pedigree RPC failed: ${response.status}`);
+    return response.json();
+  };
+  const [result, videoResult] = await Promise.all([
+    request("get_published_pedigree"),
+    request("get_published_pedigree_videos"),
+  ]);
+  if (result === null) notFound();
   const horses = cleanHorses(result);
-  if (!horses) notFound();
+  if (!horses || !Array.isArray(videoResult)) throw new Error("Invalid public pedigree response");
   // Show public horse videos only when they are attached to a published pedigree.
   // Validate links, and pass only YouTube video IDs to the browser.
   const videoId = (raw: unknown): string => {
