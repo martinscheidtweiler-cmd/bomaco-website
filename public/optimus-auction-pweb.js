@@ -487,8 +487,89 @@
     });
   }
 
+
+  // The native right-hand auction timer sometimes starts directly below the
+  // title while the main photo has its own top spacing. Align the timer with
+  // the photo on desktop; maintain a comfortable gap on mobile.
+  // Scope: only embryo lots on stal-optimus.auction.
+  function spaceEmbryoCountdown() {
+    if(!embryoIdentity())return;
+    var header=Array.from(document.querySelectorAll(".page-title-small")).find(function(node){
+      return node.querySelector("h1") && node.getBoundingClientRect().width>150;
+    });
+    if(!header)return;
+    var headerRect=header.getBoundingClientRect();
+    if(headerRect.width<150||headerRect.height<20)return;
+
+    var headingPattern=/^(?:auction ends in|veiling eindigt in)$/i;
+    var labels=Array.from(document.querySelectorAll("h1,h2,h3,h4,h5,h6,p,span,strong,div"))
+      .filter(function(node){
+        if(node.closest(".optimus-live-embed,.page-title-small"))return false;
+        var label=(node.textContent||"").replace(/\s+/g," ").trim();
+        if(!headingPattern.test(label))return false;
+        return !Array.from(node.children).some(function(child){
+          return headingPattern.test((child.textContent||"").replace(/\s+/g," ").trim());
+        });
+      });
+    if(!labels.length)return;
+
+    var panel=null;
+    for(var i=0;i<labels.length&&!panel;i++){
+      var node=labels[i];
+      for(var depth=0;depth<8&&node&&node!==document.body;depth++,node=node.parentElement){
+        var rect=node.getBoundingClientRect();
+        if(rect.width<170||rect.height<55||rect.height>1600)continue;
+        if(rect.top<headerRect.bottom-12||rect.width>headerRect.width*.8)continue;
+        var bg=window.getComputedStyle(node).backgroundColor.replace(/\s+/g,"");
+        var match=bg.match(/^rgba?\((\d+),(\d+),(\d+)/);
+        var dark=match&&Math.max(+match[1],+match[2],+match[3])<45;
+        if(dark){
+          panel=node;
+          break;
+        }
+      }
+    }
+    if(!panel)return;
+
+    var rect=panel.getBoundingClientRect();
+    var onDesktop=window.innerWidth>=768;
+    var target=headerRect.bottom+(onDesktop?28:24);
+
+    if(onDesktop) {
+      // Only use visible, wide image/stage elements to determine gallery top.
+      // Thumbnails and the website's logo are intentionally excluded.
+      var selector=[
+        ".paard-foto img",
+        ".paard-foto .owl-stage-outer",
+        ".paard-foto .fotorama__stage",
+        ".paard-foto .slick-list",
+        ".paard-foto .swiper",
+        ".paard-foto .carousel-inner"
+      ].join(",");
+      var photos=Array.from(document.querySelectorAll(selector)).map(function(el){
+        return el.getBoundingClientRect();
+      }).filter(function(r){
+        return r.width>=Math.max(260,window.innerWidth*.3) &&
+          r.height>=110 && r.left<rect.left &&
+          r.top>headerRect.bottom-5 &&
+          r.top<headerRect.bottom+170;
+      });
+      if(photos.length){
+        var photoTop=Math.min.apply(null,photos.map(function(r){return r.top;}));
+        target=Math.max(target,photoTop);
+      }
+    }
+    var offset=target-rect.top;
+    // Only increase whitespace; never pull the bidding panel upward.
+    if(offset<3||offset>110)return;
+    var oldMargin=parseFloat(window.getComputedStyle(panel).marginTop)||0;
+    panel.style.setProperty("margin-top",Math.ceil(oldMargin+offset)+"px","important");
+    panel.setAttribute("data-optimus-embryo-timer-spaced","1");
+  }
+
   function apply() {
     addEmbryoDesktopGender();
+    spaceEmbryoCountdown();
     var docs=reports(false);
     var count=distinctCount(docs);
     docs.forEach(function(link){formatReport(link,count<=1);});
