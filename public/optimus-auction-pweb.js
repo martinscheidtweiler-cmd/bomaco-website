@@ -21,14 +21,18 @@
     '.optimus-auction-vet-report.optimus-auction-multi-document{margin-bottom:9px!important}',
     '.optimus-auction-video-button + .optimus-auction-video-button{margin-top:9px!important}',
 
-    // The gender + expected date become a single right-aligned desktop block.
-    // This covers the small native date, without changing the existing PWeb title.
-    '.page-title-small.optimus-auction-embryo-desktop-ready{position:relative!important}',
-    '.page-title-small.optimus-auction-embryo-desktop-ready .optimus-auction-embryo-desktop-meta{position:absolute!important;z-index:8!important;top:50%!important;right:27px!important;transform:translateY(-50%)!important;display:flex!important;flex-direction:column!important;align-items:flex-end!important;justify-content:center!important;gap:5px!important;min-width:196px!important;max-width:40%!important;margin:0!important;padding:7px 0 7px 18px!important;background:#000!important;color:#fff!important;text-align:right!important;box-sizing:border-box!important;pointer-events:none!important}',
-    '.page-title-small.optimus-auction-embryo-desktop-ready .optimus-auction-embryo-desktop-sex{display:block!important;font:600 16px/1.2 Poppins,Montserrat,Arial,sans-serif!important;letter-spacing:0!important;color:#fff!important;white-space:nowrap!important;text-transform:none!important}',
-    '.page-title-small.optimus-auction-embryo-desktop-ready .optimus-auction-embryo-desktop-date{display:block!important;font:400 12px/1.25 Poppins,Montserrat,Arial,sans-serif!important;letter-spacing:0!important;color:#c8c8c8!important;white-space:nowrap!important;text-transform:none!important}',
-    '@media(min-width:768px){.page-title-small.optimus-auction-embryo-desktop-ready .optimus-auction-embryo-native-sex-hidden{display:none!important}}',
-    '@media(max-width:767px){.page-title-small.optimus-auction-embryo-desktop-ready .optimus-auction-embryo-desktop-meta{display:none!important}}',
+    // One complete desktop title layout. Hide PWeb's native columns ONLY after
+    // the replacement has been created; no more overlapping labels or dates.
+    '.page-title-small.optimus-auction-embryo-desktop-ready{display:block!important;position:relative!important;width:100%!important;height:auto!important;min-height:76px!important;padding:0!important;margin-bottom:0!important;box-sizing:border-box!important;background:#000!important;color:#fff!important;border:0!important;overflow:visible!important}',
+    '@media(min-width:768px){.page-title-small.optimus-auction-embryo-desktop-ready > :not(.optimus-auction-embryo-desktop-layout){display:none!important}.page-title-small.optimus-auction-embryo-desktop-ready > .optimus-auction-embryo-desktop-layout{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;align-items:center!important;gap:26px!important;width:100%!important;max-width:100%!important;min-height:76px!important;padding:14px 27px!important;margin:0!important;box-sizing:border-box!important;background:#000!important;color:#fff!important;position:relative!important}}',
+    '.page-title-small.optimus-auction-embryo-desktop-ready .optimus-auction-embryo-title-left{display:flex!important;flex-direction:column!important;align-items:flex-start!important;min-width:0!important;gap:6px!important;text-align:left!important}',
+    '.page-title-small.optimus-auction-embryo-desktop-ready .optimus-auction-embryo-title-name{display:block!important;color:#fff!important;font:650 18px/1.25 Poppins,Montserrat,Arial,sans-serif!important;letter-spacing:-.2px!important;margin:0!important;padding:0!important;max-width:100%!important;text-align:left!important}',
+    '.page-title-small.optimus-auction-embryo-desktop-ready .optimus-auction-embryo-title-pedigree{display:block!important;color:#d6d6d6!important;font:400 13px/1.4 Poppins,Montserrat,Arial,sans-serif!important;margin:0!important;padding:0!important;max-width:100%!important;text-align:left!important;overflow-wrap:break-word!important}',
+    '.page-title-small.optimus-auction-embryo-desktop-ready .optimus-auction-embryo-desktop-meta{display:flex!important;flex-direction:column!important;align-items:flex-end!important;justify-content:center!important;gap:5px!important;min-width:0!important;margin:0!important;padding:0!important;color:#fff!important;text-align:right!important;position:static!important;transform:none!important;background:#000!important;white-space:nowrap!important}',
+    '.page-title-small.optimus-auction-embryo-desktop-ready .optimus-auction-embryo-desktop-sex{display:block!important;color:#fff!important;font:600 16px/1.3 Poppins,Montserrat,Arial,sans-serif!important;letter-spacing:0!important;text-align:right!important;white-space:nowrap!important}',
+    '.page-title-small.optimus-auction-embryo-desktop-ready .optimus-auction-embryo-desktop-date{display:block!important;color:#c8c8c8!important;font:400 12px/1.3 Poppins,Montserrat,Arial,sans-serif!important;letter-spacing:0!important;text-align:right!important;white-space:nowrap!important}',
+    '@media(min-width:768px) and (max-width:900px){.page-title-small.optimus-auction-embryo-desktop-ready > .optimus-auction-embryo-desktop-layout{gap:14px!important;padding:14px 18px!important}.page-title-small.optimus-auction-embryo-desktop-ready .optimus-auction-embryo-title-name{font-size:16px!important}.page-title-small.optimus-auction-embryo-desktop-ready .optimus-auction-embryo-desktop-sex{font-size:14px!important}}',
+    '@media(max-width:767px){.page-title-small.optimus-auction-embryo-desktop-ready > .optimus-auction-embryo-desktop-layout{display:none!important}}',
     '.optimus-auction-hidden-panel{display:none!important;height:0!important;min-height:0!important;padding:0!important;margin:0!important;overflow:hidden!important}',
     '@media(max-width:767px){.page-title-small.optimus-mobile-title-ready .optimus-mobile-title-content .omt-sex{font-size:19px!important}}'
   ].join("\n");
@@ -387,57 +391,99 @@
     return {sex:sex,label:sex==="female"?"♀ Female Embryo":sex==="male"?"♂ Male Embryo":"Embryo"};
   }
 
-  // PWeb often renders its own sex label in the centre of the desktop header.
-  // Keep that original DOM untouched, but hide its label on desktop whenever
-  // our right-aligned embryo label is present. Otherwise the text appears twice.
-  function hideDuplicateNativeEmbryoSex(header, meta) {
-    var exact=/^[\s♀♂]*(?:female|male)\s+embryo(?:\s*[-–]\s*implanted)?\s*$/i;
-    var selector="span,strong,b,label,p,div,h2,h3,h4,h5,h6";
-    var candidates=Array.from(header.querySelectorAll(selector));
-    candidates.forEach(function(node) {
-      if (node===meta || meta.contains(node) || node.contains(meta) ||
-          node.closest(".optimus-mobile-title-content")) return;
-      var text=(node.textContent||"").trim();
-      if(!exact.test(text))return;
-      // Hide only the innermost sex-only element. Never the title/date column.
-      var inner=Array.from(node.children).some(function(child) {
-        return exact.test((child.textContent||"").trim());
-      });
-      if(!inner) node.classList.add("optimus-auction-embryo-native-sex-hidden");
-    });
+  function embryoIdentity() {
+    var frame=lot.querySelector("iframe.optimus-live-lot-iframe");
+    var embeddedTitle=(frame && frame.getAttribute("title")) || "";
+    var explicitKind=lot.getAttribute("data-optimus-lot-kind");
+    var isEmbryo=explicitKind==="embryo" || /\bembryo\b/i.test(embeddedTitle);
+    if(!isEmbryo)return null;
+    var sex=(lot.getAttribute("data-optimus-embryo-sex") || "").toLowerCase();
+    if(sex!=="female" && sex!=="male") {
+      var match=embeddedTitle.match(/\b(female|male)\s+embryo\b/i);
+      sex=match ? match[1].toLowerCase() : "";
+    }
+    if(!sex) {
+      var nativeDetails=document.querySelector(".paard-foto");
+      var description=nativeDetails ? nativeDetails.textContent.slice(0,12000) : "";
+      var detected=description.match(/\b(female|male)\s+embryo\b/i);
+      if(detected)sex=detected[1].toLowerCase();
+    }
+    return {label:sex==="female"?"♀ Female Embryo":sex==="male"?"♂ Male Embryo":"Embryo"};
+  }
+
+  function embryoNativeHeaderDetails(header) {
+    // Original PWeb title provides the lot name, sire-line and expected date.
+    // Do not use the full header text as the pedigree (it contains other labels).
+    var heading=header.querySelector("h1");
+    var name=heading ? (heading.textContent || "").replace(/\s+/g," ").trim() : "";
+    if(!name)return null;
+    var mobile=header.querySelector(".optimus-mobile-title-content");
+    var mobileLine=mobile && mobile.querySelector(".omt-line");
+    var pedigree=mobileLine ? (mobileLine.textContent||"").trim() : "";
+    if(!pedigree) {
+      var nodes=Array.from(header.querySelectorAll(".display-block.margin-5px-top,span,p,div"));
+      // Find the innermost line with at least two pedigree separators.
+      var candidate=nodes.filter(function(node) {
+        if(node.closest(".optimus-auction-embryo-desktop-layout"))return false;
+        var text=(node.textContent||"").replace(/\s+/g," ").trim();
+        if(!text || text===name || text.length>300)return false;
+        var separators=(text.match(/\s+[Xx×]\s+/g)||[]).length;
+        if(separators<2)return false;
+        return !Array.from(node.children).some(function(child) {
+          return ((child.textContent||"").match(/\s+[Xx×]\s+/g)||[]).length>=2;
+        });
+      }).sort(function(a,b){return (a.textContent||"").length-(b.textContent||"").length})[0];
+      pedigree=candidate ? (candidate.textContent||"").trim() : "";
+    }
+    pedigree=pedigree.replace(/\s+[Xx×]\s+/g," × ").replace(/\s+/g," ").trim();
+    var native=header.textContent||"";
+    var date=native.match(/(?:°\s*)?(\d{2}[-/.]\d{2}[-/.]20\d{2})\b/);
+    var year=native.match(/(?:°\s*|expected\s*)(20\d{2})\b/i);
+    return {
+      name:name,
+      pedigree:pedigree,
+      expected:date?"Expected "+date[1]:year?"Expected "+year[1]:""
+    };
   }
 
   function addEmbryoDesktopGender() {
-    var info=embryoIdentity();
-    if(!info)return;
-    var headers=Array.from(document.querySelectorAll(".page-title-small"));
-    headers.forEach(function(header) {
-      if(!header.querySelector("h1") || header.closest(".optimus-live-embed"))return;
-      var block=header.querySelector(".optimus-auction-embryo-desktop-meta");
-      if(!block){
-        block=document.createElement("div");
-        block.className="optimus-auction-embryo-desktop-meta";
-        block.setAttribute("aria-label","Embryo details");
+    var identity=embryoIdentity();
+    if(!identity)return;
+    Array.from(document.querySelectorAll(".page-title-small")).forEach(function(header) {
+      if(header.closest(".optimus-live-embed"))return;
+      var existing=header.querySelector(".optimus-auction-embryo-desktop-layout");
+      var details=embryoNativeHeaderDetails(header);
+      if(!details)return; // Keep the native header unless a complete title exists.
+      if(!existing) {
+        existing=document.createElement("div");
+        existing.className="optimus-auction-embryo-desktop-layout";
+        var left=document.createElement("div");
+        left.className="optimus-auction-embryo-title-left";
+        var heading=document.createElement("h1");
+        heading.className="optimus-auction-embryo-title-name";
+        var pedigree=document.createElement("p");
+        pedigree.className="optimus-auction-embryo-title-pedigree";
+        left.appendChild(heading);
+        left.appendChild(pedigree);
+        var right=document.createElement("div");
+        right.className="optimus-auction-embryo-desktop-meta";
         var gender=document.createElement("span");
         gender.className="optimus-auction-embryo-desktop-sex";
-        var expected=document.createElement("span");
-        expected.className="optimus-auction-embryo-desktop-date";
-        block.appendChild(gender);
-        block.appendChild(expected);
-        header.appendChild(block);
+        var date=document.createElement("span");
+        date.className="optimus-auction-embryo-desktop-date";
+        right.appendChild(gender);
+        right.appendChild(date);
+        existing.appendChild(left);
+        existing.appendChild(right);
+        header.appendChild(existing);
       }
-      var nativeText=(header.textContent || "").replace(block.textContent || "","");
-      var dateMatch=nativeText.match(/(?:°\s*)?(\d{2}[-/.]\d{2}[-/.]20\d{2})\b/);
-      var yearMatch=nativeText.match(/(?:°\s*|expected\s*)(20\d{2})\b/i);
-      var dateLabel=dateMatch ? "Expected " + dateMatch[1]
-        : yearMatch ? "Expected " + yearMatch[1] : "";
-      var sexNode=block.querySelector(".optimus-auction-embryo-desktop-sex");
-      var dateNode=block.querySelector(".optimus-auction-embryo-desktop-date");
-      if(sexNode)sexNode.textContent=info.label;
-      if(dateNode)dateNode.textContent=dateLabel;
-      if(dateNode)dateNode.style.display=dateLabel?"":"none";
+      existing.querySelector(".optimus-auction-embryo-title-name").textContent=details.name;
+      existing.querySelector(".optimus-auction-embryo-title-pedigree").textContent=details.pedigree;
+      existing.querySelector(".optimus-auction-embryo-desktop-sex").textContent=identity.label;
+      var dateNode=existing.querySelector(".optimus-auction-embryo-desktop-date");
+      dateNode.textContent=details.expected;
+      dateNode.style.display=details.expected?"":"none";
       header.classList.add("optimus-auction-embryo-desktop-ready");
-      hideDuplicateNativeEmbryoSex(header,block);
     });
   }
 
