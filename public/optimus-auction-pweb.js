@@ -20,6 +20,14 @@
     '.optimus-auction-video-kind{display:inline-block!important;align-self:baseline!important;flex:0 0 auto!important;font:400 11px/1.4 Poppins,Montserrat,Arial,sans-serif!important;color:#b7b7b7!important;white-space:nowrap!important;margin:0!important;padding:0!important;letter-spacing:0!important;text-transform:none!important}',
     '.optimus-auction-vet-report.optimus-auction-multi-document{margin-bottom:9px!important}',
     '.optimus-auction-video-button + .optimus-auction-video-button{margin-top:9px!important}',
+
+    // The gender + expected date become a single right-aligned desktop block.
+    // This covers the small native date, without changing the existing PWeb title.
+    '.page-title-small.optimus-auction-embryo-desktop-ready{position:relative!important}',
+    '.page-title-small.optimus-auction-embryo-desktop-ready .optimus-auction-embryo-desktop-meta{position:absolute!important;z-index:8!important;top:50%!important;right:27px!important;transform:translateY(-50%)!important;display:flex!important;flex-direction:column!important;align-items:flex-end!important;justify-content:center!important;gap:5px!important;min-width:196px!important;max-width:40%!important;margin:0!important;padding:7px 0 7px 18px!important;background:#000!important;color:#fff!important;text-align:right!important;box-sizing:border-box!important;pointer-events:none!important}',
+    '.page-title-small.optimus-auction-embryo-desktop-ready .optimus-auction-embryo-desktop-sex{display:block!important;font:600 16px/1.2 Poppins,Montserrat,Arial,sans-serif!important;letter-spacing:0!important;color:#fff!important;white-space:nowrap!important;text-transform:none!important}',
+    '.page-title-small.optimus-auction-embryo-desktop-ready .optimus-auction-embryo-desktop-date{display:block!important;font:400 12px/1.25 Poppins,Montserrat,Arial,sans-serif!important;letter-spacing:0!important;color:#c8c8c8!important;white-space:nowrap!important;text-transform:none!important}',
+    '@media(max-width:767px){.page-title-small.optimus-auction-embryo-desktop-ready .optimus-auction-embryo-desktop-meta{display:none!important}}',
     '.optimus-auction-hidden-panel{display:none!important;height:0!important;min-height:0!important;padding:0!important;margin:0!important;overflow:hidden!important}',
     '@media(max-width:767px){.page-title-small.optimus-mobile-title-ready .optimus-mobile-title-content .omt-sex{font-size:19px!important}}'
   ].join("\n");
@@ -354,7 +362,65 @@
   }, true);
   document.addEventListener("keydown", function (event) { if (event.key === "Escape") closePopup(); });
 
+
+  function embryoIdentity() {
+    var frame=lot.querySelector("iframe.optimus-live-lot-iframe");
+    var embeddedTitle=(frame && frame.getAttribute("title")) || "";
+    var explicitKind=lot.getAttribute("data-optimus-lot-kind");
+    var isEmbryo=explicitKind==="embryo" || /\bembryo\b/i.test(embeddedTitle);
+    if(!isEmbryo)return null;
+
+    // Use lot-specific metadata first. Never infer a foal's sex from its pedigree.
+    var sex=(lot.getAttribute("data-optimus-embryo-sex") || "").toLowerCase();
+    if(sex!=="female" && sex!=="male") {
+      var m=embeddedTitle.match(/\b(female|male)\s+embryo\b/i);
+      sex=m ? m[1].toLowerCase() : "";
+    }
+    // Legacy PWeb codes may have no sex attribute in the embed title.
+    if(!sex) {
+      var nativeDetails=document.querySelector(".paard-foto");
+      var text=nativeDetails ? nativeDetails.textContent.slice(0,12000) : "";
+      var m=text.match(/\b(female|male)\s+embryo\s*[-–]\s*implanted\b/i);
+      if(m)sex=m[1].toLowerCase();
+    }
+    return {sex:sex,label:sex==="female"?"♀ Female Embryo":sex==="male"?"♂ Male Embryo":"Embryo"};
+  }
+
+  function addEmbryoDesktopGender() {
+    var info=embryoIdentity();
+    if(!info)return;
+    var headers=Array.from(document.querySelectorAll(".page-title-small"));
+    headers.forEach(function(header) {
+      if(!header.querySelector("h1") || header.closest(".optimus-live-embed"))return;
+      var block=header.querySelector(".optimus-auction-embryo-desktop-meta");
+      if(!block){
+        block=document.createElement("div");
+        block.className="optimus-auction-embryo-desktop-meta";
+        block.setAttribute("aria-label","Embryo details");
+        var gender=document.createElement("span");
+        gender.className="optimus-auction-embryo-desktop-sex";
+        var expected=document.createElement("span");
+        expected.className="optimus-auction-embryo-desktop-date";
+        block.appendChild(gender);
+        block.appendChild(expected);
+        header.appendChild(block);
+      }
+      var nativeText=(header.textContent || "").replace(block.textContent || "","");
+      var dateMatch=nativeText.match(/(?:°\s*)?(\d{2}[-/.]\d{2}[-/.]20\d{2})\b/);
+      var yearMatch=nativeText.match(/(?:°\s*|expected\s*)(20\d{2})\b/i);
+      var dateLabel=dateMatch ? "Expected " + dateMatch[1]
+        : yearMatch ? "Expected " + yearMatch[1] : "";
+      var sexNode=block.querySelector(".optimus-auction-embryo-desktop-sex");
+      var dateNode=block.querySelector(".optimus-auction-embryo-desktop-date");
+      if(sexNode)sexNode.textContent=info.label;
+      if(dateNode)dateNode.textContent=dateLabel;
+      if(dateNode)dateNode.style.display=dateLabel?"":"none";
+      header.classList.add("optimus-auction-embryo-desktop-ready");
+    });
+  }
+
   function apply() {
+    addEmbryoDesktopGender();
     var docs=reports(false);
     var count=distinctCount(docs);
     docs.forEach(function(link){formatReport(link,count<=1);});
