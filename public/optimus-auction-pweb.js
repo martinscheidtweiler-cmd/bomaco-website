@@ -33,6 +33,9 @@
     '.page-title-small.optimus-auction-embryo-desktop-ready .optimus-auction-embryo-desktop-date{display:block!important;color:#c8c8c8!important;font:400 12px/1.3 Poppins,Montserrat,Arial,sans-serif!important;letter-spacing:0!important;text-align:right!important;white-space:nowrap!important}',
     '@media(min-width:768px) and (max-width:900px){.page-title-small.optimus-auction-embryo-desktop-ready > .optimus-auction-embryo-desktop-layout{gap:14px!important;padding:14px 18px!important}.page-title-small.optimus-auction-embryo-desktop-ready .optimus-auction-embryo-title-name{font-size:16px!important}.page-title-small.optimus-auction-embryo-desktop-ready .optimus-auction-embryo-desktop-sex{font-size:14px!important}}',
     '@media(max-width:767px){.page-title-small.optimus-auction-embryo-desktop-ready > .optimus-auction-embryo-desktop-layout{display:none!important}}',
+    // One constant margin on the RIGHT column, never on the timer itself.
+    // This produces white space without repeatedly reflowing the timer.
+    '@media(min-width:768px){html .optimus-auction-embryo-sidebar-static-gap{margin-top:27px!important;transition:none!important}}',
     '.optimus-auction-hidden-panel{display:none!important;height:0!important;min-height:0!important;padding:0!important;margin:0!important;overflow:hidden!important}',
     '@media(max-width:767px){.page-title-small.optimus-mobile-title-ready .optimus-mobile-title-content .omt-sex{font-size:19px!important}}'
   ].join("\n");
@@ -494,130 +497,29 @@
   // Scope: only embryo lots on stal-optimus.auction.
   // Align the PWeb auction sidebar with the gallery. The old implementation
   // depended on an exact heading tag and therefore missed real PWeb timers.
+  // PWeb auction sidebar: one immutable CSS class instead of repeatedly
+  // measuring and rewriting margin-top. This cannot oscillate on resize,
+  // image load or the several scheduled apply() calls.
   function spaceEmbryoCountdown() {
-    if(!embryoIdentity() || window.innerWidth<768)return;
-    var header=Array.from(document.querySelectorAll(".page-title-small"))
-      .find(function(el){return el.querySelector("h1") && el.getBoundingClientRect().width>300;});
-    if(!header)return;
-    var head=header.getBoundingClientRect();
-    if(head.height<25 || head.width<400)return;
-
-    function rectOK(r) {
-      return r.width>=175 && r.width<head.width*.62 &&
-        r.height>=70 && r.height<1700 &&
-        r.left>head.left+head.width*.44 &&
-        r.top>=head.bottom-12 && r.top<head.bottom+160;
-    }
-    function darkBackground(el) {
-      var css=window.getComputedStyle(el);
-      var bg=css.backgroundColor || "";
-      var colors=bg.match(/[\d.]+/g);
-      if(!colors || colors.length<3)return false;
-      var alpha=colors.length>3 ? +colors[3] : 1;
-      return alpha>.55 && Math.max(+colors[0],+colors[1],+colors[2])<48;
-    }
-    function walkUp(el, predicate, steps) {
-      for(var depth=0;el&&el!==document.body&&depth<steps;depth++,el=el.parentElement){
-        if(predicate(el))return el;
-      }
-      return null;
-    }
-
-    // Works regardless of whether PWeb uses small, label, div, h5 or a custom
-    // element for "Auction ends in". Search text nodes, not a tag-name list.
-    var labels=[];
-    var root=document.querySelector(".paard-foto") || document.body;
-    if(document.createTreeWalker && typeof NodeFilter!=="undefined"){
-      var walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);
-      while(walker.nextNode()){
-        var raw=(walker.currentNode.nodeValue||"").replace(/\s+/g," ").trim();
-        if(/(?:auction\s+ends\s+in|veiling\s+eindigt\s+in)/i.test(raw)){
-          var owner=walker.currentNode.parentElement;
-          if(owner&&!owner.closest(".page-title-small,.optimus-live-embed"))labels.push(owner);
-        }
-      }
-    }
-    var panels=[];
-    labels.forEach(function(label){
-      var panel=walkUp(label,function(node){
-        return rectOK(node.getBoundingClientRect()) && darkBackground(node);
-      },12);
-      if(panel && panels.indexOf(panel)===-1)panels.push(panel);
-    });
-    if(!panels.length){
-      // Layout fallback: on this page, the countdown is the first dark panel
-      // to the right, directly under the full-width black title.
-      var boxes=Array.from(root.querySelectorAll("div,section,aside,article"));
-      panels=boxes.filter(function(node){
-        if(node.closest(".page-title-small,.optimus-live-embed"))return false;
-        return rectOK(node.getBoundingClientRect()) && darkBackground(node);
-      }).sort(function(a,b){
-        var ar=a.getBoundingClientRect(), br=b.getBoundingClientRect();
-        return ar.top-br.top || br.height-ar.height;
-      }).slice(0,4);
-    }
-    if(!panels.length)return;
-    panels.sort(function(a,b){
-      var ar=a.getBoundingClientRect(),br=b.getBoundingClientRect();
-      return ar.top-br.top || br.height-ar.height;
-    });
-    var panel=panels[0], panelRect=panel.getBoundingClientRect();
-
-    // Prefer the sidebar column so all countdown/bid content stays together.
-    // Never move the parent row, which also contains the photo.
-    var sidebar=walkUp(panel,function(node){
-      if(!node.matches || !node.matches(".col-md-4,.col-lg-4,.col-sm-4,.col-md-5,.col-lg-5,[class*='auction-sidebar'],[class*='bid-sidebar']"))return false;
-      var r=node.getBoundingClientRect();
-      return r.width>=panelRect.width-45 && r.width<=panelRect.width+75 &&
-        r.left>=panelRect.left-45 && r.left<=panelRect.left+35 &&
-        r.top>=head.bottom-15 && r.top<=panelRect.top+8;
-    },8) || panel;
-    var initial=panel.getBoundingClientRect();
-
-    // Match the actual photo top when possible. Otherwise guarantee 35px
-    // of air under the title (not the 14px seen in the screenshot).
-    var target=head.bottom+35;
-    var gallerySelectors=[
-      ".paard-foto .owl-stage-outer",".paard-foto .fotorama__stage",
-      ".paard-foto .swiper",".paard-foto .slick-list",
-      ".paard-foto .carousel-inner",".paard-foto img"
-    ].join(",");
-    var photos=Array.from(document.querySelectorAll(gallerySelectors)).map(function(el){
-      return el.getBoundingClientRect();
-    }).filter(function(r){
-      return r.width>Math.max(260,head.width*.42) &&
-        r.height>110 &&
-        r.left<panelRect.left-50 &&
-        r.top>head.bottom+8 && r.top<head.bottom+180;
-    });
-    if(photos.length)target=Math.max(target,Math.min.apply(null,photos.map(function(r){return r.top;})));
-
-    // Save the user's original inline margin once so running this after a
-    // resize or delayed PWeb update never stacks offsets.
-    var key="optimusEmbryoOriginalMargin";
-    if(sidebar.dataset && !(key in sidebar.dataset)){
-      sidebar.dataset[key]=sidebar.style.getPropertyValue("margin-top")||"";
-      sidebar.dataset.optimusEmbryoOriginalPriority=sidebar.style.getPropertyPriority("margin-top")||"";
-    }
-    if(sidebar.dataset && (key in sidebar.dataset)){
-      var original=sidebar.dataset[key];
-      if(original){
-        sidebar.style.setProperty("margin-top",original,sidebar.dataset.optimusEmbryoOriginalPriority||"");
-      }else{
-        sidebar.style.removeProperty("margin-top");
-      }
-    }
-    // Re-measure after restoring the baseline. The countdown may have moved
-    // as a result of earlier runs or asynchronous PWeb rendering.
-    var baseline=panel.getBoundingClientRect();
-    var missing=target-baseline.top;
-    if(missing<2 || missing>120){
-      if(sidebar.dataset)sidebar.dataset.optimusEmbryoTimerOffset="0";
+    if(!embryoIdentity())return;
+    var rows=Array.from(document.querySelectorAll(".row"));
+    for(var i=0;i<rows.length;i++){
+      var cols=Array.from(rows[i].children).filter(function(node){
+        return node.matches && node.matches('[class*="col-md-"],[class*="col-lg-"]');
+      });
+      var gallery=cols.find(function(node){
+        return node.matches(".col-lg-8,.col-md-8");
+      });
+      var sidebar=cols.find(function(node){
+        return node!==gallery && node.matches(".col-lg-4,.col-md-4");
+      });
+      if(!gallery || !sidebar)continue;
+      // Select the actual auction row, not another 8/4 layout elsewhere.
+      var text=(sidebar.textContent||"").replace(/\s+/g," ");
+      if(!/(auction\s+ends\s+in|veiling\s+eindigt\s+in)/i.test(text))continue;
+      sidebar.classList.add("optimus-auction-embryo-sidebar-static-gap");
       return;
     }
-    var margin=parseFloat(window.getComputedStyle(sidebar).marginTop)||0;
-    sidebar.style.setProperty("margin-top",Math.ceil(margin+missing)+"px","important");
-    if(sidebar.dataset)sidebar.dataset.optimusEmbryoTimerOffset=String(Math.ceil(missing));
   }
 
   function apply() {
