@@ -5,6 +5,11 @@
   var lot = document.querySelector('.optimus-live-embed[data-optimus-site="auction"]');
   if (!lot || window.__optimusAuctionPolishedV1) return;
   window.__optimusAuctionPolishedV1 = true;
+  // Add a stable page scope once. This does not reposition anything.
+  var auctionFrame = lot.querySelector("iframe.optimus-live-lot-iframe");
+  var isEmbryoLot = lot.getAttribute("data-optimus-lot-kind") === "embryo" ||
+    /\bembryo\b/i.test((auctionFrame && auctionFrame.getAttribute("title")) || "");
+  if (isEmbryoLot) document.documentElement.classList.add("optimus-auction-embryo-page");
 
   var css = [
     '.optimus-auction-vet-parent{background:#fff!important;background-color:#fff!important;background-image:none!important;border:0!important;box-shadow:none!important;padding-top:0!important;padding-bottom:0!important}',
@@ -33,6 +38,9 @@
     '.page-title-small.optimus-auction-embryo-desktop-ready .optimus-auction-embryo-desktop-date{display:block!important;color:#c8c8c8!important;font:400 12px/1.3 Poppins,Montserrat,Arial,sans-serif!important;letter-spacing:0!important;text-align:right!important;white-space:nowrap!important}',
     '@media(min-width:768px) and (max-width:900px){.page-title-small.optimus-auction-embryo-desktop-ready > .optimus-auction-embryo-desktop-layout{gap:14px!important;padding:14px 18px!important}.page-title-small.optimus-auction-embryo-desktop-ready .optimus-auction-embryo-title-name{font-size:16px!important}.page-title-small.optimus-auction-embryo-desktop-ready .optimus-auction-embryo-desktop-sex{font-size:14px!important}}',
     '@media(max-width:767px){.page-title-small.optimus-auction-embryo-desktop-ready > .optimus-auction-embryo-desktop-layout{display:none!important}}',
+    // Mobile only: 24px of fixed white space BELOW the entire title box.
+    // Never touch the auction countdown's position or margin dynamically.
+    '@media(max-width:767px){html.optimus-auction-embryo-page .page-title-small{margin-bottom:24px!important}}',
     // One constant margin on the RIGHT column, never on the timer itself.
     // This produces white space without repeatedly reflowing the timer.
     '@media(min-width:768px){html .optimus-auction-embryo-sidebar-static-gap{margin-top:27px!important;transition:none!important}}',
