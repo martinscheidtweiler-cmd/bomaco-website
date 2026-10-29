@@ -11,6 +11,51 @@
     /\bembryo\b/i.test((auctionFrame && auctionFrame.getAttribute("title")) || "");
   if (isEmbryoLot) document.documentElement.classList.add("optimus-auction-embryo-page");
 
+  // Meta ViewContent for .auction lots only. PWeb already initializes the Pixel
+  // and sends PageView; don't initialize it or send a second PageView here.
+  // Shares the guard with any previously pasted inline tracking snippet.
+  function trackAuctionViewContent() {
+    if (!/^\/auction\//i.test(window.location.pathname)) return;
+    if (!/^(?:www\.)?stal-optimus\.auction$/i.test(window.location.hostname)) return;
+    if (!auctionFrame) return;
+
+    var match = (auctionFrame.getAttribute("src") || "").match(
+      /\/lot\/live\/([0-9a-f-]{36})(?:[?#]|$)/i
+    );
+    if (!match) return;
+    var lotId = match[1].toLowerCase();
+    var lotName = (auctionFrame.getAttribute("title") || "")
+      .replace(/\s*-\s*Live description and pedigree\s*$/i, "")
+      .trim();
+    if (!lotName) return;
+
+    var trackingKey = "__optimusViewContent_" + lotId;
+    function send() {
+      if (window[trackingKey]) return true;
+      if (typeof window.fbq !== "function") return false;
+      try {
+        window.fbq("trackSingle", "1630236434045235", "ViewContent", {
+          content_name: lotName,
+          content_ids: [lotId],
+          content_type: "product",
+          content_category: "Auction Lot"
+        });
+        window[trackingKey] = true;
+        return true;
+      } catch (_error) {
+        return false;
+      }
+    }
+    if (send()) return;
+
+    var attempts = 0;
+    var timer = window.setInterval(function () {
+      attempts += 1;
+      if (send() || attempts >= 60) window.clearInterval(timer);
+    }, 500);
+  }
+  trackAuctionViewContent();
+
   var css = [
     '.optimus-auction-vet-parent{background:#fff!important;background-color:#fff!important;background-image:none!important;border:0!important;box-shadow:none!important;padding-top:0!important;padding-bottom:0!important}',
     '.optimus-auction-vet-parent.optimus-auction-vet-tight{padding:0!important}',
