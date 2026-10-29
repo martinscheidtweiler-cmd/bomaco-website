@@ -909,6 +909,44 @@ const OPTIMUS_AUCTION_INSTANT_TITLE = String.raw`
 })();
 </script>`;
 
+
+/** Adds the tested ViewContent event directly to newly generated .auction PWeb codes.
+ * The shared .auction bridge uses the same guard for existing PWeb codes. */
+const OPTIMUS_AUCTION_META_VIEWCONTENT = String.raw`
+<script id="optimus-meta-viewcontent">
+(function(){
+  "use strict";
+  if(!/^\/auction\//i.test(window.location.pathname))return;
+  if(!/^(?:www\.)?stal-optimus\.auction$/i.test(window.location.hostname))return;
+  var frame=document.querySelector(".optimus-live-embed[data-optimus-site=\"auction\"] iframe.optimus-live-lot-iframe");
+  if(!frame)return;
+  var match=(frame.getAttribute("src")||"").match(/\/lot\/live\/([0-9a-f-]{36})(?:[?#]|$)/i);
+  if(!match)return;
+  var lotId=match[1].toLowerCase();
+  var lotName=(frame.getAttribute("title")||"").replace(/\s*-\s*Live description and pedigree\s*$/i,"").trim();
+  if(!lotName)return;
+  var trackingKey="__optimusViewContent_"+lotId;
+  function send(){
+    if(window[trackingKey])return true;
+    if(typeof window.fbq!=="function")return false;
+    try{
+      window.fbq("trackSingle","1630236434045235","ViewContent",{
+        content_name:lotName,content_ids:[lotId],
+        content_type:"product",content_category:"Auction Lot"
+      });
+      window[trackingKey]=true;
+      return true;
+    }catch(_error){return false;}
+  }
+  if(send())return;
+  var attempts=0;
+  var timer=window.setInterval(function(){
+    attempts++;
+    if(send()||attempts>=60)window.clearInterval(timer);
+  },500);
+})();
+</script>`;
+
 export function generateSharedPWebCode(
   pedigree: PedigreeRecord, _description: LotDescription,
   site: SiteCode, _profiles: HorseProfile[],
@@ -938,6 +976,7 @@ export function generateSharedPWebCode(
       ' - Live description and pedigree" width="100%" height="900" scrolling="no" loading="eager"' +
       ' style="display:block;width:100%;height:900px;border:0;overflow:hidden"></iframe>',
     "</div>",
+    ...(site.site === "auction" ? [OPTIMUS_AUCTION_META_VIEWCONTENT] : []),
     '<script src="https://optimusauction.vercel.app/optimus-pweb.js" defer></script>',
     ...(site.site === "auction" ? [
       '<script src="https://optimusauction.vercel.app/optimus-auction-pweb.js" defer></script>',
