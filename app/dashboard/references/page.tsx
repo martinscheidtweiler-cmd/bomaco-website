@@ -113,13 +113,19 @@ export default function ReferencesAdmin() {
   async function save(e:React.FormEvent<HTMLFormElement>){
     e.preventDefault();
     if(!form.name.trim()){setNotice("Vul een paardennaam in.");return;}
-    if(!validHttps(form.video_url)){setNotice("Het bestand is geselecteerd, maar nog niet geüpload. Kies opnieuw en controleer of de URL verschijnt.");return;}
-    if(form.poster_url&&!validHttps(form.poster_url)){setNotice("De afbeelding moet een HTTPS-link zijn.");return;}
+    if(!videoFile&&!validHttps(form.video_url)){setNotice("Kies een MP4/WebM-video of vul een HTTPS-videolink in.");return;}
+    if(!posterFile&&form.poster_url&&!validHttps(form.poster_url)){setNotice("De afbeelding moet een HTTPS-link zijn.");return;}
     setBusy(true);setNotice("");
+    const videoUrl=videoFile ? await uploadFile(videoFile,"video") : form.video_url.trim();
+    if(!videoUrl){setBusy(false);return;}
+    if(videoFile)setVideoFile(null);
+    const posterUrl=posterFile ? await uploadFile(posterFile,"poster") : form.poster_url.trim();
+    if(posterFile&&!posterUrl){setBusy(false);return;}
+    if(posterFile)setPosterFile(null);
     const payload={
       name:form.name.trim(),auction_label:form.auction_label.trim(),
-      result_text:form.result_text.trim(),video_url:form.video_url.trim(),
-      poster_url:form.poster_url.trim(),is_published:form.is_published,
+      result_text:form.result_text.trim(),video_url:videoUrl,
+      poster_url:posterUrl||"",is_published:form.is_published,
       sire:form.sire.trim(),dam:form.dam.trim(),birth_year:form.birth_year.trim(),sex:form.sex.trim(),
       updated_at:new Date().toISOString()
     };
