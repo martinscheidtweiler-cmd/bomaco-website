@@ -63,7 +63,7 @@ export default function ReferencesAdmin() {
 
   useEffect(()=>{
     void checkAuth();
-    const {data:{subscription}}=supabase.auth.onAuthStateChange(()=>{void checkAuth();});
+    const {data:{subscription}}=supabase.auth.onAuthStateChange(()=>{window.setTimeout(()=>void checkAuth(),0);});
     return ()=>subscription.unsubscribe();
   },[checkAuth]);
 
