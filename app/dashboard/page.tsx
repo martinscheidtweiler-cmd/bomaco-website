@@ -532,7 +532,7 @@ export default function AuctionDashboard() {
       <header className={styles.top}>
         <div><p className={styles.eyebrow}>OPTIMUS AUCTION · CONTENT MANAGEMENT</p>
           <h1>Dashboard</h1><p>Beheer alle pedigrees, bloedlijnen, video’s en PWeb-broncodes centraal.</p></div>
-        <div className={styles.user}><span>{userEmail}</span><button onClick={() => void refresh()} disabled={isBusy}>↻ VERVERSEN</button>
+        <div className={styles.user}><span>{userEmail}</span><Link href="/dashboard/references" className={styles.linkButton}>REFERENTIES ↗</Link><button onClick={() => void refresh()} disabled={isBusy}>↻ VERVERSEN</button>
           <button onClick={() => void cloud.auth.signOut()}>UITLOGGEN</button></div>
       </header>
       <div className={styles.stats}>
