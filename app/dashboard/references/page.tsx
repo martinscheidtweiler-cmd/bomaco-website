@@ -108,7 +108,7 @@ export default function ReferencesAdmin() {
   async function save(e:React.FormEvent<HTMLFormElement>){
     e.preventDefault();
     if(!form.name.trim()){setNotice("Vul een paardennaam in.");return;}
-    if(!validHttps(form.video_url)){setNotice("Voeg een directe HTTPS MP4/WebM-videolink toe of upload een video.");return;}
+    if(!validHttps(form.video_url)){setNotice("Het bestand is geselecteerd, maar nog niet geüpload. Kies opnieuw en controleer of de URL verschijnt.");return;}
     if(form.poster_url&&!validHttps(form.poster_url)){setNotice("De afbeelding moet een HTTPS-link zijn.");return;}
     setBusy(true);setNotice("");
     const payload={
