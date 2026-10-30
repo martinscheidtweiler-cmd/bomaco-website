@@ -113,7 +113,7 @@ export default function ReferencesAdmin() {
     if(uploadError){setNotice("Upload mislukt: "+uploadError);setUploading(null);return null;}
     const {data}=supabase.storage.from(BUCKET).getPublicUrl(path);
     setForm(p=>({...p,[kind==="video"?"video_url":"poster_url"]:data.publicUrl}));
-    setNotice(kind==="video"?"Video geüpload. Klik nu op OPSLAAN.":"Afbeelding geüpload. Klik nu op OPSLAAN.");
+    setNotice(kind==="video"?"Video geüpload. Referentie wordt opgeslagen...":"Coverfoto geüpload. Referentie wordt opgeslagen...");
     setUploading(null);
     return data.publicUrl;
   }
