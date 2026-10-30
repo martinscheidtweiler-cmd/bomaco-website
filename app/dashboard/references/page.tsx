@@ -8,10 +8,11 @@ import styles from "./references-admin.module.css";
 type Reference = {
   id:string;name:string;auction_label:string;result_text:string;
   video_url:string;poster_url:string;position:number;is_published:boolean;
+  sire:string;dam:string;birth_year:string;sex:string;
   created_at:string;
 };
-type Form = {name:string;auction_label:string;result_text:string;video_url:string;poster_url:string;is_published:boolean};
-const EMPTY:Form = {name:"",auction_label:"",result_text:"",video_url:"",poster_url:"",is_published:false};
+type Form = {name:string;auction_label:string;result_text:string;video_url:string;poster_url:string;is_published:boolean;sire:string;dam:string;birth_year:string;sex:string};
+const EMPTY:Form = {name:"",auction_label:"",result_text:"",video_url:"",poster_url:"",is_published:false,sire:"",dam:"",birth_year:"",sex:""};
 const BUCKET="optimus-auction-media";
 const EMBED_URL="https://optimusauction.vercel.app/references/embed";
 const EMBED_CODE = [
@@ -47,7 +48,7 @@ export default function ReferencesAdmin() {
 
   const reload=useCallback(async()=>{
     const {data,error}=await supabase.from("optimus_auction_references")
-      .select("id,name,auction_label,result_text,video_url,poster_url,position,is_published,created_at")
+      .select("id,name,auction_label,result_text,video_url,poster_url,position,is_published,created_at,sire,dam,birth_year,sex")
       .order("position",{ascending:true}).order("created_at",{ascending:true}).limit(100);
     if(error)setNotice("Ophalen mislukt: "+error.message);
     else setItems((data||[]) as Reference[]);
@@ -81,7 +82,8 @@ export default function ReferencesAdmin() {
     setEditingId(item.id);
     setForm({name:item.name,auction_label:item.auction_label,
       result_text:item.result_text,video_url:item.video_url,
-      poster_url:item.poster_url,is_published:item.is_published});
+      poster_url:item.poster_url,is_published:item.is_published,
+      sire:item.sire||"",dam:item.dam||"",birth_year:item.birth_year||"",sex:item.sex||""});
     window.scrollTo({top:0,behavior:"smooth"});
   }
   async function uploadFile(file:File|undefined,kind:"video"|"poster"){
@@ -113,6 +115,7 @@ export default function ReferencesAdmin() {
       name:form.name.trim(),auction_label:form.auction_label.trim(),
       result_text:form.result_text.trim(),video_url:form.video_url.trim(),
       poster_url:form.poster_url.trim(),is_published:form.is_published,
+      sire:form.sire.trim(),dam:form.dam.trim(),birth_year:form.birth_year.trim(),sex:form.sex.trim(),
       updated_at:new Date().toISOString()
     };
     const result=editingId
@@ -187,6 +190,17 @@ export default function ReferencesAdmin() {
         <form onSubmit={save} className={styles.form}>
           <label>NAAM VAN HET PAARD *<input required maxLength={150} value={form.name} onChange={e=>setForm(p=>({...p,name:e.target.value}))} placeholder="Bijv. Excelsior Optimus"/></label>
           <label>VEILING / EDITIE<input maxLength={160} value={form.auction_label} onChange={e=>setForm(p=>({...p,auction_label:e.target.value}))} placeholder="OPTIMUS AUCTION 2021"/></label>
+          <label>VADER (SIRE)<input maxLength={120} value={form.sire} onChange={e=>setForm(p=>({...p,sire:e.target.value}))} placeholder="Bijv. Diamant de Semilly"/></label>
+          <label>MOEDER (DAM)<input maxLength={120} value={form.dam} onChange={e=>setForm(p=>({...p,dam:e.target.value}))} placeholder="Bijv. Cacacha vh Schaeck"/></label>
+          <div className={styles.extraFields}>
+            <label>GEBOORTEJAAR<input maxLength={4} inputMode="numeric" value={form.birth_year} onChange={e=>setForm(p=>({...p,birth_year:e.target.value.replace(/[^0-9]/g,"").slice(0,4)}))} placeholder="2021"/></label>
+            <label>GESLACHT<select value={form.sex} onChange={e=>setForm(p=>({...p,sex:e.target.value}))}>
+              <option value="">Niet ingevuld</option>
+              <option value="STALLION">Stallion</option>
+              <option value="MARE">Mare</option>
+              <option value="GELDING">Gelding</option>
+            </select></label>
+          </div>
           <label>PRESTATIE OF VERKOOPRESULTAAT<textarea rows={3} maxLength={300} value={form.result_text} onChange={e=>setForm(p=>({...p,result_text:e.target.value}))} placeholder="Bijv. CSI 1.50m of SOLD FOR €60,000 IN 2025"/></label>
           <label>VIDEO UPLOADEN (MP4 / WEBM, MAX. 100 MB)
             <input type="file" accept="video/mp4,video/webm" disabled={!!uploading||busy} onChange={e=>void uploadFile(e.target.files?.[0],"video")}/>
