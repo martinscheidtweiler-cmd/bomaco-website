@@ -23,8 +23,10 @@ const EMBED_CODE = [
  'var f=document.getElementById("optimus-references-frame");if(!f)return;',
  'window.addEventListener("message",function(e){',
  'if(e.origin!=="https://optimusauction.vercel.app"||e.source!==f.contentWindow)return;',
- 'if(!e.data||e.data.type!=="optimus-references-height")return;',
- 'var h=Number(e.data.height);if(Number.isFinite(h)&&h>=160&&h<=3000)f.style.height=(h+3)+"px";',
+ 'if(!e.data)return;',
+ 'if(e.data.type==="optimus-references-scroll"){f.scrollIntoView({behavior:"smooth",block:"start"});return;}',
+ 'if(e.data.type!=="optimus-references-height")return;',
+ 'var h=Number(e.data.height);if(Number.isFinite(h)&&h>=160&&h<=30000)f.style.height=(h+3)+"px";',
  '});})();</script>'
 ].join("\n");
 
