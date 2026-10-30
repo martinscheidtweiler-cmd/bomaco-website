@@ -96,7 +96,7 @@ export default function ReferencesAdmin() {
       ? (["video/mp4","video/webm"].includes(file.type)||/\.(mp4|webm)$/i.test(file.name))
       : (["image/jpeg","image/png","image/webp"].includes(file.type)||/\.(jpe?g|png|webp)$/i.test(file.name));
     if(!valid){setNotice(kind==="video"?"Gebruik een MP4- of WebM-video.":"Gebruik JPG, PNG of WebP.");return null;}
-    if(file.size>100*1024*1024){setNotice("Bestand is groter dan 100 MB. Comprimeer eerst de video.");return null;}
+    if(file.size>500*1024*1024){setNotice("Bestand is groter dan 500 MB. Comprimeer eerst de video.");return null;}
     setUploading(kind);setNotice("");
     const ext=kind==="video"?(file.type==="video/webm"?"webm":"mp4")
       :(file.type==="image/png"?"png":file.type==="image/webp"?"webp":"jpg");
@@ -110,7 +110,13 @@ export default function ReferencesAdmin() {
     } catch(error) {
       uploadError=error instanceof Error?error.message:"Network error";
     }
-    if(uploadError){setNotice("Upload mislukt: "+uploadError);setUploading(null);return null;}
+    if(uploadError){
+      const limitError=/too large|entitytoolarge|payload|maximum allowed size/i.test(uploadError);
+      setNotice(limitError
+        ? "Supabase blokkeert deze upload door de GLOBALE opslaglimiet. Verhoog in Supabase > Storage > Settings de Global file size limit naar 500 MB. De Optimus-bucket staat al op 500 MB."
+        : "Upload mislukt: "+uploadError);
+      setUploading(null);return null;
+    }
     const {data}=supabase.storage.from(BUCKET).getPublicUrl(path);
     setForm(p=>({...p,[kind==="video"?"video_url":"poster_url"]:data.publicUrl}));
     setNotice(kind==="video"?"Video geüpload. Referentie wordt opgeslagen...":"Coverfoto geüpload. Referentie wordt opgeslagen...");
@@ -221,7 +227,7 @@ export default function ReferencesAdmin() {
             </select></label>
           </div>
           <label>PRESTATIE OF VERKOOPRESULTAAT<textarea rows={3} maxLength={300} value={form.result_text} onChange={e=>setForm(p=>({...p,result_text:e.target.value}))} placeholder="Bijv. CSI 1.50m of SOLD FOR €60,000 IN 2025"/></label>
-          <label>VIDEO UPLOADEN (MP4 / WEBM, MAX. 100 MB)
+          <label>VIDEO UPLOADEN (MP4 / WEBM, MAX. 500 MB)
             <input key={"video-"+inputVersion} type="file" accept="video/mp4,video/webm,.mp4,.webm" disabled={busy} onChange={e=>{setVideoFile(e.target.files?.[0]||null);setNotice("");}}/>
           </label>
           {videoFile&&<p className={styles.muted}>✓ Bestand geselecteerd: {videoFile.name} ({(videoFile.size/1024/1024).toFixed(1)} MB). Wordt bij OPSLAAN geüpload.</p>}
