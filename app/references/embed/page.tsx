@@ -5,152 +5,304 @@ import {supabase} from "../../lib/supabaseClient";
 import styles from "./references.module.css";
 
 type Reference = {
-  id: string; name: string; auction_label: string; result_text: string;
-  video_url: string; poster_url: string; position: number;
+  id: string;
+  name: string;
+  auction_label: string;
+  result_text: string;
+  video_url: string;
+  poster_url: string;
+  position: number;
 };
+
 const pad = (n: number) => String(n).padStart(2, "0");
 
 export default function ReferencesEmbed() {
   const [items, setItems] = useState<Reference[]>([]);
-  const [index, setIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [videoError, setVideoError] = useState(false);
+  const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const [sound, setSound] = useState(false);
+  const [videoError, setVideoError] = useState(false);
   const [needsPlay, setNeedsPlay] = useState(false);
   const [visible, setVisible] = useState(true);
-  const videoRef = useRef<HTMLVideoElement>(null);
+
   const containerRef = useRef<HTMLElement>(null);
-  const pointerRef = useRef<number | null>(null);
+  const playerRef = useRef<HTMLVideoElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const pointerStart = useRef<number | null>(null);
+  const previewRefs = useRef<Map<string, HTMLVideoElement>>(new Map());
+  const lastFocused = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     let live = true;
-    async function load() {
+    const load = async () => {
       const {data, error: problem} = await supabase
         .from("optimus_auction_references")
         .select("id,name,auction_label,result_text,video_url,poster_url,position")
         .eq("is_published", true)
-        .order("position", {ascending:true})
-        .order("created_at", {ascending:true})
+        .order("position", {ascending: true})
+        .order("created_at", {ascending: true})
         .limit(100);
       if (!live) return;
       setItems((data || []) as Reference[]);
-      setError(problem ? "Referenties kunnen momenteel niet geladen worden." : "");
+      setError(problem ? "REFERENCES COULD NOT BE LOADED" : "");
       setLoading(false);
-    }
+    };
     void load();
-    return () => { live = false; };
+    return () => {live = false;};
   }, []);
 
-  const next = useCallback(() => {
-    setIndex(i => (i + 1) % items.length);
-  }, [items.length]);
-  const previous = useCallback(() => {
-    setIndex(i => (i - 1 + items.length) % items.length);
-  }, [items.length]);
-
+  // Keep the PWeb iframe's height in sync with the cards and the popup.
   useEffect(() => {
-    const node = containerRef.current;
-    if (!node || !("ResizeObserver" in window)) return;
-    const sendHeight = () => {
-      // Height message is handled only by the approved .auction Pweb embed.
-      window.parent.postMessage({type:"optimus-references-height",height:Math.ceil(node.getBoundingClientRect().height)}, "*");
+    const container = containerRef.current;
+    if (!container || !("ResizeObserver" in window)) return;
+    const reportSize = () => {
+      const height = Math.ceil(container.getBoundingClientRect().height);
+      window.parent.postMessage({type: "optimus-references-height", height}, "*");
     };
-    const observer = new ResizeObserver(sendHeight);
-    observer.observe(node);
-    sendHeight();
+    const observer = new ResizeObserver(reportSize);
+    observer.observe(container);
+    reportSize();
     return () => observer.disconnect();
-  }, [loading,items.length,error]);
+  }, [loading, items.length]);
 
   useEffect(() => {
-    const node = videoRef.current;
-    if (!node || !items.length) return;
-    node.muted = !sound;
-    if (visible && !document.hidden) void node.play().catch(() => setNeedsPlay(true));
-  }, [index,items.length,sound,visible]);
-
-  useEffect(() => {
-    const node = containerRef.current;
-    if (!node || !("IntersectionObserver" in window)) return;
-    const observer = new IntersectionObserver(([entry]) => setVisible(entry.isIntersecting),{threshold:0.05});
-    observer.observe(node);
+    const container = containerRef.current;
+    if (!container || !("IntersectionObserver" in window)) return;
+    const observer = new IntersectionObserver(([entry]) => {
+      setVisible(entry.isIntersecting);
+    }, {threshold: 0.05});
+    observer.observe(container);
     return () => observer.disconnect();
   }, [loading]);
 
+  const stopPreviews = useCallback(() => {
+    for (const video of previewRefs.current.values()) {
+      video.pause();
+      if (video.readyState >= 1) {
+        try {video.currentTime = 0.1;} catch {}
+      }
+    }
+  }, []);
+
+  const previewStart = useCallback((id: string) => {
+    if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
+    if (activeIndex !== null || document.hidden) return;
+    stopPreviews();
+    const video = previewRefs.current.get(id);
+    if (!video) return;
+    video.muted = true;
+    void video.play().catch(() => {});
+  }, [activeIndex, stopPreviews]);
+
+  const previewStop = useCallback((id: string) => {
+    const video = previewRefs.current.get(id);
+    if (!video) return;
+    video.pause();
+    if (video.readyState >= 1) {
+      try {video.currentTime = 0.1;} catch {}
+    }
+  }, []);
+
+  const open = useCallback((index: number) => {
+    if (index < 0 || index >= items.length) return;
+    stopPreviews();
+    lastFocused.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    setActiveIndex(index);
+    setSound(false);
+    setVideoError(false);
+    setNeedsPlay(false);
+    // The embed's PWeb host handles scrolling to the top of the iframe.
+    window.parent.postMessage({type: "optimus-references-scroll"}, "*");
+    if (window.parent === window) window.scrollTo({top: 0, behavior: "smooth"});
+  }, [items.length, stopPreviews]);
+
+  const close = useCallback(() => {
+    playerRef.current?.pause();
+    setActiveIndex(null);
+    setNeedsPlay(false);
+    window.requestAnimationFrame(() => lastFocused.current?.focus());
+  }, []);
+
+  const change = useCallback((direction: number) => {
+    if (!items.length) return;
+    setActiveIndex(current => current === null ? null : (current + direction + items.length) % items.length);
+    setSound(false);
+    setVideoError(false);
+    setNeedsPlay(false);
+  }, [items.length]);
+
   useEffect(() => {
-    const handleVisibility = () => {
-      const node = videoRef.current;
-      if (!node) return;
-      if (document.hidden || !visible) node.pause();
-      else void node.play().catch(() => {});
+    if (activeIndex === null) return;
+    closeRef.current?.focus();
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {event.preventDefault(); close();}
+      if (event.key === "ArrowRight") {event.preventDefault(); change(1);}
+      if (event.key === "ArrowLeft") {event.preventDefault(); change(-1);}
+      if (event.key === "Tab") {
+        const controls = dialogRef.current?.querySelectorAll<HTMLElement>(
+          "button:not([disabled]), video[controls]"
+        );
+        if (!controls?.length) return;
+        const first = controls[0];
+        const last = controls[controls.length - 1];
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first.focus();
+        }
+      }
     };
-    document.addEventListener("visibilitychange",handleVisibility);
-    handleVisibility();
-    return () => document.removeEventListener("visibilitychange",handleVisibility);
-  },[index,visible]);
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [activeIndex, change, close]);
 
   useEffect(() => {
-    if (!videoError || items.length < 2 || !visible) return;
-    const timeout = window.setTimeout(next,6500);
-    return () => window.clearTimeout(timeout);
-  },[videoError,items.length,visible,next]);
+    if (activeIndex === null) return;
+    const video = playerRef.current;
+    if (!video || document.hidden || !visible) return;
+    video.muted = !sound;
+    void video.play().catch(() => setNeedsPlay(true));
+  }, [activeIndex, sound, visible]);
 
-  useEffect(() => { setVideoError(false); setSound(false); setNeedsPlay(false); },[index]);
+  useEffect(() => {
+    const onVisibility = () => {
+      if (document.hidden) {
+        stopPreviews();
+        playerRef.current?.pause();
+      } else if (activeIndex !== null && visible) {
+        void playerRef.current?.play().catch(() => setNeedsPlay(true));
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
+  }, [activeIndex, visible, stopPreviews]);
 
-  const item = items[index];
-  return <main ref={containerRef} className={styles.page}>
+  useEffect(() => {
+    if (!videoError || items.length < 2 || activeIndex === null || !visible) return;
+    const timer = window.setTimeout(() => change(1), 5500);
+    return () => window.clearTimeout(timer);
+  }, [videoError, items.length, activeIndex, visible, change]);
+
+  const activeItem = activeIndex === null ? null : items[activeIndex];
+
+  return <main ref={containerRef} className={activeItem ? styles.pageOpen : styles.page}>
     <header className={styles.heading}>
       <div className={styles.eyebrow}>STAL OPTIMUS · ONLINE AUCTION</div>
       <h1>OUR REFERENCES</h1>
       <p>FROM OUR BREEDING PROGRAMME TO THE SPORT</p>
     </header>
+
     {loading ? <div className={styles.message}>LOADING REFERENCES...</div>
     : error ? <div className={styles.message} role="alert">{error}</div>
-    : !item ? <div className={styles.message}>OUR REFERENCES ARE COMING SOON</div>
-    : <>
-      <div className={styles.stage}>
-        <div className={styles.videoBox}
-          onTouchStart={e => { pointerRef.current=e.touches[0]?.clientX ?? null; }}
+    : !items.length ? <div className={styles.message}>OUR REFERENCES ARE COMING SOON</div>
+    : <section className={styles.grid} aria-label="Optimus reference horses">
+      {items.map((item, index) => <button
+        type="button"
+        key={item.id}
+        className={styles.card}
+        onPointerEnter={event => {if (event.pointerType === "mouse") previewStart(item.id);}}
+        onPointerLeave={() => previewStop(item.id)}
+        onClick={() => open(index)}
+        aria-label={"Watch "+item.name+" video"}
+      >
+        <span className={styles.cardMedia}>
+          <video
+            ref={node => {
+              if (node) previewRefs.current.set(item.id, node);
+              else previewRefs.current.delete(item.id);
+            }}
+            className={styles.previewVideo}
+            src={item.video_url}
+            poster={item.poster_url || undefined}
+            playsInline muted loop
+            preload={item.poster_url ? "none" : "metadata"}
+            onLoadedMetadata={event => {
+              if (!item.poster_url && event.currentTarget.duration > 0.15) {
+                try {event.currentTarget.currentTime = 0.1;} catch {}
+              }
+            }}
+            aria-hidden="true"
+          />
+          <span className={styles.cardPlay} aria-hidden="true">▶</span>
+          <span className={styles.cardView} aria-hidden="true">WATCH VIDEO</span>
+        </span>
+        <span className={styles.cardText}>
+          <strong>{item.name}</strong>
+          {item.auction_label && <span className={styles.cardEdition}>{item.auction_label}</span>}
+          {item.result_text && <span className={styles.cardResult}>{item.result_text}</span>}
+        </span>
+      </button>)}
+    </section>}
+
+    {activeItem && <div className={styles.overlay}>
+      <button type="button" aria-label="Close video player" className={styles.backdrop} onClick={close}/>
+      <div ref={dialogRef} className={styles.dialog} role="dialog" aria-modal="true" aria-label={"Video: "+activeItem.name}>
+        <div className={styles.dialogTop}>
+          <span>OPTIMUS AUCTION <span className={styles.dialogTopMuted}>/ REFERENCES</span></span>
+          <button ref={closeRef} className={styles.close} type="button" onClick={close} aria-label="Close video">✕</button>
+        </div>
+        <div className={styles.playerWrap}
+          onTouchStart={e => {pointerStart.current = e.touches[0]?.clientX ?? null;}}
           onTouchEnd={e => {
-            if (pointerRef.current === null) return;
-            const touchX = e.changedTouches[0]?.clientX;
-            if (touchX === undefined) return;
-            const delta = touchX - pointerRef.current;
-            pointerRef.current=null;
-            if (delta < -55) next();
-            else if (delta > 55) previous();
+            if (pointerStart.current === null) return;
+            const last = e.changedTouches[0]?.clientX;
+            if (last === undefined) return;
+            const delta = last - pointerStart.current;
+            pointerStart.current = null;
+            if (delta < -75) change(1);
+            else if (delta > 75) change(-1);
           }}>
           {videoError ? <div className={styles.videoUnavailable}>VIDEO CURRENTLY UNAVAILABLE</div>
-          : <video key={item.id} ref={videoRef} className={styles.video} src={item.video_url}
-              poster={item.poster_url || undefined} autoPlay muted={!sound} playsInline
-              preload="metadata" onEnded={next} onError={() => setVideoError(true)} onPlaying={() => setNeedsPlay(false)}
-              controls={false} />}
-          {items.length>1 && <>
-            <button type="button" className={styles.prev} onClick={previous} aria-label="Previous horse">‹</button>
-            <button type="button" className={styles.next} onClick={next} aria-label="Next horse">›</button>
+          : <video key={activeItem.id}
+              ref={playerRef}
+              className={styles.playerVideo}
+              src={activeItem.video_url}
+              poster={activeItem.poster_url || undefined}
+              autoPlay
+              playsInline
+              muted={!sound}
+              controls
+              preload="auto"
+              loop={items.length === 1}
+              onPlaying={() => setNeedsPlay(false)}
+              onError={() => setVideoError(true)}
+              onEnded={() => {if (items.length > 1) change(1);}}
+            />}
+          {items.length > 1 && <>
+            <button className={styles.previous} type="button" onClick={() => change(-1)} aria-label="Previous reference">‹</button>
+            <button className={styles.next} type="button" onClick={() => change(1)} aria-label="Next reference">›</button>
           </>}
-          {!videoError && <button className={styles.sound} type="button"
-            onClick={() => {setSound(v=>!v);void videoRef.current?.play().catch(()=>{});}}>
-            {sound?"SOUND ON":"SOUND OFF"}
-          </button>}
-          {!videoError && <button type="button" className={needsPlay ? styles.playRequired : styles.play} aria-label="Play video"
-            onClick={() => {videoRef.current?.play().catch(()=>{if(videoRef.current) videoRef.current.controls=true;});}}>▶</button>}
+          {needsPlay && !videoError && <button type="button" className={styles.playRequired}
+            onClick={() => void playerRef.current?.play().catch(() => setNeedsPlay(true))}>▶ PLAY VIDEO</button>}
         </div>
-        <div className={styles.info}>
-          <h2>{item.name}</h2>
-          <p className={styles.auction}>{item.auction_label}</p>
-          {item.result_text && <p className={styles.result}>{item.result_text}</p>}
+        <div className={styles.playerInfo}>
+          <div className={styles.playerMeta}>
+            <span>{pad((activeIndex ?? 0) + 1)} / {pad(items.length)}</span>
+            {!videoError && <button className={styles.sound} type="button" onClick={() => setSound(v => !v)}>
+              {sound ? "SOUND ON" : "SOUND OFF"}
+            </button>}
+          </div>
+          <h2>{activeItem.name}</h2>
+          {activeItem.auction_label && <p className={styles.playerAuction}>{activeItem.auction_label}</p>}
+          {activeItem.result_text && <p className={styles.playerResult}>{activeItem.result_text}</p>}
+          {items.length > 1 && items.length <= 15 && <div className={styles.dots} aria-label="References">
+            {items.map((item, i) => <button key={item.id} type="button"
+              aria-label={"Show "+item.name}
+              aria-current={i === activeIndex ? "true" : undefined}
+              className={i === activeIndex ? styles.activeDot : styles.dot}
+              onClick={() => {
+                setActiveIndex(i);
+                setSound(false);
+                setVideoError(false);
+                setNeedsPlay(false);
+              }}/>)}
+          </div>}
         </div>
       </div>
-      <div className={styles.bottom}>
-        <span className={styles.counter}>{pad(index+1)} <span>/</span> {pad(items.length)}</span>
-        <div className={styles.dots}>
-          {items.map((r,i)=><button key={r.id} type="button"
-            aria-label={"View "+r.name} aria-current={i===index?"true":undefined}
-            className={i===index?styles.activeDot:styles.dot} onClick={()=>setIndex(i)}/>)}
-        </div>
-        <span className={styles.bottomBrand}>OPTIMUS AUCTION</span>
-      </div>
-    </>}
+    </div>}
   </main>;
 }
