@@ -93,16 +93,24 @@ export default function ReferencesAdmin() {
   async function uploadFile(file:File|undefined,kind:"video"|"poster"):Promise<string|null>{
     if(!file)return null;
     const valid = kind==="video"
-      ? ["video/mp4","video/webm"].includes(file.type)
-      : ["image/jpeg","image/png","image/webp"].includes(file.type);
+      ? (["video/mp4","video/webm"].includes(file.type)||/\.(mp4|webm)$/i.test(file.name))
+      : (["image/jpeg","image/png","image/webp"].includes(file.type)||/\.(jpe?g|png|webp)$/i.test(file.name));
     if(!valid){setNotice(kind==="video"?"Gebruik een MP4- of WebM-video.":"Gebruik JPG, PNG of WebP.");return null;}
     if(file.size>100*1024*1024){setNotice("Bestand is groter dan 100 MB. Comprimeer eerst de video.");return null;}
     setUploading(kind);setNotice("");
     const ext=kind==="video"?(file.type==="video/webm"?"webm":"mp4")
       :(file.type==="image/png"?"png":file.type==="image/webp"?"webp":"jpg");
     const path="references/"+crypto.randomUUID()+"."+ext;
-    const {error}=await supabase.storage.from(BUCKET).upload(path,file,{contentType:file.type,upsert:false});
-    if(error){setNotice("Upload mislukt: "+error.message);setUploading(null);return null;}
+    let uploadError:string|null=null;
+    try {
+      const extType=kind==="video"?(ext==="webm"?"video/webm":"video/mp4"):
+        (ext==="webp"?"image/webp":ext==="png"?"image/png":"image/jpeg");
+      const {error}=await supabase.storage.from(BUCKET).upload(path,file,{contentType:extType,upsert:false});
+      uploadError=error?.message||null;
+    } catch(error) {
+      uploadError=error instanceof Error?error.message:"Network error";
+    }
+    if(uploadError){setNotice("Upload mislukt: "+uploadError);setUploading(null);return null;}
     const {data}=supabase.storage.from(BUCKET).getPublicUrl(path);
     setForm(p=>({...p,[kind==="video"?"video_url":"poster_url"]:data.publicUrl}));
     setNotice(kind==="video"?"Video geüpload. Klik nu op OPSLAAN.":"Afbeelding geüpload. Klik nu op OPSLAAN.");
