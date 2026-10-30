@@ -214,13 +214,16 @@ export default function ReferencesAdmin() {
           </div>
           <label>PRESTATIE OF VERKOOPRESULTAAT<textarea rows={3} maxLength={300} value={form.result_text} onChange={e=>setForm(p=>({...p,result_text:e.target.value}))} placeholder="Bijv. CSI 1.50m of SOLD FOR €60,000 IN 2025"/></label>
           <label>VIDEO UPLOADEN (MP4 / WEBM, MAX. 100 MB)
-            <input type="file" accept="video/mp4,video/webm" disabled={!!uploading||busy} onChange={e=>void uploadFile(e.target.files?.[0],"video")}/>
+            <input key={"video-"+inputVersion} type="file" accept="video/mp4,video/webm,.mp4,.webm" disabled={busy} onChange={e=>{setVideoFile(e.target.files?.[0]||null);setNotice("");}}/>
           </label>
+          {videoFile&&<p className={styles.muted}>✓ Bestand geselecteerd: {videoFile.name} ({(videoFile.size/1024/1024).toFixed(1)} MB). Wordt bij OPSLAAN geüpload.</p>}
           {uploading==="video"&&<p className={styles.muted}>Video wordt geüpload. Laat dit venster open.</p>}
           <label>OF DIRECTE VIDEO-URL<input type="url" value={form.video_url} onChange={e=>setForm(p=>({...p,video_url:e.target.value}))} placeholder="https://.../video.mp4"/></label>
           <label>OPTIONELE COVERFOTO
-            <input type="file" accept="image/jpeg,image/png,image/webp" disabled={!!uploading||busy} onChange={e=>void uploadFile(e.target.files?.[0],"poster")}/>
+            <input key={"poster-"+inputVersion} type="file" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" disabled={busy} onChange={e=>{setPosterFile(e.target.files?.[0]||null);setNotice("");}}/>
           </label>
+          {posterFile&&<p className={styles.muted}>✓ Coverfoto geselecteerd: {posterFile.name}</p>}
+          {uploading==="poster"&&<p className={styles.muted}>Coverfoto wordt geüpload. Laat dit venster open.</p>}
           <label>OF COVERFOTO-URL<input type="url" value={form.poster_url} onChange={e=>setForm(p=>({...p,poster_url:e.target.value}))} placeholder="https://.../foto.jpg"/></label>
           {form.video_url&&<div className={styles.preview}><video src={form.video_url} poster={form.poster_url||undefined} muted playsInline controls preload="metadata"/></div>}
           <label className={styles.toggle}><input type="checkbox" checked={form.is_published} onChange={e=>setForm(p=>({...p,is_published:e.target.checked}))}/> PUBLICEREN OP WEBSITE</label>
