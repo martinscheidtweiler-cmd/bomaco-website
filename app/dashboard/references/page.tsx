@@ -41,6 +41,9 @@ export default function ReferencesAdmin() {
   const [editingId,setEditingId]=useState<string|null>(null);
   const [busy,setBusy]=useState(false);
   const [uploading,setUploading]=useState<"video"|"poster"|null>(null);
+  const [videoFile,setVideoFile]=useState<File|null>(null);
+  const [posterFile,setPosterFile]=useState<File|null>(null);
+  const [inputVersion,setInputVersion]=useState(0);
   const [notice,setNotice]=useState("");
   const [email,setEmail]=useState("");
   const [password,setPassword]=useState("");
@@ -77,8 +80,9 @@ export default function ReferencesAdmin() {
     if(error)setNotice(error.message); else void checkAuth();
   }
 
-  function resetForm(){setForm({...EMPTY});setEditingId(null);}
+  function resetForm(){setForm({...EMPTY});setEditingId(null);setVideoFile(null);setPosterFile(null);setInputVersion(x=>x+1);}
   function edit(item:Reference){
+    setVideoFile(null);setPosterFile(null);setInputVersion(x=>x+1);
     setEditingId(item.id);
     setForm({name:item.name,auction_label:item.auction_label,
       result_text:item.result_text,video_url:item.video_url,
@@ -86,35 +90,50 @@ export default function ReferencesAdmin() {
       sire:item.sire||"",dam:item.dam||"",birth_year:item.birth_year||"",sex:item.sex||""});
     window.scrollTo({top:0,behavior:"smooth"});
   }
-  async function uploadFile(file:File|undefined,kind:"video"|"poster"){
-    if(!file)return;
+  async function uploadFile(file:File|undefined,kind:"video"|"poster"):Promise<string|null>{
+    if(!file)return null;
     const valid = kind==="video"
-      ? ["video/mp4","video/webm"].includes(file.type)
-      : ["image/jpeg","image/png","image/webp"].includes(file.type);
-    if(!valid){setNotice(kind==="video"?"Gebruik een MP4- of WebM-video.":"Gebruik JPG, PNG of WebP.");return;}
-    if(file.size>100*1024*1024){setNotice("Bestand is groter dan 100 MB. Comprimeer eerst de video.");return;}
+      ? (["video/mp4","video/webm"].includes(file.type)||/\.(mp4|webm)$/i.test(file.name))
+      : (["image/jpeg","image/png","image/webp"].includes(file.type)||/\.(jpe?g|png|webp)$/i.test(file.name));
+    if(!valid){setNotice(kind==="video"?"Gebruik een MP4- of WebM-video.":"Gebruik JPG, PNG of WebP.");return null;}
+    if(file.size>100*1024*1024){setNotice("Bestand is groter dan 100 MB. Comprimeer eerst de video.");return null;}
     setUploading(kind);setNotice("");
     const ext=kind==="video"?(file.type==="video/webm"?"webm":"mp4")
       :(file.type==="image/png"?"png":file.type==="image/webp"?"webp":"jpg");
     const path="references/"+crypto.randomUUID()+"."+ext;
-    const {error}=await supabase.storage.from(BUCKET).upload(path,file,{contentType:file.type,upsert:false});
-    if(error){setNotice("Upload mislukt: "+error.message);setUploading(null);return;}
+    let uploadError:string|null=null;
+    try {
+      const extType=kind==="video"?(ext==="webm"?"video/webm":"video/mp4"):
+        (ext==="webp"?"image/webp":ext==="png"?"image/png":"image/jpeg");
+      const {error}=await supabase.storage.from(BUCKET).upload(path,file,{contentType:extType,upsert:false});
+      uploadError=error?.message||null;
+    } catch(error) {
+      uploadError=error instanceof Error?error.message:"Network error";
+    }
+    if(uploadError){setNotice("Upload mislukt: "+uploadError);setUploading(null);return null;}
     const {data}=supabase.storage.from(BUCKET).getPublicUrl(path);
     setForm(p=>({...p,[kind==="video"?"video_url":"poster_url"]:data.publicUrl}));
-    setNotice(kind==="video"?"Video geüpload. Klik nu op OPSLAAN.":"Afbeelding geüpload. Klik nu op OPSLAAN.");
+    setNotice(kind==="video"?"Video geüpload. Referentie wordt opgeslagen...":"Coverfoto geüpload. Referentie wordt opgeslagen...");
     setUploading(null);
+    return data.publicUrl;
   }
 
   async function save(e:React.FormEvent<HTMLFormElement>){
     e.preventDefault();
     if(!form.name.trim()){setNotice("Vul een paardennaam in.");return;}
-    if(!validHttps(form.video_url)){setNotice("Voeg een directe HTTPS MP4/WebM-videolink toe of upload een video.");return;}
-    if(form.poster_url&&!validHttps(form.poster_url)){setNotice("De afbeelding moet een HTTPS-link zijn.");return;}
+    if(!videoFile&&!validHttps(form.video_url)){setNotice("Kies een MP4/WebM-video of vul een HTTPS-videolink in.");return;}
+    if(!posterFile&&form.poster_url&&!validHttps(form.poster_url)){setNotice("De afbeelding moet een HTTPS-link zijn.");return;}
     setBusy(true);setNotice("");
+    const videoUrl=videoFile ? await uploadFile(videoFile,"video") : form.video_url.trim();
+    if(!videoUrl){setBusy(false);return;}
+    if(videoFile)setVideoFile(null);
+    const posterUrl=posterFile ? await uploadFile(posterFile,"poster") : form.poster_url.trim();
+    if(posterFile&&!posterUrl){setBusy(false);return;}
+    if(posterFile)setPosterFile(null);
     const payload={
       name:form.name.trim(),auction_label:form.auction_label.trim(),
-      result_text:form.result_text.trim(),video_url:form.video_url.trim(),
-      poster_url:form.poster_url.trim(),is_published:form.is_published,
+      result_text:form.result_text.trim(),video_url:videoUrl,
+      poster_url:posterUrl||"",is_published:form.is_published,
       sire:form.sire.trim(),dam:form.dam.trim(),birth_year:form.birth_year.trim(),sex:form.sex.trim(),
       updated_at:new Date().toISOString()
     };
@@ -203,13 +222,16 @@ export default function ReferencesAdmin() {
           </div>
           <label>PRESTATIE OF VERKOOPRESULTAAT<textarea rows={3} maxLength={300} value={form.result_text} onChange={e=>setForm(p=>({...p,result_text:e.target.value}))} placeholder="Bijv. CSI 1.50m of SOLD FOR €60,000 IN 2025"/></label>
           <label>VIDEO UPLOADEN (MP4 / WEBM, MAX. 100 MB)
-            <input type="file" accept="video/mp4,video/webm" disabled={!!uploading||busy} onChange={e=>void uploadFile(e.target.files?.[0],"video")}/>
+            <input key={"video-"+inputVersion} type="file" accept="video/mp4,video/webm,.mp4,.webm" disabled={busy} onChange={e=>{setVideoFile(e.target.files?.[0]||null);setNotice("");}}/>
           </label>
+          {videoFile&&<p className={styles.muted}>✓ Bestand geselecteerd: {videoFile.name} ({(videoFile.size/1024/1024).toFixed(1)} MB). Wordt bij OPSLAAN geüpload.</p>}
           {uploading==="video"&&<p className={styles.muted}>Video wordt geüpload. Laat dit venster open.</p>}
           <label>OF DIRECTE VIDEO-URL<input type="url" value={form.video_url} onChange={e=>setForm(p=>({...p,video_url:e.target.value}))} placeholder="https://.../video.mp4"/></label>
           <label>OPTIONELE COVERFOTO
-            <input type="file" accept="image/jpeg,image/png,image/webp" disabled={!!uploading||busy} onChange={e=>void uploadFile(e.target.files?.[0],"poster")}/>
+            <input key={"poster-"+inputVersion} type="file" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" disabled={busy} onChange={e=>{setPosterFile(e.target.files?.[0]||null);setNotice("");}}/>
           </label>
+          {posterFile&&<p className={styles.muted}>✓ Coverfoto geselecteerd: {posterFile.name}</p>}
+          {uploading==="poster"&&<p className={styles.muted}>Coverfoto wordt geüpload. Laat dit venster open.</p>}
           <label>OF COVERFOTO-URL<input type="url" value={form.poster_url} onChange={e=>setForm(p=>({...p,poster_url:e.target.value}))} placeholder="https://.../foto.jpg"/></label>
           {form.video_url&&<div className={styles.preview}><video src={form.video_url} poster={form.poster_url||undefined} muted playsInline controls preload="metadata"/></div>}
           <label className={styles.toggle}><input type="checkbox" checked={form.is_published} onChange={e=>setForm(p=>({...p,is_published:e.target.checked}))}/> PUBLICEREN OP WEBSITE</label>
