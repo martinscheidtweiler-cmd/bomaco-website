@@ -16,7 +16,8 @@ export default function ReferencesEmbed() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [videoError, setVideoError] = useState(false);
-  const [sound, setSound] = useState(false);\n  const [needsPlay, setNeedsPlay] = useState(false);
+  const [sound, setSound] = useState(false);
+  const [needsPlay, setNeedsPlay] = useState(false);
   const [visible, setVisible] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLElement>(null);
@@ -112,7 +113,9 @@ export default function ReferencesEmbed() {
           onTouchStart={e => { pointerRef.current=e.touches[0]?.clientX ?? null; }}
           onTouchEnd={e => {
             if (pointerRef.current === null) return;
-            const touchX = e.changedTouches[0]?.clientX;\n            if (touchX === undefined) return;\n            const delta = touchX - pointerRef.current;
+            const touchX = e.changedTouches[0]?.clientX;
+            if (touchX === undefined) return;
+            const delta = touchX - pointerRef.current;
             pointerRef.current=null;
             if (delta < -55) next();
             else if (delta > 55) previous();
