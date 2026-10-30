@@ -41,6 +41,9 @@ export default function ReferencesAdmin() {
   const [editingId,setEditingId]=useState<string|null>(null);
   const [busy,setBusy]=useState(false);
   const [uploading,setUploading]=useState<"video"|"poster"|null>(null);
+  const [videoFile,setVideoFile]=useState<File|null>(null);
+  const [posterFile,setPosterFile]=useState<File|null>(null);
+  const [inputVersion,setInputVersion]=useState(0);
   const [notice,setNotice]=useState("");
   const [email,setEmail]=useState("");
   const [password,setPassword]=useState("");
@@ -77,8 +80,9 @@ export default function ReferencesAdmin() {
     if(error)setNotice(error.message); else void checkAuth();
   }
 
-  function resetForm(){setForm({...EMPTY});setEditingId(null);}
+  function resetForm(){setForm({...EMPTY});setEditingId(null);setVideoFile(null);setPosterFile(null);setInputVersion(x=>x+1);}
   function edit(item:Reference){
+    setVideoFile(null);setPosterFile(null);setInputVersion(x=>x+1);
     setEditingId(item.id);
     setForm({name:item.name,auction_label:item.auction_label,
       result_text:item.result_text,video_url:item.video_url,
