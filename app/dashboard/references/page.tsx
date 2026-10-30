@@ -19,7 +19,7 @@ const EMBED_CODE = [
  '<iframe id="optimus-references-frame" src="'+EMBED_URL+'"',
  ' title="Optimus Auction References" allow="autoplay; fullscreen"',
  ' loading="lazy" scrolling="no"',
- ' style="display:block;width:100%;height:850px;max-width:940px;margin:0 auto;border:0;background:#fff;"></iframe>',
+ ' style="display:block;width:100%;height:850px;max-width:1036px;margin:0 auto;border:0;background:#fff;"></iframe>',
  '<script>(function(){',
  'var f=document.getElementById("optimus-references-frame");if(!f)return;',
  'window.addEventListener("message",function(e){',
