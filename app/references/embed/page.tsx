@@ -1,6 +1,6 @@
 "use client";
 
-import {useCallback, useEffect, useRef, useState} from "react";
+import {useCallback, useEffect, useMemo, useRef, useState} from "react";
 import {supabase} from "../../lib/supabaseClient";
 import styles from "./references.module.css";
 
@@ -12,6 +12,10 @@ type Reference = {
   video_url: string;
   poster_url: string;
   position: number;
+  sire: string;
+  dam: string;
+  birth_year: string;
+  sex: string;
 };
 
 const pad = (n: number) => String(n).padStart(2, "0");
@@ -19,6 +23,8 @@ const pad = (n: number) => String(n).padStart(2, "0");
 export default function ReferencesEmbed() {
   const [items, setItems] = useState<Reference[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showLimit,setShowLimit] = useState("all");
+  const [sort,setSort] = useState("position");
   const [error, setError] = useState("");
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const [sound, setSound] = useState(false);
@@ -39,7 +45,7 @@ export default function ReferencesEmbed() {
     const load = async () => {
       const {data, error: problem} = await supabase
         .from("optimus_auction_references")
-        .select("id,name,auction_label,result_text,video_url,poster_url,position")
+        .select("id,name,auction_label,result_text,video_url,poster_url,position,sire,dam,birth_year,sex")
         .eq("is_published", true)
         .order("position", {ascending: true})
         .order("created_at", {ascending: true})
@@ -187,6 +193,15 @@ export default function ReferencesEmbed() {
     return () => window.clearTimeout(timer);
   }, [videoError, items.length, activeIndex, visible, change]);
 
+  const displayed = useMemo(() => {
+    const list = [...items];
+    if (sort === "name") list.sort((a,b) => a.name.localeCompare(b.name));
+    if (sort === "auction") list.sort((a,b) => {
+      const year = (v: string) => Number(v.match(/\b(?:19|20)\d{2}\b/)?.[0] || 0);
+      return year(b.auction_label)-year(a.auction_label);
+    });
+    return showLimit === "all" ? list : list.slice(0,Number(showLimit));
+  },[items,sort,showLimit]);
   const activeItem = activeIndex === null ? null : items[activeIndex];
 
   return <main ref={containerRef} className={activeItem ? styles.pageOpen : styles.page}>
