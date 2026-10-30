@@ -1,6 +1,6 @@
 "use client";
 
-import {useCallback, useEffect, useRef, useState} from "react";
+import {useCallback, useEffect, useMemo, useRef, useState} from "react";
 import {supabase} from "../../lib/supabaseClient";
 import styles from "./references.module.css";
 
@@ -12,6 +12,10 @@ type Reference = {
   video_url: string;
   poster_url: string;
   position: number;
+  sire: string;
+  dam: string;
+  birth_year: string;
+  sex: string;
 };
 
 const pad = (n: number) => String(n).padStart(2, "0");
@@ -19,6 +23,8 @@ const pad = (n: number) => String(n).padStart(2, "0");
 export default function ReferencesEmbed() {
   const [items, setItems] = useState<Reference[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showLimit,setShowLimit] = useState("all");
+  const [sort,setSort] = useState("position");
   const [error, setError] = useState("");
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const [sound, setSound] = useState(false);
@@ -39,7 +45,7 @@ export default function ReferencesEmbed() {
     const load = async () => {
       const {data, error: problem} = await supabase
         .from("optimus_auction_references")
-        .select("id,name,auction_label,result_text,video_url,poster_url,position")
+        .select("id,name,auction_label,result_text,video_url,poster_url,position,sire,dam,birth_year,sex")
         .eq("is_published", true)
         .order("position", {ascending: true})
         .order("created_at", {ascending: true})
@@ -187,26 +193,55 @@ export default function ReferencesEmbed() {
     return () => window.clearTimeout(timer);
   }, [videoError, items.length, activeIndex, visible, change]);
 
+  const displayed = useMemo(() => {
+    const list = [...items];
+    if (sort === "name") list.sort((a,b) => a.name.localeCompare(b.name));
+    if (sort === "auction") list.sort((a,b) => {
+      const year = (v: string) => Number(v.match(/\b(?:19|20)\d{2}\b/)?.[0] || 0);
+      return year(b.auction_label)-year(a.auction_label);
+    });
+    return showLimit === "all" ? list : list.slice(0,Number(showLimit));
+  },[items,sort,showLimit]);
   const activeItem = activeIndex === null ? null : items[activeIndex];
 
   return <main ref={containerRef} className={activeItem ? styles.pageOpen : styles.page}>
-    <header className={styles.heading}>
-      <div className={styles.eyebrow}>STAL OPTIMUS · ONLINE AUCTION</div>
-      <h1>OUR REFERENCES</h1>
-      <p>FROM OUR BREEDING PROGRAMME TO THE SPORT</p>
+    <header className={styles.banner}>
+      <span className={styles.bannerTop}>STAL OPTIMUS · ONLINE AUCTION</span>
+      <h1>Our References</h1>
+      <div className={styles.bannerBottom}>ALL BRED BY OPTIMUS <span>|</span> FROM THE AUCTION TO THE SPORT</div>
     </header>
+
+    <div className={styles.toolbar}>
+      <div className={styles.filters}>
+        <label><span className={styles.srOnly}>Number of references</span>
+          <select value={showLimit} onChange={event => setShowLimit(event.target.value)}>
+            <option value="all">Show all</option>
+            <option value="6">Show 6</option>
+            <option value="12">Show 12</option>
+          </select>
+        </label>
+        <label><span className={styles.srOnly}>Sort references</span>
+          <select value={sort} onChange={event => setSort(event.target.value)}>
+            <option value="position">Default order</option>
+            <option value="auction">Auction year</option>
+            <option value="name">Horse name</option>
+          </select>
+        </label>
+      </div>
+      <span className={styles.displayCount}>Displaying {displayed.length} of {items.length} horses</span>
+    </div>
 
     {loading ? <div className={styles.message}>LOADING REFERENCES...</div>
     : error ? <div className={styles.message} role="alert">{error}</div>
     : !items.length ? <div className={styles.message}>OUR REFERENCES ARE COMING SOON</div>
     : <section className={styles.grid} aria-label="Optimus reference horses">
-      {items.map((item, index) => <button
+      {displayed.map((item, index) => <button
         type="button"
         key={item.id}
         className={styles.card}
         onPointerEnter={event => {if (event.pointerType === "mouse") previewStart(item.id);}}
         onPointerLeave={() => previewStop(item.id)}
-        onClick={() => open(index)}
+        onClick={() => open(items.findIndex(ref => ref.id === item.id))}
         aria-label={"Watch "+item.name+" video"}
       >
         <span className={styles.cardMedia}>
@@ -227,13 +262,28 @@ export default function ReferencesEmbed() {
             }}
             aria-hidden="true"
           />
-          <span className={styles.cardPlay} aria-hidden="true">▶</span>
-          <span className={styles.cardView} aria-hidden="true">WATCH VIDEO</span>
+          <span className={styles.previewPlay} aria-hidden="true">▶</span>
+          <span className={styles.lotNumber}>{index + 1}</span>
         </span>
-        <span className={styles.cardText}>
-          <strong>{item.name}</strong>
-          {item.auction_label && <span className={styles.cardEdition}>{item.auction_label}</span>}
-          {item.result_text && <span className={styles.cardResult}>{item.result_text}</span>}
+        <span className={styles.pedigreeBar}>
+          <span className={styles.pedigreeItem}><small>DAM</small><strong>{item.dam || "—"}</strong></span>
+          <span className={styles.pedigreeItem}><small>SIRE</small><strong>{item.sire || "—"}</strong></span>
+        </span>
+        <span className={styles.cardHeader}>
+          <strong className={styles.horseName}>{item.name}</strong>
+          <span className={styles.horseMeta}>
+            {item.birth_year && <span>°{item.birth_year}</span>}
+            {item.birth_year && <span className={styles.metaSeparator}/>}
+            <b>{item.sex || "REFERENCE"}</b>
+          </span>
+        </span>
+        <span className={styles.cardDescription}>
+          {item.auction_label && <span className={styles.auctionLabel}>{item.auction_label}</span>}
+          {item.result_text && <span className={styles.resultText}>{item.result_text}</span>}
+        </span>
+        <span className={styles.cardFooter}>
+          <span className={styles.footerLeft}>OPTIMUS <span>AUCTION</span></span>
+          <span className={styles.watchButton}>WATCH VIDEO <span aria-hidden="true">▶</span></span>
         </span>
       </button>)}
     </section>}

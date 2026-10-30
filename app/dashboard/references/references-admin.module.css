@@ -13,3 +13,8 @@
 .empty{font-size:12px;color:#777;padding:25px 0}.embedPanel{margin-top:23px}.embedPanel p{font-size:12px;color:#666;line-height:1.6}.embedPanel textarea{width:100%;padding:14px;border:1px solid #ddd;background:#f6f6f6;font:11px/1.6 ui-monospace,Menlo,monospace;resize:vertical}
 .login{max-width:500px;margin:90px auto;padding:30px;border:1px solid #ddd;font-family:Arial,sans-serif}.login h1{font-size:30px}.login p{font-size:13px;color:#666;line-height:1.5}.loginForm{display:flex;flex-direction:column;gap:10px;margin:24px 0}.loginForm input{padding:13px;border:1px solid #ccc}.loginForm button{background:#111;color:#fff;padding:14px;border:0;font-weight:700;cursor:pointer}
 @media(max-width:900px){.columns{grid-template-columns:1fr}}@media(max-width:640px){.page{padding:23px 12px 55px}.header{display:block}.header h1{font-size:33px}.headerActions{margin-top:17px}.panel,.embedPanel{padding:15px}.thumbnail{width:88px}.row{gap:7px}.panelTitle{align-items:flex-start;flex-wrap:wrap}}
+
+.extraFields{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.extraFields label{min-width:0;display:flex;flex-direction:column;gap:7px;font-size:10px;font-weight:700;color:#555}
+.extraFields input,.extraFields select{width:100%;height:42px;min-width:0;border:1px solid #d5d5d5;background:#fff;color:#111;padding:9px 12px;font-family:Arial,Helvetica,sans-serif;font-size:12px}
+@media(max-width:480px){.extraFields{grid-template-columns:1fr}}

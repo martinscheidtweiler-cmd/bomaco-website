@@ -1,25 +1,47 @@
-.page,.pageOpen{position:relative;width:100%;max-width:940px;margin:0 auto;padding:31px 0 40px;background:#fff;color:#111;font-family:Arial,Helvetica,sans-serif;text-align:center}
+.page,.pageOpen{position:relative;width:100%;max-width:1036px;margin:0 auto;padding:0 0 58px;background:#fff;color:#111;font-family:Arial,Helvetica,sans-serif;text-align:left}
 .pageOpen{min-height:740px}
-.heading{margin:0 0 28px}
-.eyebrow{font-size:9px;letter-spacing:2px;font-weight:600;color:#999;margin-bottom:12px}
-.heading h1{font-size:31px;font-weight:400;letter-spacing:1.2px;line-height:1.15;margin:0 0 11px;color:#111}
-.heading p{font-size:10px;letter-spacing:1.6px;color:#777;margin:0}
-.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px;text-align:left}
-.card{appearance:none;display:flex;flex-direction:column;min-width:0;background:#fff;border:1px solid #dedede;border-radius:0;padding:8px 8px 0;text-align:left;cursor:pointer;color:#111;font:inherit;transition:border-color .2s,box-shadow .2s}
-.card:hover,.card:focus-visible{border-color:#888;box-shadow:0 6px 24px rgba(0,0,0,.06);outline:none}
+.banner{background:#111;color:#fff;text-align:center;min-height:149px;padding:28px 15px 27px;display:flex;flex-direction:column;justify-content:center;align-items:center}
+.bannerTop{font-size:9px;font-weight:400;letter-spacing:2.3px;color:#eee;line-height:1.45;text-transform:uppercase;margin-bottom:13px}
+.banner h1{font-family:Arial,Helvetica,sans-serif;color:#fff!important;font-size:30px;letter-spacing:-.25px;line-height:1.13;font-weight:700;margin:0 0 15px;text-transform:none}
+.bannerBottom{font-size:11px;letter-spacing:1.25px;font-weight:700;line-height:1.3;color:#fff}
+.bannerBottom span{font-weight:400;padding:0 12px}
+.toolbar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:0 0 15px;padding:12px 0 24px;border-bottom:1px solid #e7e7e7;min-height:77px}
+.filters{display:flex;align-items:center;gap:4px}
+.filters label{display:block;max-width:100%}
+.filters select{min-width:98px;height:38px;background:#fff;color:#333;border:1px solid #d5d5d5;border-radius:0;padding:0 24px 0 12px;font-size:12px;cursor:pointer;font-family:Arial,Helvetica,sans-serif;appearance:auto}
+.displayCount{font-size:12px;font-weight:400;color:#333;white-space:nowrap}
+.srOnly{position:absolute;overflow:hidden;clip:rect(0,0,0,0);width:1px;height:1px;white-space:nowrap}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 13px;align-items:stretch}
+.card{appearance:none;display:flex;flex-direction:column;min-width:0;min-height:615px;background:#fff;border:1px solid #e0e0e0;border-radius:0;padding:8px 8px 0;text-align:left;cursor:pointer;color:#111;font:inherit;box-shadow:none;transition:border-color .15s}
+.card:hover{border-color:#bababa}
 .card:focus-visible{outline:2px solid #111;outline-offset:2px}
-.cardMedia{position:relative;display:block;width:100%;aspect-ratio:16/9;background:#121212;overflow:hidden}
-.previewVideo{display:block;width:100%;height:100%;object-fit:cover;background:#151515;pointer-events:none}
-.cardPlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;text-shadow:0 1px 9px #000;pointer-events:none;transition:opacity .2s}
-.cardPlay::before{content:"";position:absolute;width:45px;height:45px;border:1px solid rgba(255,255,255,.8);background:rgba(0,0,0,.3)}
-.cardPlay{isolation:isolate}.cardPlay::before{z-index:-1}
-.card:hover .cardPlay{opacity:0}
-.cardView{position:absolute;left:9px;bottom:9px;color:#fff;background:rgba(0,0,0,.7);border:1px solid rgba(255,255,255,.25);padding:7px 9px;font-size:9px;letter-spacing:1px;font-weight:600;pointer-events:none}
-.cardText{display:flex;flex-direction:column;flex:1;padding:18px 7px 21px;min-height:118px}
-.cardText strong{font-size:15px;font-weight:500;letter-spacing:.4px;text-transform:uppercase;line-height:1.3;overflow-wrap:anywhere}
-.cardEdition{font-size:10px;letter-spacing:.9px;color:#7a7a7a;margin-top:10px;text-transform:uppercase}
-.cardResult{font-size:11px;color:#222;line-height:1.55;margin-top:13px;overflow-wrap:anywhere}
-.message{padding:80px 10px;border:1px solid #e4e4e4;color:#777;font-size:11px;letter-spacing:1.3px}
+.cardMedia{display:block;position:relative;width:100%;aspect-ratio:1.51;background:#171717;overflow:hidden;flex:none}
+.previewVideo{display:block;width:100%;height:100%;object-fit:cover;background:#171717;pointer-events:none}
+.previewPlay{position:absolute;inset:0;display:grid;place-content:center;color:#fff;font-size:17px;text-shadow:0 1px 9px #000;pointer-events:none;opacity:.85;transition:opacity .18s}
+.previewPlay::before{content:"";position:absolute;width:43px;height:43px;top:50%;left:50%;transform:translate(-50%,-50%);border:1px solid rgba(255,255,255,.7);background:rgba(0,0,0,.25)}
+.previewPlay{isolation:isolate}.previewPlay::before{z-index:-1}
+.card:hover .previewPlay{opacity:0}
+.lotNumber{position:absolute;bottom:6px;right:6px;width:33px;height:33px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:400;background:rgba(0,0,0,.82);border:1px solid rgba(255,255,255,.12);pointer-events:none}
+.pedigreeBar{display:grid;grid-template-columns:1fr 1fr;align-items:center;min-height:39px;background:#050505;color:#fff;gap:10px;padding:5px 8px;flex:none}
+.pedigreeItem{display:flex;flex-direction:column;min-width:0;line-height:1.15}
+.pedigreeItem small{display:block;font-size:9px;font-weight:400;color:#c5c5c5;margin-bottom:2px}
+.pedigreeItem strong{font-size:11px;line-height:1.16;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cardHeader{display:flex;justify-content:space-between;align-items:flex-start;gap:6px;min-height:47px;padding:13px 9px 7px;flex:none}
+.horseName{font-size:15px;font-weight:400;line-height:1.3;min-width:0;overflow-wrap:anywhere;color:#222}
+.horseMeta{display:flex;align-items:center;justify-content:flex-end;gap:7px;flex-wrap:wrap;white-space:nowrap;font-size:10px;color:#333;line-height:1.5}
+.horseMeta b{font-size:10px;font-weight:700;color:#111}
+.metaSeparator{height:14px;width:1px;background:#777}
+.cardDescription{flex:1;min-height:215px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:23px;text-align:center;padding:21px 10px 17px;color:#111}
+.auctionLabel{font-size:12px;line-height:1.7;font-weight:700;font-style:italic;white-space:pre-line}
+.resultText{font-size:12px;font-weight:700;font-style:italic;line-height:2;white-space:pre-line;overflow-wrap:anywhere}
+.cardFooter{display:flex;align-items:flex-end;justify-content:space-between;gap:6px;min-height:74px;padding:11px 1px 18px 8px;flex:none}
+.footerLeft{font-size:10px;color:#e21b43;font-weight:600;letter-spacing:.8px;line-height:1.5}
+.footerLeft span{display:block;font-size:8px;color:#c0c0c0;font-weight:400;letter-spacing:.7px}
+.watchButton{display:inline-flex;gap:9px;align-items:center;justify-content:center;border:2px solid #111;min-height:37px;padding:8px 9px;color:#111;background:#fff;white-space:nowrap;font-weight:700;font-size:10px}
+.card:hover .watchButton{background:#111;color:#fff}
+.watchButton span{font-size:10px}
+.message{text-align:center;padding:80px 10px;border:1px solid #e4e4e4;color:#777;font-size:11px;letter-spacing:1.3px}
+
 .overlay{position:absolute;z-index:150;inset:0;display:flex;justify-content:center;align-items:flex-start;padding:18px 14px 30px;min-height:100%;text-align:left}
 .backdrop{position:absolute;inset:0;width:100%;height:100%;border:0;background:rgba(0,0,0,.84);cursor:default}
 .dialog{position:relative;z-index:1;width:100%;max-width:880px;min-width:0;border:1px solid #d4d4d4;background:#fff;box-shadow:0 15px 55px rgba(0,0,0,.25)}
@@ -42,6 +64,7 @@
 .activeDot{width:32px;background:#111}
 .playRequired{position:absolute;z-index:3;top:50%;left:50%;transform:translate(-50%,-50%);padding:15px 20px;border:1px solid #fff;background:rgba(0,0,0,.8);color:#fff;letter-spacing:1px;font-size:10px;cursor:pointer}
 .videoUnavailable{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#aaa;letter-spacing:1px;font-size:11px}
-@media(max-width:750px){.grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.cardText strong{font-size:13px}.cardText{padding:15px 6px 17px;min-height:112px}}
-@media(max-width:530px){.page,.pageOpen{padding:24px 0 30px}.pageOpen{min-height:560px}.heading{margin-bottom:22px}.heading h1{font-size:25px}.heading p{font-size:9px;letter-spacing:1px}.eyebrow{font-size:8px}.grid{gap:9px}.card{padding:5px 5px 0}.cardMedia{aspect-ratio:4/3}.cardText{padding:13px 5px 16px;min-height:121px}.cardText strong{font-size:12px}.cardEdition{font-size:9px;margin-top:7px}.cardResult{font-size:10px;margin-top:9px}.cardPlay::before{width:35px;height:35px}.cardView{font-size:8px;padding:5px 6px;left:5px;bottom:5px}.overlay{padding:9px 6px 18px}.dialogTop{height:44px;padding:0 7px 0 12px;font-size:9px}.playerInfo{padding:15px 13px 20px}.playerInfo h2{font-size:20px}.playerResult{font-size:11px}.previous,.next{height:40px;width:29px;font-size:27px}.previous{left:3px}.next{right:3px}}
-@media(prefers-reduced-motion:reduce){.card,.cardPlay{transition:none}}
+
+@media(max-width:800px){.page,.pageOpen{padding:0 0 42px}.grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.card{min-height:530px}.cardDescription{min-height:170px}.horseName{font-size:14px}.cardFooter{min-height:69px}}
+@media(max-width:520px){.banner{min-height:130px;padding:24px 12px}.bannerTop{font-size:8px;letter-spacing:1.35px;margin-bottom:12px}.banner h1{font-size:24px;margin-bottom:13px}.bannerBottom{font-size:8px;letter-spacing:.7px;line-height:1.7}.bannerBottom span{padding:0 5px}.toolbar{padding:10px 0 15px;margin-bottom:12px;gap:6px;min-height:64px}.filters{gap:3px}.filters select{font-size:10px;height:34px;min-width:0;max-width:116px;padding-left:5px;padding-right:3px}.displayCount{font-size:10px;max-width:112px;white-space:normal;text-align:right}.grid{gap:8px}.card{padding:5px 5px 0;min-height:434px}.cardMedia{aspect-ratio:1.33}.lotNumber{width:25px;height:25px;right:4px;bottom:4px;font-size:11px}.previewPlay{font-size:13px}.previewPlay::before{width:34px;height:34px}.pedigreeBar{min-height:36px;padding:5px 4px;gap:4px}.pedigreeItem small{font-size:7px}.pedigreeItem strong{font-size:9px}.cardHeader{min-height:47px;padding:10px 4px 5px;display:flex;flex-direction:column;gap:2px}.horseName{font-size:12px}.horseMeta{font-size:9px;gap:5px}.horseMeta b{font-size:9px}.metaSeparator{height:10px}.cardDescription{min-height:167px;gap:16px;padding:15px 7px 10px}.auctionLabel,.resultText{font-size:10px;line-height:1.65}.cardFooter{min-height:58px;padding:5px 0 12px 3px;align-items:flex-end;gap:4px}.footerLeft{font-size:8px;letter-spacing:0}.footerLeft span{font-size:7px}.watchButton{font-size:8px;border-width:1px;padding:7px 5px;min-height:30px;gap:4px}.watchButton span{font-size:8px}.overlay{padding:9px 6px 18px}.dialogTop{height:44px;padding:0 7px 0 12px;font-size:9px}.playerInfo{padding:15px 13px 20px}.playerInfo h2{font-size:20px}.playerResult{font-size:11px}.previous,.next{height:40px;width:29px;font-size:27px}.previous{left:3px}.next{right:3px}}
+@media(prefers-reduced-motion:reduce){.card,.previewPlay{transition:none}}
