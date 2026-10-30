@@ -16,7 +16,7 @@ export default function ReferencesEmbed() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [videoError, setVideoError] = useState(false);
-  const [sound, setSound] = useState(false);
+  const [sound, setSound] = useState(false);\n  const [needsPlay, setNeedsPlay] = useState(false);
   const [visible, setVisible] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLElement>(null);
@@ -65,7 +65,7 @@ export default function ReferencesEmbed() {
     const node = videoRef.current;
     if (!node || !items.length) return;
     node.muted = !sound;
-    if (visible && !document.hidden) void node.play().catch(() => {});
+    if (visible && !document.hidden) void node.play().catch(() => setNeedsPlay(true));
   }, [index,items.length,sound,visible]);
 
   useEffect(() => {
@@ -94,7 +94,7 @@ export default function ReferencesEmbed() {
     return () => window.clearTimeout(timeout);
   },[videoError,items.length,visible,next]);
 
-  useEffect(() => { setVideoError(false); setSound(false); },[index]);
+  useEffect(() => { setVideoError(false); setSound(false); setNeedsPlay(false); },[index]);
 
   const item = items[index];
   return <main ref={containerRef} className={styles.page}>
@@ -112,7 +112,7 @@ export default function ReferencesEmbed() {
           onTouchStart={e => { pointerRef.current=e.touches[0]?.clientX ?? null; }}
           onTouchEnd={e => {
             if (pointerRef.current === null) return;
-            const delta = e.changedTouches[0]?.clientX - pointerRef.current;
+            const touchX = e.changedTouches[0]?.clientX;\n            if (touchX === undefined) return;\n            const delta = touchX - pointerRef.current;
             pointerRef.current=null;
             if (delta < -55) next();
             else if (delta > 55) previous();
@@ -120,7 +120,7 @@ export default function ReferencesEmbed() {
           {videoError ? <div className={styles.videoUnavailable}>VIDEO CURRENTLY UNAVAILABLE</div>
           : <video key={item.id} ref={videoRef} className={styles.video} src={item.video_url}
               poster={item.poster_url || undefined} autoPlay muted={!sound} playsInline
-              preload="metadata" onEnded={next} onError={() => setVideoError(true)}
+              preload="metadata" onEnded={next} onError={() => setVideoError(true)} onPlaying={() => setNeedsPlay(false)}
               controls={false} />}
           {items.length>1 && <>
             <button type="button" className={styles.prev} onClick={previous} aria-label="Previous horse">‹</button>
@@ -130,7 +130,7 @@ export default function ReferencesEmbed() {
             onClick={() => {setSound(v=>!v);void videoRef.current?.play().catch(()=>{});}}>
             {sound?"SOUND ON":"SOUND OFF"}
           </button>}
-          {!videoError && <button type="button" className={styles.play} aria-label="Play video"
+          {!videoError && <button type="button" className={needsPlay ? styles.playRequired : styles.play} aria-label="Play video"
             onClick={() => {videoRef.current?.play().catch(()=>{if(videoRef.current) videoRef.current.controls=true;});}}>▶</button>}
         </div>
         <div className={styles.info}>
