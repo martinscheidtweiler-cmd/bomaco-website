@@ -1,4 +1,4 @@
-.page,.pageOpen{position:relative;width:100%;max-width:1036px;margin:0 auto;padding:0 0 58px;background:#fff;color:#111;font-family:Arial,Helvetica,sans-serif;text-align:left}
+.page,.pageOpen{position:relative;width:100%;max-width:none;margin:0 auto;padding:0 0 58px;background:#fff;color:#111;font-family:Arial,Helvetica,sans-serif;text-align:left}
 .pageOpen{min-height:740px}
 .banner{background:#111;color:#fff;text-align:center;min-height:149px;padding:28px 15px 27px;display:flex;flex-direction:column;justify-content:center;align-items:center}
 .bannerTop{font-size:9px;font-weight:400;letter-spacing:2.3px;color:#eee;line-height:1.45;text-transform:uppercase;margin-bottom:13px}
