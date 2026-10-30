@@ -262,13 +262,28 @@ export default function ReferencesEmbed() {
             }}
             aria-hidden="true"
           />
-          <span className={styles.cardPlay} aria-hidden="true">▶</span>
-          <span className={styles.cardView} aria-hidden="true">WATCH VIDEO</span>
+          <span className={styles.previewPlay} aria-hidden="true">▶</span>
+          <span className={styles.lotNumber}>{index + 1}</span>
         </span>
-        <span className={styles.cardText}>
-          <strong>{item.name}</strong>
-          {item.auction_label && <span className={styles.cardEdition}>{item.auction_label}</span>}
-          {item.result_text && <span className={styles.cardResult}>{item.result_text}</span>}
+        <span className={styles.pedigreeBar}>
+          <span className={styles.pedigreeItem}><small>DAM</small><strong>{item.dam || "—"}</strong></span>
+          <span className={styles.pedigreeItem}><small>SIRE</small><strong>{item.sire || "—"}</strong></span>
+        </span>
+        <span className={styles.cardHeader}>
+          <strong className={styles.horseName}>{item.name}</strong>
+          <span className={styles.horseMeta}>
+            {item.birth_year && <span>°{item.birth_year}</span>}
+            {item.birth_year && <span className={styles.metaSeparator}/>}
+            <b>{item.sex || "REFERENCE"}</b>
+          </span>
+        </span>
+        <span className={styles.cardDescription}>
+          {item.auction_label && <span className={styles.auctionLabel}>{item.auction_label}</span>}
+          {item.result_text && <span className={styles.resultText}>{item.result_text}</span>}
+        </span>
+        <span className={styles.cardFooter}>
+          <span className={styles.footerLeft}>OPTIMUS <span>AUCTION</span></span>
+          <span className={styles.watchButton}>WATCH VIDEO <span aria-hidden="true">▶</span></span>
         </span>
       </button>)}
     </section>}
