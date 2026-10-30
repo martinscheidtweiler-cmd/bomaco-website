@@ -205,23 +205,43 @@ export default function ReferencesEmbed() {
   const activeItem = activeIndex === null ? null : items[activeIndex];
 
   return <main ref={containerRef} className={activeItem ? styles.pageOpen : styles.page}>
-    <header className={styles.heading}>
-      <div className={styles.eyebrow}>STAL OPTIMUS · ONLINE AUCTION</div>
-      <h1>OUR REFERENCES</h1>
-      <p>FROM OUR BREEDING PROGRAMME TO THE SPORT</p>
+    <header className={styles.banner}>
+      <span className={styles.bannerTop}>STAL OPTIMUS · ONLINE AUCTION</span>
+      <h1>Our References</h1>
+      <div className={styles.bannerBottom}>ALL BRED BY OPTIMUS <span>|</span> FROM THE AUCTION TO THE SPORT</div>
     </header>
+
+    <div className={styles.toolbar}>
+      <div className={styles.filters}>
+        <label><span className={styles.srOnly}>Number of references</span>
+          <select value={showLimit} onChange={event => setShowLimit(event.target.value)}>
+            <option value="all">Show all</option>
+            <option value="6">Show 6</option>
+            <option value="12">Show 12</option>
+          </select>
+        </label>
+        <label><span className={styles.srOnly}>Sort references</span>
+          <select value={sort} onChange={event => setSort(event.target.value)}>
+            <option value="position">Default order</option>
+            <option value="auction">Auction year</option>
+            <option value="name">Horse name</option>
+          </select>
+        </label>
+      </div>
+      <span className={styles.displayCount}>Displaying {displayed.length} of {items.length} horses</span>
+    </div>
 
     {loading ? <div className={styles.message}>LOADING REFERENCES...</div>
     : error ? <div className={styles.message} role="alert">{error}</div>
     : !items.length ? <div className={styles.message}>OUR REFERENCES ARE COMING SOON</div>
     : <section className={styles.grid} aria-label="Optimus reference horses">
-      {items.map((item, index) => <button
+      {displayed.map((item, index) => <button
         type="button"
         key={item.id}
         className={styles.card}
         onPointerEnter={event => {if (event.pointerType === "mouse") previewStart(item.id);}}
         onPointerLeave={() => previewStop(item.id)}
-        onClick={() => open(index)}
+        onClick={() => open(items.findIndex(ref => ref.id === item.id))}
         aria-label={"Watch "+item.name+" video"}
       >
         <span className={styles.cardMedia}>
