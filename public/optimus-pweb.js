@@ -466,7 +466,7 @@
     Array.from(document.querySelectorAll('.videoWrapper iframe')).forEach(function (iframe) {
       if (iframe.closest('.optimus-live-embed,#optimus-live-video-overlay')) return;
       var src = iframe.getAttribute('src') || iframe.getAttribute('data-src') || '';
-      if (!/youtube(?:-nocookie)?\\.com|youtu\\.be/i.test(src)) return;
+      if (!/youtube(?:-nocookie)?\.com|youtu\.be/i.test(src)) return;
       // Replace the iframe itself so PWeb's YouTube player cannot keep running.
       var replacement = document.createElement('iframe');
       replacement.className = iframe.className;
