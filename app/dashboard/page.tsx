@@ -12,6 +12,7 @@ import {
   type LotData, type HorseProfile, type PedigreeRecord, type LotDescription,
 } from "./content";
 import styles from "./dashboard.module.css";
+import { videoReferenceFromUrl } from "../video/video-url";
 
 const cloud = process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   ? createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
@@ -19,6 +20,7 @@ const cloud = process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SU
 
 type Tab = "pedigree" | "description" | "videos" | "sites";
 type HorseDescriptionEdit = { display_name: string; level: string; video_url: string; birth_year: string };
+type LotVideoDraft = { title: string; url: string };
 
 /** Reuse whole ancestry sections for a recognized horse, independently of the foal's sex. */
 function sharedAncestry(
@@ -79,6 +81,7 @@ export default function AuctionDashboard() {
   const [draftSite, setDraftSite] = useState<SiteCode | null>(null);
   const [profileName, setProfileName] = useState("");
   const [videoUrl, setVideoUrl] = useState("");
+  const [lotVideos, setLotVideos] = useState<LotVideoDraft[]>([{ title: "Video", url: "" }]);
   const [profileLevel, setProfileLevel] = useState("");
   const [profileYear, setProfileYear] = useState("");
   const [profileFilter, setProfileFilter] = useState("");
@@ -147,6 +150,8 @@ export default function AuctionDashboard() {
   useEffect(() => {
     if (!selected) return;
     setDraftHorses(selected.horses.map((h) => ({ ...h })));
+    const savedVideos = safeDescription(selectedLot?.description, selected.horses).videos || [];
+    setLotVideos(savedVideos.length ? savedVideos : [{ title: "Video", url: "" }]);
     setDraftDescription(selectedLot?.description && Array.isArray(selectedLot.description.sections) && selectedLot.description.sections.length
       ? safeDescription(selectedLot.description, selected.horses)
       : (embryoDescription(selected.horses, selected.name) || dianaDescription(selected.horses, selected.name) || signoritaDescription(selected.horses, selected.name) || clarissaDescription(selected.horses) || ladyDescription(selected.horses, selected.name) || anitaDescription(selected.horses) || cristelDescription(selected.horses, selected.name) || sharedAncestry(safeDescription(null, selected.horses), selected.horses, lots, pedigrees, selected.id)));
@@ -340,9 +345,12 @@ export default function AuctionDashboard() {
         updated_at: new Date().toISOString(),
       }));
 
-    if (profileChanges.some((profile) =>
-      profile.video_url && !/^https:\/\/(www\.)?(youtu\.be|youtube\.com|youtube-nocookie\.com|m\.youtube\.com)\//i.test(profile.video_url))) {
-      setNotice("Controleer de YouTube-links: gebruik https://youtu.be/... of een normale YouTube-link.");
+    if (profileChanges.some((profile) => profile.video_url && !videoReferenceFromUrl(profile.video_url))) {
+      setNotice("Gebruik een geldige Vimeo- of YouTube-link.");
+      return;
+    }
+    if (lotVideos.some((video) => video.url.trim() && !videoReferenceFromUrl(video.url))) {
+      setNotice("Controleer de lotvideo's: gebruik een geldige Vimeo- of YouTube-link.");
       return;
     }
     setIsBusy(true);
@@ -357,7 +365,8 @@ export default function AuctionDashboard() {
     }
     const { error } = await cloud.from("optimus_auction_lot_descriptions").upsert({
       owner_id: selected.owner_id, pedigree_id: selected.id,
-      description: draftDescription, updated_at: new Date().toISOString(),
+      description: { ...draftDescription, videos: lotVideos.filter((video) => video.url.trim()).map((video) => ({ title: video.title.trim() || "Video", url: video.url.trim() })) },
+      updated_at: new Date().toISOString(),
     }, { onConflict: "owner_id,pedigree_id" });
     if (error) { setNotice("Beschrijving opslaan mislukt: " + error.message); setIsBusy(false); return; }
     // Propagate changed ancestry sections to all lots sharing that named horse.
@@ -399,8 +408,8 @@ export default function AuctionDashboard() {
     if (!cloud || !profileName.trim() || isBusy) return;
     const normalized_name = normalizeHorseName(profileName);
     if (!normalized_name) return;
-    if (videoUrl && !/^https:\/\/(www\.)?(youtu\.be|youtube\.com|youtube-nocookie\.com|m\.youtube\.com)\//i.test(videoUrl)) {
-      setNotice("Gebruik een geldige HTTPS YouTube-link."); return;
+    if (videoUrl && !videoReferenceFromUrl(videoUrl)) {
+      setNotice("Gebruik een geldige Vimeo- of YouTube-link."); return;
     }
     setIsBusy(true);
     const { error } = await cloud.from("optimus_auction_horse_profiles").upsert({
@@ -410,6 +419,29 @@ export default function AuctionDashboard() {
     }, { onConflict: "normalized_name" });
     if (error) { setNotice("Video opslaan mislukt: " + error.message); setIsBusy(false); return; }
     setNotice("Paardgegevens opgeslagen. De video's en prestaties worden automatisch bijgewerkt in alle live iframes.");
+    await refresh();
+  }
+
+  async function saveLotVideos() {
+    if (!cloud || !selected || isBusy) return;
+    if (dirtyDescription) {
+      setNotice("Sla eerst je wijzigingen in de beschrijving op om overschrijven te voorkomen."); return;
+    }
+    if (lotVideos.some((video) => video.url.trim() && !videoReferenceFromUrl(video.url))) {
+      setNotice("Gebruik een geldige Vimeo- of YouTube-link voor iedere lotvideo."); return;
+    }
+    const videos = lotVideos.filter((video) => video.url.trim()).map((video) => ({
+      title: (video.title.trim() || "Video").slice(0, 100),
+      url: video.url.trim(),
+    }));
+    setIsBusy(true);
+    const current = safeDescription(selectedLot?.description, selected.horses);
+    const { error } = await cloud.from("optimus_auction_lot_descriptions").upsert({
+      owner_id: selected.owner_id, pedigree_id: selected.id,
+      description: { ...current, videos }, updated_at: new Date().toISOString(),
+    }, { onConflict: "owner_id,pedigree_id" });
+    if (error) { setNotice("Lotvideo's opslaan mislukt: " + error.message); setIsBusy(false); return; }
+    setNotice("Lotvideo's opgeslagen. De bestaande PWeb-iframe laadt ze automatisch; je hoeft geen nieuwe code te plakken.");
     await refresh();
   }
 
@@ -641,9 +673,9 @@ export default function AuctionDashboard() {
                     <input value={motherInfo.level} maxLength={30} disabled={!section.horse.trim()}
                       onChange={(e) => updateDescriptionHorse(section.horse, "level", e.target.value)} placeholder="bv. 160" />
                   </label>
-                  <label>YouTube-video (optioneel)
+                  <label>Vimeo- of YouTube-video (optioneel)
                     <input value={motherInfo.video_url} disabled={!section.horse.trim()}
-                      onChange={(e) => updateDescriptionHorse(section.horse, "video_url", e.target.value)} placeholder="https://youtu.be/..." />
+                      onChange={(e) => updateDescriptionHorse(section.horse, "video_url", e.target.value)} placeholder="https://vimeo.com/123456789" />
                   </label>
                 </div>
                 <div className={styles.descriptionExtras}>
@@ -695,10 +727,10 @@ export default function AuctionDashboard() {
                             onChange={(e) => updateItem(i, j, "note", e.target.value)}
                             placeholder="bv. CSI5* GP WINNER / BWP approved" />
                         </label>
-                        <label>Video (YouTube)
+                        <label>Video (Vimeo / YouTube)
                           <input value={details.video_url} disabled={!item.horse.trim()}
                             onChange={(e) => updateDescriptionHorse(item.horse, "video_url", e.target.value)}
-                            placeholder="https://youtu.be/..." />
+                            placeholder="https://vimeo.com/123456789" />
                         </label>
                       </div>
                       <div className={styles.nestedChildren}>
@@ -712,8 +744,8 @@ export default function AuctionDashboard() {
                               onChange={(e) => updateDescriptionHorse(child.horse, "level", e.target.value)} placeholder="160" /></label>
                             <label>Info<input value={child.note} maxLength={200}
                               onChange={(e) => updateChild(i, j, k, "note", e.target.value)} placeholder="Prestaties" /></label>
-                            <label>YouTube<input value={nested.video_url} disabled={!child.horse.trim()}
-                              onChange={(e) => updateDescriptionHorse(child.horse, "video_url", e.target.value)} placeholder="https://youtu.be/..." /></label>
+                            <label>Vimeo / YouTube<input value={nested.video_url} disabled={!child.horse.trim()}
+                              onChange={(e) => updateDescriptionHorse(child.horse, "video_url", e.target.value)} placeholder="https://vimeo.com/123456789" /></label>
                             <button type="button" aria-label="Onderliggende nakomeling verwijderen"
                               onClick={() => removeChild(i, j, k)}>×</button>
                           </div>;
@@ -760,8 +792,27 @@ export default function AuctionDashboard() {
           </section>}
 
           {tab === "videos" && <section>
-            <h3>Video’s per paard</h3>
-            <p className={styles.help}>Voeg een YouTube-link één keer toe. Dezelfde video verschijnt bij elke vermelding van dat paard.</p>
+            <h3>Lotvideo's — direct op PWeb</h3>
+            <p className={styles.help}>Plak hier de Vimeo-link van het geselecteerde veulen of embryo. De video verschijnt automatisch met een zwarte afspeelknop in de bestaande PWeb-iframe, zonder opnieuw HTML te plakken. YouTube blijft ook ondersteund.</p>
+            <div className={styles.descriptionBlock}>
+              {lotVideos.map((video, i) => <div key={i} className={styles.formGrid}>
+                <label>Videotitel
+                  <input value={video.title} maxLength={100} placeholder="Conformation & Walk"
+                    onChange={(e) => setLotVideos((before) => before.map((v, j) => j === i ? { ...v, title: e.target.value } : v))} />
+                </label>
+                <label>Vimeo- of YouTube-URL
+                  <input value={video.url} placeholder="https://vimeo.com/123456789"
+                    onChange={(e) => setLotVideos((before) => before.map((v, j) => j === i ? { ...v, url: e.target.value } : v))} />
+                </label>
+                <button type="button" className={styles.linkButton} onClick={() => setLotVideos((before) => before.length > 1 ? before.filter((_, j) => j !== i) : [{ title: "Video", url: "" }])}>Verwijderen</button>
+              </div>)}
+              <div className={styles.footerActions}>
+                <button type="button" className={styles.linkButton} onClick={() => setLotVideos((before) => [...before, { title: "Video", url: "" }])}>+ VIDEO TOEVOEGEN</button>
+                <button type="button" className={styles.primary} disabled={isBusy || !selected} onClick={saveLotVideos}>LOTVIDEO'S OPSLAAN</button>
+              </div>
+            </div>
+            <h3>Video's per paard in de moederlijn</h3>
+            <p className={styles.help}>Voeg een Vimeo- of YouTube-link één keer toe. De video verschijnt automatisch bij iedere vermelding van dat paard.</p>
             <input placeholder="Filter paarden..." value={profileFilter} onChange={(e) => setProfileFilter(e.target.value)} className={styles.searchInput} />
             <div className={styles.profilePills}>
               {uniqueHorses.filter((n) => n.toLowerCase().includes(profileFilter.toLowerCase()))
@@ -780,8 +831,8 @@ export default function AuctionDashboard() {
                 setProfileLevel(found?.level ?? fromChart?.level ?? "");
                 setProfileYear(found?.birth_year ?? fromChart?.year ?? "");
               }} placeholder="Like a Diamond vh Schaeck" /></label>
-              <label>YouTube-video URL<input value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)}
-                placeholder="https://youtu.be/..." /></label>
+              <label>Vimeo- of YouTube-video URL<input value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)}
+                placeholder="https://vimeo.com/123456789" /></label>
               <div className={styles.formGrid}>
                 <label>Springniveau<input value={profileLevel} maxLength={30} onChange={(e) => setProfileLevel(e.target.value)} placeholder="bv. 165 of level 1.60m" /></label>
                 <label>Geboortejaar<input value={profileYear} maxLength={8} onChange={(e) => setProfileYear(e.target.value)} placeholder="bv. 2020" /></label>

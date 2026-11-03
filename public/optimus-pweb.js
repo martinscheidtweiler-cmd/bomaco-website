@@ -363,6 +363,12 @@
     }
   }
 
+  // A managed lot video supersedes the native PWeb YouTube section.
+  var managedStyle = document.createElement("style");
+  managedStyle.id = "optimus-managed-lot-video-style";
+  managedStyle.textContent = "html.optimus-managed-lot-videos #videos,html.optimus-managed-lot-videos #optimus-pweb-video-actions,html.optimus-managed-lot-videos #optimus-auction-desktop-video-actions,html.optimus-managed-lot-videos #optimus-auction-mobile-video-actions,html.optimus-managed-lot-videos .optimus-auction-video-holder{display:none!important}";
+  document.head.appendChild(managedStyle);
+
   function closeVideo() {
     var popup = document.getElementById("optimus-live-video-overlay");
     if (popup) {
@@ -376,8 +382,15 @@
     }
   }
 
+  function videoEmbedSrc(id) {
+    if (/^[a-zA-Z0-9_-]{11}$/.test(id || "")) return "https://www.youtube-nocookie.com/embed/" + id + "?autoplay=1&rel=0";
+    var match = String(id || "").match(/^vimeo:(\d{5,12})(?::([a-f0-9]{6,40}))?$/i);
+    return match ? "https://player.vimeo.com/video/" + match[1] + "?" +
+      (match[2] ? "h=" + match[2] + "&" : "") + "autoplay=1&dnt=1&title=0&byline=0&portrait=0" : null;
+  }
   function openVideo(id) {
-    if (!/^[A-Za-z0-9_-]{11}$/.test(id || "")) return;
+    var embed = videoEmbedSrc(id);
+    if (!embed) return;
     var popup = document.getElementById("optimus-live-video-overlay");
     if (!popup) {
       popup = document.createElement("div");
@@ -391,7 +404,7 @@
         if (event.target === popup || event.target.closest("button")) closeVideo();
       });
     }
-    popup.querySelector("iframe").src = "https://www.youtube-nocookie.com/embed/" + id + "?autoplay=1&rel=0";
+    popup.querySelector("iframe").src = embed;
     popup.classList.add("open");
     if (oldOverflow === null) oldOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -401,6 +414,10 @@
     if (event.origin !== origin || event.source !== frame.contentWindow) return;
     var data = event.data;
     if (!data || typeof data !== "object") return;
+    if (data.type === "optimus:lot-videos-managed") {
+      document.documentElement.classList.toggle("optimus-managed-lot-videos", data.managed === true);
+      return;
+    }
     if (data.type === "optimus:lot-height") {
       var height = Number(data.height);
       if (Number.isFinite(height) && height > 100 && height < 20000) {
@@ -411,7 +428,7 @@
       var hip = document.getElementById("IframeWrapper");
       if (hip) hip.scrollIntoView({ behavior: "smooth", block: "start" });
     }
-    if (data.type === "optimus:pedigree-horse-video" && /^[A-Za-z0-9_-]{11}$/.test(data.videoId || "")) {
+    if (data.type === "optimus:pedigree-horse-video" && videoEmbedSrc(data.videoId)) {
       openVideo(data.videoId);
       event.source.postMessage({ type: "optimus:pedigree-video-opened", videoId: data.videoId }, event.origin);
     }

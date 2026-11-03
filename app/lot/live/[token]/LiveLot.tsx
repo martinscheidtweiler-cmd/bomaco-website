@@ -6,6 +6,7 @@ import type { HorseDetails } from "../../../pedigree/pedigree-data";
 import { normalizeHorseName } from "../../../pedigrees/ancestry";
 import type { HorseProfile, LineItem, LineSection, LotDescription, Site } from "../../../dashboard/content";
 import styles from "./live-lot.module.css";
+import { videoEmbedUrl, videoReferenceFromUrl } from "../../../video/video-url";
 
 type Props = {
   horses: HorseDetails[];
@@ -15,20 +16,7 @@ type Props = {
 };
 
 function youtubeId(url: string): string {
-  if (!url) return "";
-  try {
-    const parsed = new URL(url);
-    if (parsed.protocol !== "https:") return "";
-    const host = parsed.hostname.toLowerCase().replace(/^www\./, "");
-    const id = host === "youtu.be"
-      ? parsed.pathname.slice(1).split("/")[0]
-      : ["youtube.com", "m.youtube.com", "youtube-nocookie.com"].includes(host)
-        ? parsed.searchParams.get("v") || parsed.pathname.match(/\/(?:embed|shorts|live)\/([A-Za-z0-9_-]{11})/)?.[1] || ""
-        : "";
-    return /^[A-Za-z0-9_-]{11}$/.test(id) ? id : "";
-  } catch {
-    return "";
-  }
+  return videoReferenceFromUrl(url) || "";
 }
 
 function displayLevel(raw: string): string {
@@ -46,7 +34,7 @@ export default function LiveLot({ horses, description, profiles, site }: Props) 
   ), [profiles]);
 
   const openVideo = useCallback((id: string) => {
-    if (!/^[A-Za-z0-9_-]{11}$/.test(id)) return;
+    if (!videoEmbedUrl(id)) return;
     if (window.parent === window) {
       setLocalVideo(id);
       return;
@@ -76,6 +64,7 @@ export default function LiveLot({ horses, description, profiles, site }: Props) 
       if (height !== lastHeight) {
         lastHeight = height;
         window.parent.postMessage({ type: "optimus:lot-height", height }, "*");
+        window.parent.postMessage({ type: "optimus:lot-videos-managed", managed: Boolean(description.videos?.some((video) => videoReferenceFromUrl(video.url))) }, "*");
       }
     };
     const observer = typeof ResizeObserver !== "undefined" ? new ResizeObserver(sendHeight) : null;
@@ -97,7 +86,7 @@ export default function LiveLot({ horses, description, profiles, site }: Props) 
       window.removeEventListener("resize", sendHeight);
       window.removeEventListener("message", handleMeasurement);
     };
-  }, []);
+  }, [description.videos]);
 
   useEffect(() => {
     if (!localVideo) return;
@@ -160,11 +149,19 @@ export default function LiveLot({ horses, description, profiles, site }: Props) 
     </section>;
   };
 
+  const lotVideoActions = (description.videos || []).map((video) => ({ ...video, ref: videoReferenceFromUrl(video.url) })).filter((video) => Boolean(video.ref));
   const pedigreeVideos = horses.map((horse) =>
     youtubeId(profileMap.get(normalizeHorseName(horse.name))?.video_url || ""));
 
   return (
     <main ref={root} className={styles.root} data-optimus-site={site}>
+      {lotVideoActions.length > 0 && <div className={styles.lotVideoActions}>
+        {lotVideoActions.map((video, index) => <button key={index} type="button"
+          className={styles.lotVideoButton} onClick={() => openVideo(video.ref!)}
+          aria-label={"Bekijk video: " + (video.title || "Video")}>
+          <span aria-hidden="true">▶</span><span>{video.title || "Video"}</span>
+        </button>)}
+      </div>}
       <div className={styles.description}>
         {(description.topText || "").trim() && <div className={styles.section}>{description.topText!.split("\n").filter(Boolean).map((line, i) => <p key={i} className={i === 0 ? styles.heading : styles.introNote}>{line}</p>)}</div>}
         {description.sections.filter((section) => section.visible !== false).map(section)}
@@ -180,7 +177,7 @@ export default function LiveLot({ horses, description, profiles, site }: Props) 
             onClick={() => setLocalVideo(null)}>×</button>
           <div className={styles.videoWindow} onClick={(event) => event.stopPropagation()}>
             <iframe title="Horse video"
-              src={"https://www.youtube-nocookie.com/embed/" + localVideo + "?autoplay=1&rel=0"}
+              src={videoEmbedUrl(localVideo) || "about:blank"}
               allow="autoplay;encrypted-media;picture-in-picture;fullscreen" allowFullScreen />
           </div>
         </div>

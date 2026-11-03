@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import styles from "./pedigree.module.css";
 import type { HorseDetails } from "./pedigree-data";
+import { videoEmbedUrl } from "../video/video-url";
 
 type Props = { horses: HorseDetails[]; videos?: string[] };
 
@@ -74,7 +75,7 @@ export default function PedigreeChart({ horses, videos = [] }: Props) {
     return () => document.removeEventListener("keydown", keydown);
   }, [activeVideo]);
   function openVideo(videoId: string) {
-    if (!/^[A-Za-z0-9_-]{11}$/.test(videoId)) return;
+    if (!videoEmbedUrl(videoId)) return;
     if (window.parent !== window) {
       // The parent PWeb source can open a true full-screen popup. Older PWeb
       // codes without the listener fall back to a local iframe popup.
@@ -145,7 +146,7 @@ export default function PedigreeChart({ horses, videos = [] }: Props) {
             onClick={() => setActiveVideo(null)}>×</button>
           <div className={styles.videoWindow} onClick={(event) => event.stopPropagation()}>
             <iframe title="Horse video"
-              src={"https://www.youtube-nocookie.com/embed/" + activeVideo + "?autoplay=1&rel=0"}
+              src={videoEmbedUrl(activeVideo) || "about:blank"}
               allow="autoplay;encrypted-media;picture-in-picture;fullscreen" allowFullScreen />
           </div>
         </div>

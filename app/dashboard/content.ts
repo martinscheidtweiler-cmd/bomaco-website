@@ -10,7 +10,8 @@ export const SITE_LABEL: Record<Site, string> = {
 
 export type LineItem = { horse: string; note: string; children?: LineItem[] };
 export type LineSection = { title: string; horse: string; visible?: boolean; note?: string; notes?: string[]; items: LineItem[] };
-export type LotDescription = { sections: LineSection[]; topText?: string; bottomText?: string };
+export type LotVideo = { title: string; url: string };
+export type LotDescription = { sections: LineSection[]; topText?: string; bottomText?: string; videos?: LotVideo[] };
 export type HorseProfile = {
   normalized_name: string;
   display_name: string;
@@ -291,7 +292,11 @@ export function safeDescription(value: unknown, horses: HorseDetails[]): LotDesc
   if (!value || typeof value !== "object") return defaultDescription(horses);
   const sections = (value as LotDescription).sections;
   if (!Array.isArray(sections)) return defaultDescription(horses);
-  return { topText: String((value as LotDescription).topText || "").slice(0, 2000), bottomText: String((value as LotDescription).bottomText || "").slice(0, 2000), sections: sections.slice(0, 12).map((section) => ({
+  return { topText: String((value as LotDescription).topText || "").slice(0, 2000), bottomText: String((value as LotDescription).bottomText || "").slice(0, 2000),
+    videos: Array.isArray((value as LotDescription).videos)
+      ? (value as LotDescription).videos!.slice(0, 12).map((video) => ({
+          title: String(video?.title || "Video").slice(0, 100), url: String(video?.url || "").slice(0, 400),
+        })) : [], sections: sections.slice(0, 12).map((section) => ({
     title: String(section.title || "").slice(0, 60),
     horse: String(section.horse || "").slice(0, 120),
     visible: section.visible !== false,
