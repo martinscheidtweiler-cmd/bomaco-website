@@ -463,11 +463,14 @@
     var url = videoEmbedSrc(first.ref);
     if (!url) return false;
     var changed = false;
-    Array.from(document.querySelectorAll('.videoWrapper iframe')).forEach(function (iframe) {
-      if (iframe.closest('.optimus-live-embed,#optimus-live-video-overlay')) return;
+    // PWeb's primary player is usually in .videoWrapper; on some templates
+    // it is mounted in another wrapper after the bridge has initialized.
+    Array.from(document.querySelectorAll('iframe[src],iframe[data-src]')).forEach(function (iframe) {
+      if (iframe.closest('.optimus-live-embed,#optimus-live-video-overlay,#optimus-vimeo-popup')) return;
       var src = iframe.getAttribute('src') || iframe.getAttribute('data-src') || '';
       if (!/youtube(?:-nocookie)?\.com|youtu\.be/i.test(src)) return;
-      // Replace the iframe itself so PWeb's YouTube player cannot keep running.
+      var wrapper = iframe.closest('.videoWrapper,.video-wrapper,.embed-responsive,.video-container');
+      if (!wrapper) return; // never replace pedigree or unrelated embeds
       var replacement = document.createElement('iframe');
       replacement.className = iframe.className;
       replacement.style.cssText = iframe.style.cssText;
@@ -483,6 +486,13 @@
     });
     return changed;
   }
+  // PWeb can create or re-create its native YouTube player asynchronously.
+  var heroVideoObserver = new MutationObserver(function () {
+    if (managedVideoList && managedVideoList.length) replaceNativeHeroVideo();
+  });
+  heroVideoObserver.observe(document.documentElement, {
+    childList: true, subtree: true, attributes: true, attributeFilter: ['src', 'data-src']
+  });
 
   window.addEventListener("message", function (event) {
     if (event.origin !== origin || event.source !== frame.contentWindow) return;
