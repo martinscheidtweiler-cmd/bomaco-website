@@ -23,8 +23,8 @@
   var root = document.createElement("div");
   root.className = "optimus-live-embed";
   root.setAttribute("data-optimus-site", site);
-  if (/^\\d+(,\\d+){6}$/.test(heights)) root.setAttribute("data-optimus-heights", heights);
-  if (/^\\d{1,5}$/.test(crop)) root.setAttribute("data-optimus-crop", crop);
+  if (/^\d+(,\d+){6}$/.test(heights)) root.setAttribute("data-optimus-heights", heights);
+  if (/^\d{1,5}$/.test(crop)) root.setAttribute("data-optimus-crop", crop);
   if (isEmbryo) {
     root.setAttribute("data-optimus-lot-kind", "embryo");
     if (embryoSex === "male" || embryoSex === "female") {
@@ -52,7 +52,7 @@
       ".page-title-small,.page-title-small h1,.page-title-small p,.page-title-small span,.page-title-small strong,.page-title-small label,.page-title-small .display-block{color:#fff!important}",
       ".optimus-mobile-title-content{display:none!important}",
       "@media(max-width:767px){.page-title-small.optimus-mobile-title-ready{display:block!important;height:auto!important;min-height:0!important;padding:0!important;background:#000!important;color:#fff!important}.page-title-small.optimus-mobile-title-ready > :not(.optimus-mobile-title-content){display:none!important}.page-title-small.optimus-mobile-title-ready > .optimus-mobile-title-content{display:block!important;width:100%!important;box-sizing:border-box!important;margin:0!important;padding:22px 20px 20px!important;text-align:left!important;background:#000!important;color:#fff!important;font-family:Poppins,Montserrat,Arial,sans-serif!important}.optimus-mobile-title-content .omt-name{display:block!important;color:#fff!important;font-size:clamp(21px,5.5vw,26px)!important;line-height:1.2!important;font-weight:650!important;margin:0 0 10px!important;text-align:left!important}.optimus-mobile-title-content .omt-line{display:block!important;color:#d2d2d2!important;font-size:clamp(12px,3.2vw,14px)!important;line-height:1.5!important;margin:0!important}.optimus-mobile-title-content .omt-info{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important;flex-wrap:wrap!important;margin:17px 0 0!important;padding:14px 0 0!important;border-top:1px solid #444!important}html body .optimus-mobile-title-content .omt-sex{color:#fff!important;font-size:19px!important;line-height:1.3!important;font-weight:600!important;white-space:nowrap!important}.optimus-mobile-title-content .omt-date{color:#d2d2d2!important;font-size:13px!important;line-height:1.3!important;white-space:nowrap!important}}"
-    ].join("\\n");
+    ].join("\n");
     document.head.appendChild(style);
   }
 
@@ -78,18 +78,18 @@
         var fallback = (header.querySelector(".display-block.margin-5px-top") || {}).textContent || "";
         if (/[x×]/i.test(fallback)) bloodText = fallback.trim();
       }
-      bloodText = bloodText.replace(/\\s+[Xx×]\\s+/g, " × ").replace(/\\s+/g, " ").trim();
-      var full = (source.textContent || header.textContent || "").replace(/\\s+/g, " ");
-      var match = full.match(/\\b(mare|stallion|gelding|hengst|merrie|ruin)\\b/i);
+      bloodText = bloodText.replace(/\s+[Xx×]\s+/g, " × ").replace(/\s+/g, " ").trim();
+      var full = (source.textContent || header.textContent || "").replace(/\s+/g, " ");
+      var match = full.match(/\b(mare|stallion|gelding|hengst|merrie|ruin)\b/i);
       var label = match ? match[1] : "";
       if (label) label = label.charAt(0).toUpperCase() + label.slice(1).toLowerCase();
       var sign = /^(mare|merrie)$/i.test(label) ? "♀ " : /^(stallion|hengst)$/i.test(label) ? "♂ " : "";
-      var birth = full.match(/\\b\\d{2}[-/.]\\d{2}[-/.]\\d{4}\\b/);
+      var birth = full.match(/\b\d{2}[-/.]\d{2}[-/.]\d{4}\b/);
       var date = birth ? birth[0] : "";
       if (isEmbryo) {
         label = embryoSex === "female" ? "Female Embryo" : embryoSex === "male" ? "Male Embryo" : "Embryo";
         sign = embryoSex === "female" ? "♀ " : embryoSex === "male" ? "♂ " : "";
-        var expected = full.match(/(?:°|expected|due|verwacht)\\s*(?:in\\s*)?(20\\d{2})\\b/i);
+        var expected = full.match(/(?:°|expected|due|verwacht)\s*(?:in\s*)?(20\d{2})\b/i);
         date = birth ? "Expected " + birth[0] : expected ? "Expected " + expected[1] : "";
       }
       if (!bloodText || (!isEmbryo && (!label || !birth))) continue;
