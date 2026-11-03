@@ -29,9 +29,16 @@ function displayLevel(raw: string): string {
 export default function LiveLot({ horses, description, profiles, site }: Props) {
   const root = useRef<HTMLDivElement>(null);
   const [localVideo, setLocalVideo] = useState<string | null>(null);
+  const [isStandalone, setIsStandalone] = useState(false);
   const profileMap = useMemo(() => new Map(
     profiles.map((profile) => [profile.normalized_name, profile])
   ), [profiles]);
+
+  const lotVideoActions = useMemo(() => (description.videos || [])
+    .map((video) => ({ ...video, ref: videoReferenceFromUrl(video.url) }))
+    .filter((video) => Boolean(video.ref)), [description.videos]);
+
+  useEffect(() => { setIsStandalone(window.parent === window); }, []);
 
   const openVideo = useCallback((id: string) => {
     if (!videoEmbedUrl(id)) return;
@@ -59,12 +66,18 @@ export default function LiveLot({ horses, description, profiles, site }: Props) 
     const target = root.current;
     if (!target || window.parent === window) return;
     let lastHeight = 0;
+    const sendVideos = () => {
+      window.parent.postMessage({
+        type: "optimus:lot-videos",
+        videos: lotVideoActions.map((video) => ({ title: video.title, ref: video.ref })),
+      }, "*");
+    };
     const sendHeight = () => {
       const height = Math.max(100, Math.ceil(target.getBoundingClientRect().height) + 2);
       if (height !== lastHeight) {
         lastHeight = height;
         window.parent.postMessage({ type: "optimus:lot-height", height }, "*");
-        window.parent.postMessage({ type: "optimus:lot-videos-managed", managed: Boolean(description.videos?.some((video) => videoReferenceFromUrl(video.url))) }, "*");
+
       }
     };
     const observer = typeof ResizeObserver !== "undefined" ? new ResizeObserver(sendHeight) : null;
@@ -74,10 +87,12 @@ export default function LiveLot({ horses, description, profiles, site }: Props) 
       if (event.source === window.parent && event.data?.type === "optimus:lot-measure") {
         lastHeight = 0;
         sendHeight();
+        sendVideos();
       }
     };
     window.addEventListener("message", handleMeasurement);
     sendHeight();
+    sendVideos();
     // Give the host a chance to size before and after fonts load.
     const raf = window.requestAnimationFrame(sendHeight);
     return () => {
@@ -86,7 +101,7 @@ export default function LiveLot({ horses, description, profiles, site }: Props) 
       window.removeEventListener("resize", sendHeight);
       window.removeEventListener("message", handleMeasurement);
     };
-  }, [description.videos]);
+  }, [lotVideoActions]);
 
   useEffect(() => {
     if (!localVideo) return;
@@ -149,13 +164,12 @@ export default function LiveLot({ horses, description, profiles, site }: Props) 
     </section>;
   };
 
-  const lotVideoActions = (description.videos || []).map((video) => ({ ...video, ref: videoReferenceFromUrl(video.url) })).filter((video) => Boolean(video.ref));
   const pedigreeVideos = horses.map((horse) =>
     youtubeId(profileMap.get(normalizeHorseName(horse.name))?.video_url || ""));
 
   return (
     <main ref={root} className={styles.root} data-optimus-site={site}>
-      {lotVideoActions.length > 0 && <div className={styles.lotVideoActions}>
+      {isStandalone && lotVideoActions.length > 0 && <div className={styles.lotVideoActions}>
         {lotVideoActions.map((video, index) => <button key={index} type="button"
           className={styles.lotVideoButton} onClick={() => openVideo(video.ref!)}
           aria-label={"Bekijk video: " + (video.title || "Video")}>
