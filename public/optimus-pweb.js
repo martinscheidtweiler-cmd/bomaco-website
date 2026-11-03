@@ -453,6 +453,37 @@
     return true;
   }
 
+  // PWeb renders its own YouTube hero player independently of the video buttons.
+  // Replace only that player, using the lot's first managed Vimeo video.
+  function replaceNativeHeroVideo() {
+    var first = managedVideoList && managedVideoList.find(function (video) {
+      return /^vimeo:/i.test(video.ref);
+    });
+    if (!first) return false;
+    var url = videoEmbedSrc(first.ref);
+    if (!url) return false;
+    var changed = false;
+    Array.from(document.querySelectorAll('.videoWrapper iframe')).forEach(function (iframe) {
+      if (iframe.closest('.optimus-live-embed,#optimus-live-video-overlay')) return;
+      var src = iframe.getAttribute('src') || iframe.getAttribute('data-src') || '';
+      if (!/youtube(?:-nocookie)?\\.com|youtu\\.be/i.test(src)) return;
+      // Replace the iframe itself so PWeb's YouTube player cannot keep running.
+      var replacement = document.createElement('iframe');
+      replacement.className = iframe.className;
+      replacement.style.cssText = iframe.style.cssText;
+      replacement.setAttribute('src', url.replace('autoplay=1', 'autoplay=0'));
+      replacement.setAttribute('title', first.title);
+      replacement.setAttribute('allow', 'autoplay; fullscreen; picture-in-picture');
+      replacement.setAttribute('allowfullscreen', '');
+      replacement.setAttribute('data-optimus-vimeo-main', '1');
+      replacement.width = iframe.width;
+      replacement.height = iframe.height;
+      iframe.parentNode.replaceChild(replacement, iframe);
+      changed = true;
+    });
+    return changed;
+  }
+
   window.addEventListener("message", function (event) {
     if (event.origin !== origin || event.source !== frame.contentWindow) return;
     var data = event.data;
@@ -469,6 +500,7 @@
       });
       if (managedVideoList.length) {
         renderManagedVideoList();
+        replaceNativeHeroVideo();
       } else {
         var previous = document.querySelector('#optimus-pweb-video-actions[data-optimus-managed]');
         if (previous) previous.remove();
@@ -511,6 +543,7 @@
     widenEmbed();
     fixNativeVideoPanel();
     renderManagedVideoList();
+    replaceNativeHeroVideo();
     cleanEmptyPwebBoxes();
     markNativeMobilePedigree();
     normalizeHippomundo();
@@ -528,5 +561,5 @@
   window.setTimeout(fixNativeVideoPanel, 1800);
   window.setTimeout(fixNativeVideoPanel, 3500);
   window.setTimeout(fixNativeVideoPanel, 7000);
-  [600, 1800, 3500, 7000].forEach(function (delay) { window.setTimeout(renderManagedVideoList, delay); });
+  [600, 1800, 3500, 7000].forEach(function (delay) { window.setTimeout(function () { renderManagedVideoList(); replaceNativeHeroVideo(); }, delay); });
 })();
