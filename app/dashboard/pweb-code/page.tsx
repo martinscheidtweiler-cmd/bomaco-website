@@ -14,7 +14,11 @@ export default function GlobalPwebCode() {
   const [row,setRow] = useState<CodeRow|null>(null);
   const [css,setCss] = useState("");
   const [js,setJs] = useState("");
-  const [mode,setMode] = useState<"css"|"js">("css");
+  const [mode,setMode] = useState<"css"|"js"|"source">("css");
+  const [coreCss,setCoreCss] = useState("");
+  const [coreSource,setCoreSource] = useState("");
+  useEffect(()=>{void fetch("/optimus-layout-source.css").then(r=>r.text()).then(setCoreCss).catch(()=>{});},[]);
+  useEffect(()=>{if(mode!=="source"||coreSource)return;void Promise.all(["/optimus-pweb.js","/optimus-auction-pweb.js"].map(p=>fetch(p).then(r=>r.text()))).then(parts=>setCoreSource("/* CENTRALE BRIDGE — optimus-pweb.js */\n"+parts[0]+"\n\n/* AUCTION LAYOUT — optimus-auction-pweb.js */\n"+parts[1])).catch(()=>{});},[mode,coreSource]);
   const [busy,setBusy] = useState(false);
   const [notice,setNotice] = useState("");
   useEffect(() => {
@@ -50,13 +54,14 @@ export default function GlobalPwebCode() {
     <header className={styles.top}><div><p className={styles.eyebrow}>OPTIMUS AUCTION · CENTRAAL BEHEER</p><h1>PWeb-code</h1><p>Één centrale code voor alle veulens en embryo's.</p></div><Link className={styles.primary} href="/dashboard">← DASHBOARD</Link></header>
     {loading ? <p>Code laden…</p> : !authorized ? <p className={styles.notice}>{notice} <Link href="/dashboard">Naar dashboard</Link></p> : <>
       <div className={styles.notice}><strong>Hoe werkt het?</strong> Bewerk de globale CSS of JavaScript. Sla eerst als concept op, en klik pas daarna op Publiceren. De bestaande PWeb-code blijft staan; alle pagina's halen automatisch de nieuwe versie op.</div>
-      <div className={styles.siteTabs}><button className={mode==="css"?styles.tabActive:""} onClick={()=>setMode("css")}>CSS · OPMAAK</button><button className={mode==="js"?styles.tabActive:""} onClick={()=>setMode("js")}>JAVASCRIPT · GEDRAG</button></div>
+      <div className={styles.siteTabs}><button className={mode==="css"?styles.tabActive:""} onClick={()=>setMode("css")}>CSS · OPMAAK</button><button className={mode==="js"?styles.tabActive:""} onClick={()=>setMode("js")}>EIGEN JAVASCRIPT</button><button className={mode==="source"?styles.tabActive:""} onClick={()=>setMode("source")}>VOLLEDIGE SYSTEEMCODE</button></div>
       <p className={styles.help}>{mode==="css"?"Voorbeeld: .optimus-pweb-video-button { background: pink !important; }":"Deze JavaScript-code draait op alle gekoppelde PWeb-pagina's. Wijzig alleen als je weet wat de code doet."}</p>
-      <textarea spellCheck={false} aria-label={mode==="css"?"Globale CSS-code":"Globale JavaScript-code"} className={styles.outputCode} style={{minHeight:420,fontSize:13}} value={mode==="css"?css:js} onChange={e=>mode==="css"?setCss(e.target.value):setJs(e.target.value)} />
+      {mode==="css" && <button className={styles.linkButton} type="button" disabled={!coreCss} onClick={()=>{if(css.trim()&&!window.confirm("De huidige concept-CSS vervangen door de volledige standaardcode?"))return;setCss(coreCss);}}>↻ VOLLEDIGE STANDAARD-CSS LADEN ({Math.round(coreCss.length/1000)} KB)</button>}
+      <textarea spellCheck={false} readOnly={mode==="source"} aria-label={mode==="css"?"Volledige CSS-code":mode==="js"?"Eigen JavaScript-code":"Volledige systeembroncode"} className={styles.outputCode} style={{minHeight:520,fontSize:12}} value={mode==="css"?css:mode==="js"?js:coreSource} onChange={e=>mode==="css"?setCss(e.target.value):mode==="js"?setJs(e.target.value):undefined} />
       <div className={styles.footerActions}>
-        <button className={styles.appliedButton} disabled={busy||!changed} onClick={()=>void save(false)}>CONCEPT OPSLAAN</button>
-        <button className={styles.primary} disabled={busy||!row||(css===row.published_css&&js===row.published_js)} onClick={()=>void save(true)}>● PUBLICEREN OP ALLE VEULENS</button>
-        <button className={styles.linkButton} onClick={()=>void navigator.clipboard.writeText(mode==="css"?css:js)}>CODE KOPIËREN</button>
+        <button className={styles.appliedButton} disabled={mode==="source"||busy||!changed} onClick={()=>void save(false)}>CONCEPT OPSLAAN</button>
+        <button className={styles.primary} disabled={mode==="source"||busy||!row||(css===row.published_css&&js===row.published_js)} onClick={()=>void save(true)}>● PUBLICEREN OP ALLE VEULENS</button>
+        <button className={styles.linkButton} onClick={()=>void navigator.clipboard.writeText(mode==="css"?css:mode==="js"?js:coreSource)}>CODE KOPIËREN</button>
       </div>
       {notice && <p className={styles.notice} role="status">{notice}</p>}
       <p className={styles.help}>Laatst gepubliceerd: {row?.published_at?new Date(row.published_at).toLocaleString("nl-BE"):"Nog geen wijzigingen gepubliceerd"} · Revisie {row?.revision}</p>
