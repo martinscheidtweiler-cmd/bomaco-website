@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import PedigreeChart from "../../../pedigree/PedigreeChart";
 import type { HorseDetails } from "../../../pedigree/pedigree-data";
 import { normalizeHorseName } from "../../../pedigrees/ancestry";
@@ -26,10 +26,12 @@ function displayLevel(raw: string): string {
   return cm ? cm[1] : "";
 }
 
+const subscribeWithoutEvents = () => () => {};
+
 export default function LiveLot({ horses, description, profiles, site }: Props) {
   const root = useRef<HTMLDivElement>(null);
   const [localVideo, setLocalVideo] = useState<string | null>(null);
-  const [isStandalone, setIsStandalone] = useState(false);
+  const isStandalone = useSyncExternalStore(subscribeWithoutEvents, () => window.parent === window, () => false);
   const profileMap = useMemo(() => new Map(
     profiles.map((profile) => [profile.normalized_name, profile])
   ), [profiles]);
@@ -37,8 +39,6 @@ export default function LiveLot({ horses, description, profiles, site }: Props) 
   const lotVideoActions = useMemo(() => (description.videos || [])
     .map((video) => ({ ...video, ref: videoReferenceFromUrl(video.url) }))
     .filter((video) => Boolean(video.ref)), [description.videos]);
-
-  useEffect(() => { setIsStandalone(window.parent === window); }, []);
 
   const openVideo = useCallback((id: string) => {
     if (!videoEmbedUrl(id)) return;
