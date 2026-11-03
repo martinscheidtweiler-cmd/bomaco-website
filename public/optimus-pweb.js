@@ -364,9 +364,10 @@
   }
 
   // A managed lot video supersedes the native PWeb YouTube section.
+  var managedVideoList = null;
   var managedStyle = document.createElement("style");
   managedStyle.id = "optimus-managed-lot-video-style";
-  managedStyle.textContent = "html.optimus-managed-lot-videos #videos,html.optimus-managed-lot-videos #optimus-pweb-video-actions,html.optimus-managed-lot-videos #optimus-auction-desktop-video-actions,html.optimus-managed-lot-videos #optimus-auction-mobile-video-actions,html.optimus-managed-lot-videos .optimus-auction-video-holder{display:none!important}";
+  managedStyle.textContent = "html.optimus-managed-lot-videos #videos,html.optimus-managed-lot-videos:not(.optimus-managed-lot-video-links) #optimus-pweb-video-actions,html.optimus-managed-lot-videos #optimus-auction-desktop-video-actions,html.optimus-managed-lot-videos #optimus-auction-mobile-video-actions,html.optimus-managed-lot-videos .optimus-auction-video-holder:not([data-optimus-managed]){display:none!important}";
   document.head.appendChild(managedStyle);
 
   function closeVideo() {
@@ -410,11 +411,75 @@
     document.body.style.overflow = "hidden";
   }
 
+
+  // Place Vimeo/YouTube links from the dashboard in the *existing* PWeb
+  // video position after the vet report, never in a second iframe box.
+  function renderManagedVideoList() {
+    if (!managedVideoList || !managedVideoList.length) return false;
+    var report = findVetReport();
+    var panel = findVideoPanel();
+    var holder = document.getElementById("optimus-pweb-video-actions");
+    if (!holder && !report && !panel) return false;
+    if (!holder) {
+      holder = document.createElement("div");
+      holder.id = "optimus-pweb-video-actions";
+      if (report) report.insertAdjacentElement("afterend", holder);
+      else panel.insertAdjacentElement("beforebegin", holder);
+    }
+    holder.setAttribute("data-optimus-managed", "1");
+    holder.textContent = "";
+    managedVideoList.forEach(function (video) {
+      var button = document.createElement("button");
+      button.type = "button";
+      button.className = "optimus-pweb-video-button";
+      button.setAttribute("data-optimus-managed-ref", video.ref);
+      button.setAttribute("aria-label", video.title);
+      var play = document.createElement("span");
+      play.className = "optimus-pweb-play";
+      play.textContent = "▶";
+      play.setAttribute("aria-hidden", "true");
+      var label = document.createElement("span");
+      label.textContent = video.title;
+      button.appendChild(play);
+      button.appendChild(label);
+      button.addEventListener("click", function () { openVideo(video.ref); });
+      holder.appendChild(button);
+    });
+    if (report && holder.previousElementSibling !== report) {
+      report.insertAdjacentElement("afterend", holder);
+    }
+    if (panel && !panel.contains(holder)) panel.classList.add("optimus-pweb-native-videos-hidden");
+    document.documentElement.classList.add("optimus-managed-lot-videos", "optimus-managed-lot-video-links");
+    return true;
+  }
+
   window.addEventListener("message", function (event) {
     if (event.origin !== origin || event.source !== frame.contentWindow) return;
     var data = event.data;
     if (!data || typeof data !== "object") return;
-    if (data.type === "optimus:lot-videos-managed") {
+    if (data.type === "optimus:lot-videos") {
+      if (!Array.isArray(data.videos)) return;
+      managedVideoList = data.videos.slice(0, 12).filter(function (video) {
+        return video && typeof video.ref === "string" && videoEmbedSrc(video.ref);
+      }).map(function (video) {
+        return {
+          title: String(video.title || "Video").replace(/\s+/g, " ").trim().slice(0, 100) || "Video",
+          ref: video.ref
+        };
+      });
+      if (managedVideoList.length) {
+        renderManagedVideoList();
+      } else {
+        var previous = document.querySelector('#optimus-pweb-video-actions[data-optimus-managed]');
+        if (previous) previous.remove();
+        document.documentElement.classList.remove("optimus-managed-lot-videos", "optimus-managed-lot-video-links");
+        var nativePanel = findVideoPanel();
+        if (nativePanel) nativePanel.classList.remove("optimus-pweb-native-videos-hidden");
+      }
+      return;
+    }
+    if (data.type === "optimus:lot-videos-managed" && managedVideoList === null) {
+      // Backwards compatibility for lots using the previous full HTML.
       document.documentElement.classList.toggle("optimus-managed-lot-videos", data.managed === true);
       return;
     }
@@ -445,6 +510,7 @@
     makeMobileTitle();
     widenEmbed();
     fixNativeVideoPanel();
+    renderManagedVideoList();
     cleanEmptyPwebBoxes();
     markNativeMobilePedigree();
     normalizeHippomundo();
@@ -462,4 +528,5 @@
   window.setTimeout(fixNativeVideoPanel, 1800);
   window.setTimeout(fixNativeVideoPanel, 3500);
   window.setTimeout(fixNativeVideoPanel, 7000);
+  [600, 1800, 3500, 7000].forEach(function (delay) { window.setTimeout(renderManagedVideoList, delay); });
 })();

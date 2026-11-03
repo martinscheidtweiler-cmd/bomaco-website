@@ -230,7 +230,7 @@
   }
 
   function ensureAllVideoButtons(holder) {
-    if(!holder)return;
+    if(!holder||holder.getAttribute("data-optimus-managed")==="1")return;
     var actions=distinctVideoActions();
     var buttons=Array.from(holder.querySelectorAll("button"));
     var used=new Set();
@@ -370,7 +370,7 @@
     var source = event.target;
     if (!source || !source.closest) return;
     var button = source.closest("#optimus-pweb-video-actions button,#optimus-auction-desktop-video-actions button,#optimus-auction-mobile-video-actions button");
-    if (!button) return;
+    if (!button || button.hasAttribute("data-optimus-managed-ref")) return;
     var id = youtubeForButton(button);
     if (!id) return; // PWeb's original link remains functional as a fallback.
     event.preventDefault();
