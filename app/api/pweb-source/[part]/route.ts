@@ -5,7 +5,7 @@ export async function GET(_request: NextRequest, context: { params: Promise<{ pa
   if (part !== "bridge" && part !== "auction") return new NextResponse("Not found", { status: 404 });
   const endpoint = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  const fallback = part === "bridge" ? "/optimus-pweb.base.js" : "/optimus-auction-pweb.base.js";
+  const fallback = part === "bridge" ? "https://optimusauction.vercel.app/optimus-pweb.base.js" : "https://optimusauction.vercel.app/optimus-auction-pweb.base.js";
   let code = "";
   if (endpoint && key) {
     try {
