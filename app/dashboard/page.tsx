@@ -441,7 +441,7 @@ export default function AuctionDashboard() {
       description: { ...current, videos }, updated_at: new Date().toISOString(),
     }, { onConflict: "owner_id,pedigree_id" });
     if (error) { setNotice("Lotvideo's opslaan mislukt: " + error.message); setIsBusy(false); return; }
-    setNotice("Lotvideo's opgeslagen. De bestaande PWeb-iframe laadt ze automatisch; je hoeft geen nieuwe code te plakken.");
+    setNotice("Lotvideo's opgeslagen. De Vimeo-video's vervangen nu automatisch de video's in de bestaande PWeb-videosectie; je hoeft geen nieuwe HTML te plakken.");
     await refresh();
   }
 
@@ -793,7 +793,7 @@ export default function AuctionDashboard() {
 
           {tab === "videos" && <section>
             <h3>Lotvideo's — direct op PWeb</h3>
-            <p className={styles.help}>Plak hier de Vimeo-link van het geselecteerde veulen of embryo. De video verschijnt automatisch met een zwarte afspeelknop in de bestaande PWeb-iframe, zonder opnieuw HTML te plakken. YouTube blijft ook ondersteund.</p>
+            <p className={styles.help}>Plak hier de Vimeo-link van het geselecteerde veulen of embryo. De video verschijnt automatisch op de bestaande PWeb-videoplaats (dus niet in een extra iframe-box), zonder opnieuw HTML te plakken. YouTube blijft ook ondersteund.</p>
             <div className={styles.descriptionBlock}>
               {lotVideos.map((video, i) => <div key={i} className={styles.formGrid}>
                 <label>Videotitel
