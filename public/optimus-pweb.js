@@ -10,6 +10,14 @@
   window.__optimusPwebBridgeV1 = true;
 
   var site = root.getAttribute("data-optimus-site") === "be" ? "be" : "auction";
+  // Load the published global CSS/JS on every PWeb lot, without repasting HTML.
+  if (!document.getElementById("optimus-global-code-loader")) {
+    var globalScript = document.createElement("script");
+    globalScript.id = "optimus-global-code-loader";
+    globalScript.src = "https://optimusauction.vercel.app/api/pweb-global";
+    globalScript.async = true;
+    document.head.appendChild(globalScript);
+  }
   var origin = "https://optimusauction.vercel.app";
 
   // Autoload the approved .auction styles for previously installed lot embeds.
