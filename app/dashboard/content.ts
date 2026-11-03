@@ -836,9 +836,9 @@ export function generateSharedPWebCode(
   const token = encodeURIComponent(pedigree.public_token || "");
   const heights = safeHeights(site.heights).join(",");
   const crop = Math.max(0, Math.min(20000, numberOr(site.crop, 265)));
-  const isEmbryo = site.site === "auction" && /\\bembryos?\\b/i.test(pedigree.name);
-  const embryoSex = /\\bfemale\\b/i.test(pedigree.name) ? "female"
-    : /\\bmale\\b/i.test(pedigree.name) ? "male" : "";
+  const isEmbryo = site.site === "auction" && /\bembryos?\b/i.test(pedigree.name);
+  const embryoSex = /\bfemale\b/i.test(pedigree.name) ? "female"
+    : /\bmale\b/i.test(pedigree.name) ? "male" : "";
   const attributes = [
     'src="https://optimusauction.vercel.app/optimus-loader.js"',
     'data-lot="' + token + '"',
@@ -849,7 +849,7 @@ export function generateSharedPWebCode(
     ...(isEmbryo ? ['data-kind="embryo"', 'data-sex="' + embryoSex + '"'] : []),
     "defer",
   ];
-  return "<!-- OPTIMUS AUCTION — ONE-TIME PWEB INSTALLATION -->\\n" +
-    "<script " + attributes.join(" ") + "></script>\\n" +
+  return "<!-- OPTIMUS AUCTION — ONE-TIME PWEB INSTALLATION -->\n" +
+    "<script " + attributes.join(" ") + "></script>\n" +
     "<!-- OPTIMUS AUCTION — END -->";
 }
