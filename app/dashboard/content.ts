@@ -401,7 +401,7 @@ export function signature(
   site: SiteCode | undefined, _profiles: HorseProfile[],
 ): string {
   const body = JSON.stringify([
-    site?.site === "auction" && /\bembryos?\b/i.test(pedigree.name) ? "shared-pweb-bridge-v3-embryo" : site?.site === "auction" ? "shared-pweb-bridge-v2-auction" : "shared-pweb-bridge-v1", pedigree.public_token, pedigree.is_published,
+    site?.site === "auction" && /\bembryos?\b/i.test(pedigree.name) ? "central-loader-v4-embryo" : site?.site === "auction" ? "central-loader-v4-auction" : "central-loader-v4-be", pedigree.public_token, pedigree.is_published,
     site?.site || "", site?.heights || "", site?.crop ?? "",
   ]);
   let hash = 2166136261;
@@ -409,7 +409,7 @@ export function signature(
     hash ^= body.charCodeAt(i);
     hash = Math.imul(hash, 16777619);
   }
-  return "v3-" + (hash >>> 0).toString(16);
+  return "v4-" + (hash >>> 0).toString(16);
 }
 
 /** One-time PWeb installation. Future lot content and videos load from
@@ -826,127 +826,30 @@ window.setTimeout(fixBeVisuals,2200);
  * Replacing public/optimus-pweb.js updates all installed PWeb pages together.
  */
 
-/** Auction-only: the original PWeb title is styled and populated before the
- * deferred central bridge runs, avoiding the grey/type-layout flash. */
-const OPTIMUS_AUCTION_INSTANT_TITLE = String.raw`
-<style id="optimus-auction-instant-title-css">
-.page-title-small,.page-title-small > div,.page-title-small > .container{
-  background:#000!important;background-color:#000!important;border-color:#000!important;box-shadow:none!important
-}
-.page-title-small,.page-title-small h1,.page-title-small p,.page-title-small span,
-.page-title-small strong,.page-title-small label,.page-title-small .display-block{color:#fff!important}
-.optimus-mobile-title-content{display:none!important}
-@media(max-width:767px){
-.page-title-small.optimus-mobile-title-ready{display:block!important;height:auto!important;min-height:0!important;padding:0!important;box-sizing:border-box!important;background:#000!important;color:#fff!important}
-.page-title-small.optimus-mobile-title-ready > :not(.optimus-mobile-title-content){display:none!important}
-.page-title-small.optimus-mobile-title-ready > .optimus-mobile-title-content{display:block!important;width:100%!important;box-sizing:border-box!important;margin:0!important;padding:22px 20px 20px!important;text-align:left!important;font-family:Poppins,Montserrat,Arial,sans-serif!important;background:#000!important;color:#fff!important}
-.optimus-mobile-title-content .omt-name{display:block!important;color:#fff!important;font-size:clamp(21px,5.5vw,26px)!important;line-height:1.2!important;font-weight:650!important;letter-spacing:-.35px!important;margin:0 0 10px!important;text-align:left!important}
-.optimus-mobile-title-content .omt-line{display:block!important;color:#d2d2d2!important;font-size:clamp(12px,3.2vw,14px)!important;line-height:1.5!important;font-weight:400!important;white-space:normal!important;margin:0!important}
-.optimus-mobile-title-content .omt-info{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important;flex-wrap:wrap!important;margin:17px 0 0!important;padding:14px 0 0!important;border-top:1px solid #444!important}
-.optimus-mobile-title-content .omt-sex{color:#fff!important;font-size:19px!important;line-height:1.3!important;font-weight:600!important;white-space:nowrap!important}
-.optimus-mobile-title-content .omt-date{color:#d2d2d2!important;font-size:13px!important;line-height:1.3!important;white-space:nowrap!important}
-}
-</style>
-<script id="optimus-auction-instant-title-script">
-(function(){
-  "use strict";
-  var script=document.currentScript;
-  var isEmbryo=script&&script.getAttribute("data-optimus-kind")==="embryo";
-  var embryoSex=script?(script.getAttribute("data-optimus-embryo-sex")||""):"";
-  function instantTitle(){
-    var headers=document.querySelectorAll(".page-title-small");
-    for(var i=0;i<headers.length;i++){
-      var header=headers[i];
-      if(header.classList.contains("optimus-mobile-title-ready"))return;
-      var heading=header.querySelector("h1");
-      if(!heading)continue;
-      var source=header.querySelector(".hidden-md.hidden-lg.hidden-sm")||header;
-      var nameNode=source.querySelector("h1")||heading;
-      var name=(nameNode.textContent||"").trim();
-      if(!name)continue;
-      var nodes=Array.from(source.querySelectorAll(".display-block.margin-5px-top,span,p"));
-      var blood=nodes.find(function(node){
-        var text=(node.textContent||"").trim();
-        return text.length>12&&/[x×]/i.test(text)&&text!==name&&text.length<250;
-      });
-      var bloodText=blood?blood.textContent.trim():"";
-      if(!bloodText){
-        var fallback=(header.querySelector(".display-block.margin-5px-top")||{}).textContent||"";
-        if(/[x×]/i.test(fallback))bloodText=fallback.trim();
-      }
-      bloodText=bloodText.replace(/\s+[Xx×]\s+/g," × ").replace(/\s+/g," ").trim();
-      var full=Array.from(source.querySelectorAll("h1,span,p,.display-block")).map(function(el){
-        return (el.textContent||"").trim();
-      }).join(" ").replace(/\s+/g," ");
-      var match=full.match(/\b(mare|stallion|gelding|hengst|merrie|ruin)\b/i);
-      var label=match?match[1]:"";
-      if(label)label=label.charAt(0).toUpperCase()+label.slice(1).toLowerCase();
-      var sign=/^(mare|merrie)$/i.test(label)?"♀ ":/^(stallion|hengst)$/i.test(label)?"♂ ":"";
-      var birth=full.match(/\b\d{2}[-/.]\d{2}[-/.]\d{4}\b/);
-      var dateText=birth?birth[0]:"";
-      if(isEmbryo){
-        // Embryos are not born foals: never label their sex "Mare"/"Stallion"
-        // and never present an expected foaling date as a date of birth.
-        label=embryoSex==="female"?"Female Embryo":embryoSex==="male"?"Male Embryo":"Embryo";
-        sign=embryoSex==="female"?"♀ ":embryoSex==="male"?"♂ ":"";
-        var expectedYear=full.match(/(?:°|expected|due|verwacht)\s*(?:in\s*)?(20\d{2})\b/i);
-        dateText=birth?"Expected "+birth[0]:expectedYear?"Expected "+expectedYear[1]:"";
-      }
-      if(!bloodText||(!isEmbryo&&(!label||!birth)))continue;
-      var card=document.createElement("div");
-      card.className="optimus-mobile-title-content";
-      var nm=document.createElement("div");
-      nm.className="omt-name";nm.textContent=name;
-      var line=document.createElement("div");
-      line.className="omt-line";line.textContent=bloodText;
-      var info=document.createElement("div");info.className="omt-info";
-      var sex=document.createElement("span");sex.className="omt-sex";sex.textContent=sign+label;
-      var date=document.createElement("span");date.className="omt-date";date.textContent=dateText;
-      info.appendChild(sex);if(dateText)info.appendChild(date);
-      card.appendChild(nm);card.appendChild(line);card.appendChild(info);
-      header.appendChild(card);
-      header.classList.add("optimus-mobile-title-ready");
-      return;
-    }
-  }
-  instantTitle();
-  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",instantTitle,{once:true});
-})();
-</script>`;
-
+/** The PWeb HTML for every lot is now just one script tag.
+ * Its public token connects it to the existing published Supabase-backed iframe.
+ * Site-specific Hippomundo dimensions are preserved from dashboard settings. */
 export function generateSharedPWebCode(
   pedigree: PedigreeRecord, _description: LotDescription,
   site: SiteCode, _profiles: HorseProfile[],
 ): string {
   const token = encodeURIComponent(pedigree.public_token || "");
-  const page = "https://optimusauction.vercel.app/lot/live/" + token +
-    "?site=" + encodeURIComponent(site.site);
   const heights = safeHeights(site.heights).join(",");
   const crop = Math.max(0, Math.min(20000, numberOr(site.crop, 265)));
-  const isEmbryo = site.site === "auction" && /\bembryos?\b/i.test(pedigree.name);
-  const embryoSex = /\bfemale\b/i.test(pedigree.name) ? "female"
-    : /\bmale\b/i.test(pedigree.name) ? "male" : "";
-  const titleBootstrap = isEmbryo
-    ? OPTIMUS_AUCTION_INSTANT_TITLE.replace(
-        '<script id="optimus-auction-instant-title-script">',
-        '<script id="optimus-auction-instant-title-script" data-optimus-kind="embryo" data-optimus-embryo-sex="' + embryoSex + '">',
-      )
-    : OPTIMUS_AUCTION_INSTANT_TITLE;
-  return [
-    "<!-- OPTIMUS AUCTION — CENTRAL PWEB BRIDGE. Replace all prior HTML with this snippet. -->",
-    ...(site.site === "auction" ? [titleBootstrap] : []),
-    '<div class="optimus-live-embed" data-optimus-site="' + site.site +
-      (isEmbryo ? '" data-optimus-lot-kind="embryo" data-optimus-embryo-sex="' + embryoSex : '') +
-      '" data-optimus-heights="' + heights + '" data-optimus-crop="' + crop + '">',
-    '  <iframe class="optimus-live-lot-iframe" src="' + page +
-      '" title="' + escapeHtml(pedigree.name) +
-      ' - Live description and pedigree" width="100%" height="900" scrolling="no" loading="eager"' +
-      ' style="display:block;width:100%;height:900px;border:0;overflow:hidden"></iframe>',
-    "</div>",
-    '<script src="https://optimusauction.vercel.app/optimus-pweb.js" defer></script>',
-    ...(site.site === "auction" ? [
-      '<script src="https://optimusauction.vercel.app/optimus-auction-pweb.js" defer></script>',
-    ] : []),
-    "<!-- OPTIMUS AUCTION — END CENTRAL PWEB BRIDGE -->",
-  ].join("\n");
+  const isEmbryo = site.site === "auction" && /\\bembryos?\\b/i.test(pedigree.name);
+  const embryoSex = /\\bfemale\\b/i.test(pedigree.name) ? "female"
+    : /\\bmale\\b/i.test(pedigree.name) ? "male" : "";
+  const attributes = [
+    'src="https://optimusauction.vercel.app/optimus-loader.js"',
+    'data-lot="' + token + '"',
+    'data-site="' + site.site + '"',
+    'data-title="' + escapeHtml(pedigree.name) + '"',
+    'data-heights="' + heights + '"',
+    'data-crop="' + crop + '"',
+    ...(isEmbryo ? ['data-kind="embryo"', 'data-sex="' + embryoSex + '"'] : []),
+    "defer",
+  ];
+  return "<!-- OPTIMUS AUCTION — ONE-TIME PWEB INSTALLATION -->\\n" +
+    "<script " + attributes.join(" ") + "></script>\\n" +
+    "<!-- OPTIMUS AUCTION — END -->";
 }
