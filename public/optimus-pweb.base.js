@@ -448,7 +448,7 @@
     if (report && holder.previousElementSibling !== report) {
       report.insertAdjacentElement("afterend", holder);
     }
-    if (panel && !panel.contains(holder)) panel.classList.add("optimus-pweb-native-videos-hidden");
+    // Original PWeb video panel remains available alongside managed videos.
     document.documentElement.classList.add("optimus-managed-lot-videos", "optimus-managed-lot-video-links");
     return true;
   }
