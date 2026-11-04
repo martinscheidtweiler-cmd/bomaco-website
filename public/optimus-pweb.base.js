@@ -517,7 +517,9 @@
       if (managedVideoList.length) {
         renderManagedVideoList();
         replaceNativeHeroVideo();
+        document.documentElement.classList.remove("optimus-video-resolving");
       } else {
+        document.documentElement.classList.remove("optimus-video-resolving");
         var previous = document.querySelector('#optimus-pweb-video-actions[data-optimus-managed]');
         if (previous) previous.remove();
         document.documentElement.classList.remove("optimus-managed-lot-videos", "optimus-managed-lot-video-links");
