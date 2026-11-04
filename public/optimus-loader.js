@@ -28,6 +28,18 @@
     document.head.appendChild(critical);
   }
 
+  // Keep PWeb's native YouTube hero out of the first paint while the
+  // central bridge resolves the managed lot video.
+  document.documentElement.classList.add("optimus-video-resolving");
+  if (!document.getElementById("optimus-video-first-paint")) {
+    var firstPaint = document.createElement("style");
+    firstPaint.id = "optimus-video-first-paint";
+    firstPaint.textContent = "html.optimus-video-resolving .videoWrapper iframe[src*='youtube'],html.optimus-video-resolving .video-wrapper iframe[src*='youtube'],html.optimus-video-resolving .embed-responsive iframe[src*='youtube'],html.optimus-video-resolving .video-container iframe[src*='youtube']{visibility:hidden!important}";
+    document.head.appendChild(firstPaint);
+  }
+  // Fail open if the live bridge cannot load.
+  window.setTimeout(function () { document.documentElement.classList.remove("optimus-video-resolving"); }, 8000);
+
   var root = document.createElement("div");
   root.className = "optimus-live-embed";
   root.setAttribute("data-optimus-site", site);
