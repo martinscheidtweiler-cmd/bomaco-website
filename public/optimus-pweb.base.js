@@ -474,7 +474,13 @@
       var replacement = document.createElement('iframe');
       replacement.className = iframe.className;
       replacement.style.cssText = iframe.style.cssText;
-      replacement.setAttribute('src', url.replace('autoplay=1', 'autoplay=0'));
+      var visible = iframe.getClientRects().length > 0 && iframe.getBoundingClientRect().width > 0 && iframe.getBoundingClientRect().height > 0 && window.getComputedStyle(iframe).visibility !== 'hidden';
+      var videoUrl = new URL(url);
+      videoUrl.searchParams.set('autoplay', visible ? '1' : '0');
+      videoUrl.searchParams.set('muted', '1');
+      videoUrl.searchParams.set('playsinline', '1');
+      videoUrl.searchParams.set('loop', visible ? '1' : '0');
+      replacement.setAttribute('src', videoUrl.toString());
       replacement.setAttribute('title', first.title);
       replacement.setAttribute('allow', 'autoplay; fullscreen; picture-in-picture');
       replacement.setAttribute('allowfullscreen', '');
