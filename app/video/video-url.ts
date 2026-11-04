@@ -28,10 +28,10 @@ export function videoReferenceFromUrl(value: string): string | null {
 export function videoEmbedUrl(ref: string | null | undefined): string | null {
   const value = ref || "";
   if (/^[a-zA-Z0-9_-]{11}$/.test(value))
-    return "https://www.youtube-nocookie.com/embed/" + value + "?autoplay=1&rel=0";
+    return "https://www.youtube-nocookie.com/embed/" + value + "?autoplay=1&mute=1&playsinline=1&rel=0";
   const match = value.match(/^vimeo:(\d{5,12})(?::([a-f0-9]{6,40}))?$/i);
   if (!match) return null;
   return "https://player.vimeo.com/video/" + match[1] + "?" +
     (match[2] ? "h=" + match[2].toLowerCase() + "&" : "") +
-    "autoplay=1&dnt=1&title=0&byline=0&portrait=0";
+    "autoplay=1&muted=1&playsinline=1&dnt=1&title=0&byline=0&portrait=0";
 }
