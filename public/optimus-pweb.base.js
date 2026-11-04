@@ -367,7 +367,7 @@
   var managedVideoList = null;
   var managedStyle = document.createElement("style");
   managedStyle.id = "optimus-managed-lot-video-style";
-  managedStyle.textContent = "html.optimus-managed-lot-videos #videos,html.optimus-managed-lot-videos:not(.optimus-managed-lot-video-links) #optimus-pweb-video-actions,html.optimus-managed-lot-videos #optimus-auction-desktop-video-actions,html.optimus-managed-lot-videos #optimus-auction-mobile-video-actions,html.optimus-managed-lot-videos .optimus-auction-video-holder:not([data-optimus-managed]){display:none!important}";
+  managedStyle.textContent = "html.optimus-managed-lot-videos:not(.optimus-managed-lot-video-links) #optimus-pweb-video-actions,html.optimus-managed-lot-videos .optimus-auction-video-holder[data-optimus-obsolete]{display:none!important}";
   document.head.appendChild(managedStyle);
 
   function closeVideo() {
