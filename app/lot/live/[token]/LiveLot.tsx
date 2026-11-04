@@ -169,17 +169,6 @@ export default function LiveLot({ horses, description, profiles, site }: Props) 
 
   return (
     <main ref={root} className={styles.root} data-optimus-site={site}>
-      {lotVideoActions.length > 0 && (
-        <div style={{ width: "100%", maxWidth: 900, margin: "0 auto 20px" }}>
-          <iframe
-            title={lotVideoActions[0].title || "Lot video"}
-            src={videoEmbedUrl(lotVideoActions[0].ref) || "about:blank"}
-            style={{ display: "block", width: "100%", aspectRatio: "16 / 9", border: 0 }}
-            allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
-            allowFullScreen
-          />
-        </div>
-      )}
       {isStandalone && lotVideoActions.length > 0 && <div className={styles.lotVideoActions}>
         {lotVideoActions.map((video, index) => <button key={index} type="button"
           className={styles.lotVideoButton} onClick={() => openVideo(video.ref!)}
