@@ -1,0 +1,25 @@
+{
+  "lot": "52d9a339-bdc2-45c7-9612-9f97a21d146d",
+  "name": "Delilah Optima",
+  "source": "PWeb inline Vimeo v8 script supplied 2026-11-05",
+  "mainVideo": "https://vimeo.com/1242364478",
+  "legacyYouTubeToVimeo": {
+    "6RRfG31ltE4": "https://vimeo.com/1242507573",
+    "EAcaCEl2TAI": "https://vimeo.com/1242508265",
+    "GWPRq7F3q74": "https://vimeo.com/1242844329",
+    "APFm4hnmSig": "https://vimeo.com/1242839026",
+    "IR519KdkWD8": "https://vimeo.com/1242750425",
+    "DVXwwpgzE10": "https://vimeo.com/1242750906",
+    "tfWS8LH_NnM": "https://vimeo.com/1242751616",
+    "i9ilaLrMBTk": "https://vimeo.com/1242752159",
+    "2dgQ9kcXbl0": "https://vimeo.com/1242753359",
+    "oYKVnsyoyEo": "https://vimeo.com/1242741398",
+    "lJBOBB-w29w": "https://vimeo.com/1242825848",
+    "M05q6CzYe_g": "https://vimeo.com/1242837143"
+  },
+  "keepOriginalYoutubeLabels": [
+    "Leg conformation"
+  ],
+  "preservePwebVetReports": true,
+  "notes": "Migration inventory only. Do not remove existing PWeb scripts until managed video, button and vet report parity verified on mobile and desktop."
+}
