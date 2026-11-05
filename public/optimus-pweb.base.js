@@ -520,7 +520,7 @@
     if (!data || typeof data !== "object") return;
     if (data.type === "optimus:lot-videos") {
       if (!Array.isArray(data.videos)) return;
-      managedVideoList = data.videos.slice(0, 12).filter(function (video) {
+      managedVideoList = data.videos.slice(0, 30).filter(function (video) {
         return video && typeof video.ref === "string" && videoEmbedSrc(video.ref);
       }).map(function (video) {
         return {
