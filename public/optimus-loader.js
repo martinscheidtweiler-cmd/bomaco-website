@@ -13,6 +13,8 @@
   script.setAttribute("data-optimus-loaded", "1");
 
   var origin = "https://optimusauction.vercel.app";
+  // A PWeb head-level critical style is still needed to guarantee no first-paint flash.
+  // The loader applies these styles as soon as PWeb executes it.
   var site = script.getAttribute("data-site") === "be" ? "be" : "auction";
   var isEmbryo = site === "auction" && script.getAttribute("data-kind") === "embryo";
   var embryoSex = script.getAttribute("data-sex") || "";
@@ -24,7 +26,7 @@
   if (!document.getElementById("optimus-critical-pweb-style")) {
     var critical = document.createElement("style");
     critical.id = "optimus-critical-pweb-style";
-    critical.textContent = ".page-title-small,.page-title-small>div,.page-title-small>.container{background:#000!important;background-color:#000!important;border-color:#000!important}.page-title-small,.page-title-small h1,.page-title-small p,.page-title-small span,.page-title-small strong{color:#fff!important}#videos,.paard-foto #videos,.optimus-auction-video-holder{background:#111!important;background-color:#111!important;color:#fff!important}";
+    critical.textContent = ".page-title-small,.page-title-small>div,.page-title-small>.container{background:#000!important;background-color:#000!important;border-color:#000!important}.page-title-small,.page-title-small h1,.page-title-small p,.page-title-small span,.page-title-small strong{color:#fff!important}#videos,.paard-foto #videos,.optimus-auction-video-holder,.padding-20px-top.width-100.pull-left.bg-light-gray{background:#111!important;background-color:#111!important;color:#fff!important}.optimus-pweb-video-button,.optimus-pweb-vet-link{background:#111!important;color:#fff!important}";
     document.head.appendChild(critical);
   }
 

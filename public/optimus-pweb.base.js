@@ -414,6 +414,8 @@
 
   // Place Vimeo/YouTube links from the dashboard in the *existing* PWeb
   // video position after the vet report, never in a second iframe box.
+  // Merge dashboard videos with original PWeb actions. Never discard an original
+  // action merely because a managed Vimeo list has arrived.
   function renderManagedVideoList() {
     if (!managedVideoList || !managedVideoList.length) return false;
     var report = findVetReport();
@@ -426,29 +428,41 @@
       if (report) report.insertAdjacentElement("afterend", holder);
       else panel.insertAdjacentElement("beforebegin", holder);
     }
-    holder.setAttribute("data-optimus-managed", "1");
-    holder.textContent = "";
-    managedVideoList.forEach(function (video) {
-      var button = document.createElement("button");
-      button.type = "button";
-      button.className = "optimus-pweb-video-button";
-      button.setAttribute("data-optimus-managed-ref", video.ref);
-      button.setAttribute("aria-label", video.title);
-      var play = document.createElement("span");
-      play.className = "optimus-pweb-play";
-      play.textContent = "▶";
-      play.setAttribute("aria-hidden", "true");
-      var label = document.createElement("span");
-      label.textContent = video.title;
-      button.appendChild(play);
-      button.appendChild(label);
-      button.addEventListener("click", function () { openVideo(video.ref); });
-      holder.appendChild(button);
+    // Reuse existing native-action proxy buttons, including the leg video.
+    // Rebuilding the holder used to silently delete these buttons.
+    var originalButtons = Array.from(holder.querySelectorAll(".optimus-pweb-video-button:not([data-optimus-managed-ref])"));
+    var originals = originalButtons.map(function (button) {
+      return { label: (button.getAttribute("aria-label") || button.textContent || "").replace(/\s+/g, " ").trim(), button: button };
     });
-    if (report && holder.previousElementSibling !== report) {
-      report.insertAdjacentElement("afterend", holder);
+    var desired = managedVideoList.map(function (video) { return video.ref + "|" + video.title; }).join("\n");
+    if (holder.getAttribute("data-optimus-managed-signature") !== desired) {
+      Array.from(holder.querySelectorAll("[data-optimus-managed-ref]")).forEach(function (button) { button.remove(); });
+      managedVideoList.forEach(function (video) {
+        var button = document.createElement("button");
+        button.type = "button";
+        button.className = "optimus-pweb-video-button";
+        button.setAttribute("data-optimus-managed-ref", video.ref);
+        button.setAttribute("aria-label", video.title);
+        var play = document.createElement("span");
+        play.className = "optimus-pweb-play";
+        play.textContent = "▶";
+        play.setAttribute("aria-hidden", "true");
+        var label = document.createElement("span");
+        label.textContent = video.title;
+        button.appendChild(play);
+        button.appendChild(label);
+        button.addEventListener("click", function () { openVideo(video.ref); });
+        holder.appendChild(button);
+      });
+      holder.setAttribute("data-optimus-managed-signature", desired);
     }
-    // Original PWeb video panel remains available alongside managed videos.
+    // Deduplicate by label, keeping native PWeb actions not represented in the
+    // dashboard. Do not destroy native buttons: they may open PWeb modals.
+    var managedNames = managedVideoList.map(function (video) { return video.title.toLowerCase().trim(); });
+    originals.forEach(function (entry) {
+      entry.button.hidden = managedNames.indexOf(entry.label.toLowerCase()) >= 0;
+    });
+    if (report && holder.previousElementSibling !== report) report.insertAdjacentElement("afterend", holder);
     document.documentElement.classList.add("optimus-managed-lot-videos", "optimus-managed-lot-video-links");
     return true;
   }
@@ -474,7 +488,7 @@
       var replacement = document.createElement('iframe');
       replacement.className = iframe.className;
       replacement.style.cssText = iframe.style.cssText;
-      var visible = iframe.getClientRects().length > 0 && iframe.getBoundingClientRect().width > 0 && iframe.getBoundingClientRect().height > 0 && window.getComputedStyle(iframe).visibility !== 'hidden';
+      var visible = iframe.getClientRects().length > 0 && iframe.getBoundingClientRect().width > 0 && iframe.getBoundingClientRect().height > 0; // Loader intentionally hides native YouTube while resolving; visibility:hidden must not disable autoplay on the replacement.
       var videoUrl = new URL(url);
       videoUrl.searchParams.set('autoplay', visible ? '1' : '0');
       videoUrl.searchParams.set('muted', '1');
@@ -581,8 +595,8 @@
   window.setTimeout(fixNativeVideoPanel, 7000);
   [600, 1800, 3500, 7000].forEach(function (delay) { window.setTimeout(function () { renderManagedVideoList(); replaceNativeHeroVideo(); }, delay); });
   // Load after native styles so published global overrides take precedence.
-  window.setTimeout(function () {
-    // Load the published global CSS/JS on every PWeb lot, without repasting HTML.
+  (function () {
+    // Load published global CSS/JS immediately, not 1200ms after the native page paint.
     if (!document.getElementById("optimus-global-code-loader")) {
       var globalScript = document.createElement("script");
       globalScript.id = "optimus-global-code-loader";
@@ -590,5 +604,5 @@
       globalScript.async = true;
       document.head.appendChild(globalScript);
     }
-  }, 1200);
+  })();
 })();
