@@ -474,7 +474,7 @@
       var replacement = document.createElement('iframe');
       replacement.className = iframe.className;
       replacement.style.cssText = iframe.style.cssText;
-      var visible = iframe.getClientRects().length > 0 && iframe.getBoundingClientRect().width > 0 && iframe.getBoundingClientRect().height > 0 && window.getComputedStyle(iframe).visibility !== 'hidden';
+      var visible = iframe.getClientRects().length > 0 && iframe.getBoundingClientRect().width > 0 && iframe.getBoundingClientRect().height > 0; // Loader intentionally hides native YouTube while resolving; visibility:hidden must not disable autoplay on the replacement.
       var videoUrl = new URL(url);
       videoUrl.searchParams.set('autoplay', visible ? '1' : '0');
       videoUrl.searchParams.set('muted', '1');
@@ -581,8 +581,8 @@
   window.setTimeout(fixNativeVideoPanel, 7000);
   [600, 1800, 3500, 7000].forEach(function (delay) { window.setTimeout(function () { renderManagedVideoList(); replaceNativeHeroVideo(); }, delay); });
   // Load after native styles so published global overrides take precedence.
-  window.setTimeout(function () {
-    // Load the published global CSS/JS on every PWeb lot, without repasting HTML.
+  (function () {
+    // Load published global CSS/JS immediately, not 1200ms after the native page paint.
     if (!document.getElementById("optimus-global-code-loader")) {
       var globalScript = document.createElement("script");
       globalScript.id = "optimus-global-code-loader";
@@ -590,5 +590,5 @@
       globalScript.async = true;
       document.head.appendChild(globalScript);
     }
-  }, 1200);
+  })();
 })();
