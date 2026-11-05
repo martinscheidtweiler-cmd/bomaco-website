@@ -432,9 +432,9 @@
     // Rebuilding the holder used to silently delete these buttons.
     var originalButtons = Array.from(holder.querySelectorAll(".optimus-pweb-video-button:not([data-optimus-managed-ref])"));
     var originals = originalButtons.map(function (button) {
-      return { label: (button.getAttribute("aria-label") || button.textContent || "").replace(/\\s+/g, " ").trim(), button: button };
+      return { label: (button.getAttribute("aria-label") || button.textContent || "").replace(/\s+/g, " ").trim(), button: button };
     });
-    var desired = managedVideoList.map(function (video) { return video.ref + "|" + video.title; }).join("\\n");
+    var desired = managedVideoList.map(function (video) { return video.ref + "|" + video.title; }).join("\n");
     if (holder.getAttribute("data-optimus-managed-signature") !== desired) {
       Array.from(holder.querySelectorAll("[data-optimus-managed-ref]")).forEach(function (button) { button.remove(); });
       managedVideoList.forEach(function (video) {
