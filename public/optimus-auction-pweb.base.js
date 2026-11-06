@@ -543,6 +543,12 @@
     var count=distinctCount(docs);
     docs.forEach(function(link){formatReport(link,count<=1);});
 
+    // Delilah uses only PWeb's own video buttons. Never clone, move or hide them.
+    if (/delilah/i.test((auctionFrame && auctionFrame.getAttribute("title")) || "")) {
+      document.querySelectorAll(".optimus-auction-hidden-panel").forEach(function(el){el.classList.remove("optimus-auction-hidden-panel");});
+      document.querySelectorAll("#optimus-auction-mobile-video-actions,#optimus-auction-desktop-video-actions").forEach(function(el){el.remove();});
+      return;
+    }
     var central=document.getElementById("optimus-pweb-video-actions");
     if(central){
       ensureAllVideoButtons(central);
