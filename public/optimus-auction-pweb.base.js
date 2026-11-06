@@ -532,6 +532,10 @@
   }
 
   function apply() {
+    // Delilah: keep the first completed video/report layout fixed. Repeated
+    // PWeb scans previously moved the buttons on every delayed pass.
+    var stableDelilah = /delilah/i.test((lot.querySelector("iframe.optimus-live-lot-iframe") || {}).title || "");
+    if (stableDelilah && document.documentElement.classList.contains("optimus-delilah-actions-locked")) return;
     addEmbryoDesktopGender();
     spaceEmbryoCountdown();
     var docs=reports(false);
@@ -556,6 +560,7 @@
       if(holder.previousElementSibling!==report)report.insertAdjacentElement("afterend",holder);
       ensureAllVideoButtons(holder);
       decorate(holder);
+      if (stableDelilah) document.documentElement.classList.add("optimus-delilah-actions-locked");
       // Hide only those native panels whose actions have working replacements.
       videoPanels(true).forEach(function(panel){
         var natives=videoActions(panel);
@@ -566,8 +571,9 @@
     }
     var panel=videoPanels(true)[0];
     if(!panel)return;
-    makeHolder(report,panel,window.matchMedia("(max-width:767px)").matches?
+    var made = makeHolder(report,panel,window.matchMedia("(max-width:767px)").matches?
       "optimus-auction-mobile-video-actions":"optimus-auction-desktop-video-actions");
+    if (made && stableDelilah) document.documentElement.classList.add("optimus-delilah-actions-locked");
   }
 
   function begin() {
