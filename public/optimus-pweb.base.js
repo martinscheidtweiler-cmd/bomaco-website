@@ -439,6 +439,12 @@
     if (holder.getAttribute("data-optimus-managed-signature") !== desired) {
       Array.from(holder.querySelectorAll("[data-optimus-managed-ref]")).forEach(function (button) { button.remove(); });
       managedVideoList.forEach(function (video) {
+        var normalized = video.title.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+        var nativeMatch = originals.some(function (entry) {
+          var nativeLabel = entry.label.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+          return nativeLabel === normalized || nativeLabel.indexOf(normalized + " ") === 0;
+        });
+        if (nativeMatch) return;
         var button = document.createElement("button");
         button.type = "button";
         button.className = "optimus-pweb-video-button";
@@ -461,7 +467,7 @@
     // dashboard. Do not destroy native buttons: they may open PWeb modals.
     var managedNames = managedVideoList.map(function (video) { return video.title.toLowerCase().trim(); });
     originals.forEach(function (entry) {
-      entry.button.hidden = managedNames.indexOf(entry.label.toLowerCase()) >= 0;
+      entry.button.hidden = false;
     });
     if (report && holder.previousElementSibling !== report) report.insertAdjacentElement("afterend", holder);
     document.documentElement.classList.add("optimus-managed-lot-videos", "optimus-managed-lot-video-links");
