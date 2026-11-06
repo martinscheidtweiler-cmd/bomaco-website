@@ -68,6 +68,31 @@
     document.head.appendChild(nativeStyle);
   }
 
+  // Delilah: preserve original PWeb buttons; use known Vimeo mappings from
+  // the previously supplied auction source. Leg conformation stays native.
+  if (site === "auction" && /delilah/i.test(name) && !window.__optimusDelilahVimeoButtons) {
+    window.__optimusDelilahVimeoButtons = true;
+    document.addEventListener("click", function(event) {
+      var button = event.target && event.target.closest && event.target.closest("#videos a,#videos button,#videos .btn");
+      if (!button) return;
+      var label = (button.textContent || button.getAttribute("aria-label") || "").replace(/\\s+/g, " ").toLowerCase();
+      var id = button.getAttribute("data-optimus-youtube-id") || "";
+      var video = /cacacha/.test(label) || id === "6RRfG31ltE4" ? "1242507573" :
+                  /delilah optima/.test(label) ? "1242364478" : "";
+      if (!video) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      var overlay = document.createElement("div");
+      overlay.style.cssText = "position:fixed;inset:0;z-index:2147483647;background:rgba(0,0,0,.93);display:flex;align-items:center;justify-content:center";
+      overlay.innerHTML = '<iframe src="https://player.vimeo.com/video/' + video + '?autoplay=1" style="width:min(96vw,900px);aspect-ratio:16/9;border:0" allow="autoplay;fullscreen;picture-in-picture" allowfullscreen></iframe><button type="button" aria-label="Close video" style="position:absolute;right:20px;top:12px;font-size:36px;color:white;background:transparent;border:0;cursor:pointer">×</button>';
+      function close(){ overlay.remove(); document.removeEventListener("keydown",esc); }
+      function esc(e){if(e.key==="Escape")close();}
+      overlay.addEventListener("click",function(e){if(e.target===overlay||e.target.closest("button"))close();});
+      document.addEventListener("keydown",esc);
+      document.body.appendChild(overlay);
+    }, true);
+  }
+
   // Hybrid PWeb: move the explicitly authored Vimeo player above the native photo gallery.
   // Keep the original video links, vet report and gallery untouched.
   if (site === "auction" && /delilah/i.test(name)) {
