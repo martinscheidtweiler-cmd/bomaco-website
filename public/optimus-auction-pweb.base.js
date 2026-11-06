@@ -282,7 +282,8 @@
     holder.id=id;
     actions.forEach(function(native){addVideoButton(holder,native);});
     if(!holder.children.length)return null;
-    report.insertAdjacentElement("afterend",holder);
+    if (/delilah/i.test((lot.querySelector("iframe.optimus-live-lot-iframe") || {}).title || "")) report.insertAdjacentElement("beforebegin",holder);
+    else report.insertAdjacentElement("afterend",holder);
     ensureAllVideoButtons(holder);
     decorate(holder);
     panel.classList.add("optimus-auction-hidden-panel");
@@ -557,7 +558,7 @@
         "optimus-auction-mobile-video-actions":"optimus-auction-desktop-video-actions");
 
     if(holder && holder.querySelector("button")){
-      if(holder.previousElementSibling!==report)report.insertAdjacentElement("afterend",holder);
+      if(!stableDelilah && holder.previousElementSibling!==report)report.insertAdjacentElement("afterend",holder);
       ensureAllVideoButtons(holder);
       decorate(holder);
       if (stableDelilah) document.documentElement.classList.add("optimus-delilah-actions-locked");
