@@ -183,6 +183,9 @@
     });
     // Never remove access to a video if there is no usable original action.
     if (!actions.length || actions.length > 12) return false;
+    // Wait for PWeb to finish building the actual three actions; do not
+    // freeze an incomplete first pass and then rebuild it.
+    if (site === "auction" && /delilah/i.test(document.title || "") && actions.length !== 3) return false;
 
     var holder = document.createElement("div");
     holder.id = "optimus-pweb-video-actions";
@@ -419,63 +422,10 @@
   // Merge dashboard videos with original PWeb actions. Never discard an original
   // action merely because a managed Vimeo list has arrived.
   function renderManagedVideoList() {
-    if (!managedVideoList || !managedVideoList.length) return false;
-    // The managed main Vimeo replaces the PWeb hero, not its native action list.
-    // PWeb owns the leg, foal and dam buttons; never append a duplicate here.
-    if (document.querySelector('.optimus-pweb-native-videos-hidden')) return true;
-    var report = findVetReport();
-    var panel = findVideoPanel();
-    var holder = document.getElementById("optimus-pweb-video-actions");
-    if (!holder && !report && !panel) return false;
-    if (!holder) {
-      holder = document.createElement("div");
-      holder.id = "optimus-pweb-video-actions";
-      if (report) report.insertAdjacentElement("afterend", holder);
-      else panel.insertAdjacentElement("beforebegin", holder);
-    }
-    // Reuse existing native-action proxy buttons, including the leg video.
-    // Rebuilding the holder used to silently delete these buttons.
-    var originalButtons = Array.from(holder.querySelectorAll(".optimus-pweb-video-button:not([data-optimus-managed-ref])"));
-    var originals = originalButtons.map(function (button) {
-      return { label: (button.getAttribute("aria-label") || button.textContent || "").replace(/\s+/g, " ").trim(), button: button };
-    });
-    var desired = managedVideoList.map(function (video) { return video.ref + "|" + video.title; }).join("\n");
-    if (holder.getAttribute("data-optimus-managed-signature") !== desired) {
-      Array.from(holder.querySelectorAll("[data-optimus-managed-ref]")).forEach(function (button) { button.remove(); });
-      managedVideoList.forEach(function (video) {
-        var normalized = video.title.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
-        var nativeMatch = originals.some(function (entry) {
-          var nativeLabel = entry.label.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
-          return nativeLabel === normalized || nativeLabel.indexOf(normalized + " ") === 0;
-        });
-        if (nativeMatch) return;
-        var button = document.createElement("button");
-        button.type = "button";
-        button.className = "optimus-pweb-video-button";
-        button.setAttribute("data-optimus-managed-ref", video.ref);
-        button.setAttribute("aria-label", video.title);
-        var play = document.createElement("span");
-        play.className = "optimus-pweb-play";
-        play.textContent = "▶";
-        play.setAttribute("aria-hidden", "true");
-        var label = document.createElement("span");
-        label.textContent = video.title;
-        button.appendChild(play);
-        button.appendChild(label);
-        button.addEventListener("click", function () { openVideo(video.ref); });
-        holder.appendChild(button);
-      });
-      holder.setAttribute("data-optimus-managed-signature", desired);
-    }
-    // Deduplicate by label, keeping native PWeb actions not represented in the
-    // dashboard. Do not destroy native buttons: they may open PWeb modals.
-    var managedNames = managedVideoList.map(function (video) { return video.title.toLowerCase().trim(); });
-    originals.forEach(function (entry) {
-      entry.button.hidden = false;
-    });
-    if (report && holder.previousElementSibling !== report) report.insertAdjacentElement("afterend", holder);
-    document.documentElement.classList.add("optimus-managed-lot-videos", "optimus-managed-lot-video-links");
-    return true;
+    // PWeb already owns the video actions and their click handlers.
+    // Do not create a second list from the dashboard's hero-video inventory.
+    // The dashboard video is used only to replace the main player.
+    return false;
   }
 
   // PWeb renders its own YouTube hero player independently of the video buttons.
