@@ -218,6 +218,8 @@
   // .padding-20px-top.width-100.pull-left.bg-light-gray
   // Do not hide a parent that could include the gallery or bid panel.
   function fixNativeVideoPanel() {
+    // Static PWeb templates own their native video actions.
+    if (document.querySelector("[data-optimus-native-media]")) return true;
     if (document.getElementById("optimus-pweb-video-actions")) return true;
     var headings = Array.from(document.querySelectorAll("h1,h2,h3,h4,h5,h6"));
     var heading = headings.find(function (node) {
@@ -431,6 +433,7 @@
   // PWeb renders its own YouTube hero player independently of the video buttons.
   // Replace only that player, using the lot's first managed Vimeo video.
   function replaceNativeHeroVideo() {
+    if (document.querySelector("[data-optimus-native-media]")) return false;
     var first = managedVideoList && managedVideoList.find(function (video) {
       return /^vimeo:/i.test(video.ref);
     });
