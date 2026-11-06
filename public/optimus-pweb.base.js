@@ -35,6 +35,7 @@
   function addStyles() {
     if (document.getElementById("optimus-central-pweb-style")) return;
     var css = [
+      ".videoWrapper,.video-wrapper,.embed-responsive,.video-container{background-color:#111!important}.optimus-vimeo-hero{background:#111!important;overflow:hidden!important}.optimus-vimeo-hero iframe{background:#111!important;display:block!important;width:100%!important;aspect-ratio:16/9!important;min-height:0!important;border:0!important}",
       ".optimus-live-embed,.optimus-live-wide{display:block!important;width:100%!important;max-width:100%!important;box-sizing:border-box!important;margin:0!important;padding:0!important;background:#fff!important;border:0!important;box-shadow:none!important}",
       ".optimus-live-embed iframe.optimus-live-lot-iframe{display:block!important;width:100%!important;max-width:100%!important;height:900px;border:0!important;margin:0!important;padding:0!important;background:#fff!important}",
       ".optimus-live-wide{clear:both!important}",
@@ -477,31 +478,28 @@
     var url = videoEmbedSrc(first.ref);
     if (!url) return false;
     var changed = false;
-    // PWeb's primary player is usually in .videoWrapper; on some templates
-    // it is mounted in another wrapper after the bridge has initialized.
     Array.from(document.querySelectorAll('iframe[src],iframe[data-src]')).forEach(function (iframe) {
       if (iframe.closest('.optimus-live-embed,#optimus-live-video-overlay,#optimus-vimeo-popup')) return;
       var src = iframe.getAttribute('src') || iframe.getAttribute('data-src') || '';
-      if (!/youtube(?:-nocookie)?\.com|youtu\.be/i.test(src)) return;
+      if (!/youtube(?:-nocookie)?\\.com|youtu\\.be/i.test(src)) return;
       var wrapper = iframe.closest('.videoWrapper,.video-wrapper,.embed-responsive,.video-container');
-      if (!wrapper) return; // never replace pedigree or unrelated embeds
-      var replacement = document.createElement('iframe');
-      replacement.className = iframe.className;
-      replacement.style.cssText = iframe.style.cssText;
-      var visible = iframe.getClientRects().length > 0 && iframe.getBoundingClientRect().width > 0 && iframe.getBoundingClientRect().height > 0; // Loader intentionally hides native YouTube while resolving; visibility:hidden must not disable autoplay on the replacement.
+      if (!wrapper) return;
+      // Keep the original PWeb player box in place. A stable black surface
+      // prevents white flashes and layout jumps while Vimeo initializes.
+      wrapper.classList.add('optimus-vimeo-hero');
+      var visible = iframe.getClientRects().length > 0 &&
+        iframe.getBoundingClientRect().width > 0 &&
+        iframe.getBoundingClientRect().height > 0;
       var videoUrl = new URL(url);
       videoUrl.searchParams.set('autoplay', visible ? '1' : '0');
       videoUrl.searchParams.set('muted', '1');
       videoUrl.searchParams.set('playsinline', '1');
       videoUrl.searchParams.set('loop', visible ? '1' : '0');
-      replacement.setAttribute('src', videoUrl.toString());
-      replacement.setAttribute('title', first.title);
-      replacement.setAttribute('allow', 'autoplay; fullscreen; picture-in-picture');
-      replacement.setAttribute('allowfullscreen', '');
-      replacement.setAttribute('data-optimus-vimeo-main', '1');
-      replacement.width = iframe.width;
-      replacement.height = iframe.height;
-      iframe.parentNode.replaceChild(replacement, iframe);
+      iframe.setAttribute('title', first.title);
+      iframe.setAttribute('allow', 'autoplay; fullscreen; picture-in-picture');
+      iframe.setAttribute('allowfullscreen', '');
+      iframe.setAttribute('data-optimus-vimeo-main', '1');
+      iframe.setAttribute('src', videoUrl.toString());
       changed = true;
     });
     return changed;
