@@ -54,6 +54,34 @@
   // Fail open if the live bridge cannot load.
   window.setTimeout(function () { document.documentElement.classList.remove("optimus-video-resolving"); }, 8000);
 
+  // Hybrid PWeb: move the explicitly authored Vimeo player above the native photo gallery.
+  // Keep the original video links, vet report and gallery untouched.
+  if (site === "auction" && /delilah/i.test(name)) {
+    var placeHybridVideo = function () {
+      var player = document.querySelector(".optimus-delilah-video[data-optimus-native-media]");
+      if (!player) return;
+      var gallery = document.querySelector(".rev_slider_wrapper");
+      if (!gallery) return;
+      var column = gallery.parentElement;
+      if (!column || column.contains(document.querySelector(".optimus-live-embed"))) return;
+      if (player.parentElement !== column || player.nextElementSibling !== gallery) {
+        column.insertBefore(player, gallery);
+      }
+      column.querySelectorAll(".videoWrapper,.video-wrapper,.embed-responsive,.video-container").forEach(function (wrapper) {
+        if (wrapper === player || player.contains(wrapper) || wrapper.contains(player)) return;
+        if (wrapper.querySelector('iframe[src*="youtube"],iframe[src*="youtu.be"]')) {
+          wrapper.style.setProperty("display", "none", "important");
+        }
+      });
+    };
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", placeHybridVideo, { once: true });
+    } else {
+      placeHybridVideo();
+    }
+    window.addEventListener("load", placeHybridVideo, { once: true });
+  }
+
   var root = document.createElement("div");
   root.className = "optimus-live-embed";
   root.setAttribute("data-optimus-site", site);
