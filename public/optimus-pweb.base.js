@@ -207,6 +207,7 @@
     report.insertAdjacentElement("afterend", holder);
     // Remove the complete grey Videos panel only after new actions exist.
     panel.classList.add("optimus-pweb-native-videos-hidden");
+    document.documentElement.classList.add("optimus-video-actions-ready");
     return true;
   }
 
@@ -419,6 +420,9 @@
   // action merely because a managed Vimeo list has arrived.
   function renderManagedVideoList() {
     if (!managedVideoList || !managedVideoList.length) return false;
+    // The managed main Vimeo replaces the PWeb hero, not its native action list.
+    // PWeb owns the leg, foal and dam buttons; never append a duplicate here.
+    if (document.querySelector('.optimus-pweb-native-videos-hidden')) return true;
     var report = findVetReport();
     var panel = findVideoPanel();
     var holder = document.getElementById("optimus-pweb-video-actions");
@@ -487,7 +491,7 @@
     Array.from(document.querySelectorAll('iframe[src],iframe[data-src]')).forEach(function (iframe) {
       if (iframe.closest('.optimus-live-embed,#optimus-live-video-overlay,#optimus-vimeo-popup')) return;
       var src = iframe.getAttribute('src') || iframe.getAttribute('data-src') || '';
-      if (!/youtube(?:-nocookie)?\\.com|youtu\\.be/i.test(src)) return;
+      if (!/youtube(?:-nocookie)?\.com|youtu\.be/i.test(src)) return;
       var wrapper = iframe.closest('.videoWrapper,.video-wrapper,.embed-responsive,.video-container');
       if (!wrapper) return;
       // Keep the original PWeb player box in place. A stable black surface
