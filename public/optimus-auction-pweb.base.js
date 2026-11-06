@@ -533,6 +533,9 @@
   }
 
   function apply() {
+    // Delilah is entirely native PWeb: no asynchronous document/button styling,
+    // cloning, reordering or repeated DOM mutations from the auction addon.
+    if (/delilah/i.test((auctionFrame && auctionFrame.getAttribute("title")) || "")) return;
     // Delilah: keep the first completed video/report layout fixed. Repeated
     // PWeb scans previously moved the buttons on every delayed pass.
     var stableDelilah = /delilah/i.test((lot.querySelector("iframe.optimus-live-lot-iframe") || {}).title || "");
