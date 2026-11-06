@@ -282,8 +282,7 @@
     holder.id=id;
     actions.forEach(function(native){addVideoButton(holder,native);});
     if(!holder.children.length)return null;
-    if (/delilah/i.test((lot.querySelector("iframe.optimus-live-lot-iframe") || {}).title || "")) report.insertAdjacentElement("beforebegin",holder);
-    else report.insertAdjacentElement("afterend",holder);
+    report.insertAdjacentElement("afterend",holder);
     ensureAllVideoButtons(holder);
     decorate(holder);
     panel.classList.add("optimus-auction-hidden-panel");
@@ -533,25 +532,12 @@
   }
 
   function apply() {
-    // Delilah is entirely native PWeb: no asynchronous document/button styling,
-    // cloning, reordering or repeated DOM mutations from the auction addon.
-    if (/delilah/i.test((auctionFrame && auctionFrame.getAttribute("title")) || "")) return;
-    // Delilah: keep the first completed video/report layout fixed. Repeated
-    // PWeb scans previously moved the buttons on every delayed pass.
-    var stableDelilah = /delilah/i.test((lot.querySelector("iframe.optimus-live-lot-iframe") || {}).title || "");
-    if (stableDelilah && document.documentElement.classList.contains("optimus-delilah-actions-locked")) return;
     addEmbryoDesktopGender();
     spaceEmbryoCountdown();
     var docs=reports(false);
     var count=distinctCount(docs);
     docs.forEach(function(link){formatReport(link,count<=1);});
 
-    // Delilah uses only PWeb's own video buttons. Never clone, move or hide them.
-    if (/delilah/i.test((auctionFrame && auctionFrame.getAttribute("title")) || "")) {
-      document.querySelectorAll(".optimus-auction-hidden-panel").forEach(function(el){el.classList.remove("optimus-auction-hidden-panel");});
-      document.querySelectorAll("#optimus-auction-mobile-video-actions,#optimus-auction-desktop-video-actions").forEach(function(el){el.remove();});
-      return;
-    }
     var central=document.getElementById("optimus-pweb-video-actions");
     if(central){
       ensureAllVideoButtons(central);
@@ -567,10 +553,9 @@
         "optimus-auction-mobile-video-actions":"optimus-auction-desktop-video-actions");
 
     if(holder && holder.querySelector("button")){
-      if(!stableDelilah && holder.previousElementSibling!==report)report.insertAdjacentElement("afterend",holder);
+      if(holder.previousElementSibling!==report)report.insertAdjacentElement("afterend",holder);
       ensureAllVideoButtons(holder);
       decorate(holder);
-      if (stableDelilah) document.documentElement.classList.add("optimus-delilah-actions-locked");
       // Hide only those native panels whose actions have working replacements.
       videoPanels(true).forEach(function(panel){
         var natives=videoActions(panel);
@@ -581,9 +566,8 @@
     }
     var panel=videoPanels(true)[0];
     if(!panel)return;
-    var made = makeHolder(report,panel,window.matchMedia("(max-width:767px)").matches?
+    makeHolder(report,panel,window.matchMedia("(max-width:767px)").matches?
       "optimus-auction-mobile-video-actions":"optimus-auction-desktop-video-actions");
-    if (made && stableDelilah) document.documentElement.classList.add("optimus-delilah-actions-locked");
   }
 
   function begin() {
