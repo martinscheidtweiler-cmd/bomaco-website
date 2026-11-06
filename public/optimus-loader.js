@@ -66,6 +66,9 @@
       ".optimus-auction-vet-report{display:grid!important;grid-template-columns:18px minmax(0,1fr)!important;min-height:52px!important;padding:14px 18px!important;gap:12px!important}",
       "html.optimus-managed-lot-videos #videos,html.optimus-vercel-videos #videos{visibility:visible!important}"
     ].join("");
+    // Hide the obsolete PWeb Videos panel immediately; the auction bridge
+    // renders the three working black replacement buttons separately.
+    stableActions.textContent += "#videos:not(.optimus-auction-video-holder){display:none!important} .optimus-auction-hidden-panel{display:none!important}";
     document.head.appendChild(stableActions);
   }
 
