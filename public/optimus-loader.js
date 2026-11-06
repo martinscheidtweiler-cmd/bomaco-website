@@ -62,7 +62,8 @@
       "#videos,.optimus-auction-video-holder,#optimus-pweb-video-actions{background:#111!important;color:#fff!important;box-sizing:border-box!important}",
       "#videos a,#videos button,.optimus-auction-video-holder a,.optimus-auction-video-holder button,#optimus-pweb-video-actions a,#optimus-pweb-video-actions button{display:flex!important;align-items:center!important;gap:10px!important;width:100%!important;min-height:48px!important;padding:12px 16px!important;margin:0!important;box-sizing:border-box!important;background:#111!important;color:#fff!important;border:0!important;border-radius:0!important;font:600 13px/1.4 Poppins,Montserrat,Arial,sans-serif!important;text-align:left!important;text-decoration:none!important}",
       "#videos a:hover,#videos button:hover,.optimus-auction-video-holder a:hover,.optimus-auction-video-holder button:hover{background:#282828!important;color:#fff!important}",
-      ".optimus-pweb-native-videos-hidden{display:block!important;height:auto!important;overflow:visible!important}",
+      ".optimus-auction-video-holder .optimus-auction-video-button{display:grid!important;grid-template-columns:18px minmax(0,1fr)!important;min-height:52px!important;height:auto!important;padding:14px 18px!important;margin:0!important;gap:12px!important}",
+      ".optimus-auction-vet-report{display:grid!important;grid-template-columns:18px minmax(0,1fr)!important;min-height:52px!important;padding:14px 18px!important;gap:12px!important}",
       "html.optimus-managed-lot-videos #videos,html.optimus-vercel-videos #videos{visibility:visible!important}"
     ].join("");
     document.head.appendChild(stableActions);
