@@ -68,7 +68,7 @@
     ].join("");
     // Hide the obsolete PWeb Videos panel immediately; the auction bridge
     // renders the three working black replacement buttons separately.
-    stableActions.textContent += "#videos:not(.optimus-auction-video-holder){display:none!important} .optimus-auction-hidden-panel{display:none!important}";
+    stableActions.textContent += "#videos{display:block!important}";
     document.head.appendChild(stableActions);
   }
 
