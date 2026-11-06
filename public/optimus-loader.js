@@ -42,6 +42,18 @@
     document.head.appendChild(actionStyle);
   }
 
+  // Reserve the final black action styling before PWeb's asynchronous scripts.
+  if (!document.getElementById("optimus-action-stable-css")) {
+    var stable = document.createElement("style");
+    stable.id = "optimus-action-stable-css";
+    stable.textContent = [
+      ".optimus-pweb-video-button{display:flex!important;align-items:center!important;gap:11px!important;width:100%!important;min-height:48px!important;box-sizing:border-box!important;padding:13px 18px!important;margin:0 0 9px!important;font:600 13px/1.4 Poppins,Montserrat,Arial,sans-serif!important;border:0!important;border-radius:0!important;background:#111!important;color:#fff!important}",
+      ".optimus-pweb-vet-link{box-sizing:border-box!important;background:#111!important;color:#fff!important}",
+      ".videoWrapper,.video-wrapper,.embed-responsive,.video-container{background:#111!important}"
+    ].join("");
+    document.head.appendChild(stable);
+  }
+
   // Keep PWeb's native YouTube hero out of the first paint while the
   // central bridge resolves the managed lot video.
   document.documentElement.classList.add("optimus-video-resolving");
