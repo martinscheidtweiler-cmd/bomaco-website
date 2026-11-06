@@ -44,7 +44,7 @@
 
   // Keep PWeb's native YouTube hero out of the first paint while the
   // central bridge resolves the managed lot video.
-  document.documentElement.classList.add("optimus-video-resolving");
+  if (!document.querySelector("[data-optimus-native-media]")) document.documentElement.classList.add("optimus-video-resolving");
   if (!document.getElementById("optimus-video-first-paint")) {
     var firstPaint = document.createElement("style");
     firstPaint.id = "optimus-video-first-paint";
