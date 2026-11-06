@@ -429,6 +429,7 @@
   // PWeb renders its own YouTube hero player independently of the video buttons.
   // Replace only that player, using the lot's first managed Vimeo video.
   function replaceNativeHeroVideo() {
+    if (document.querySelector('[data-optimus-native-media]')) return false;
     var first = managedVideoList && managedVideoList.find(function (video) {
       return /^vimeo:/i.test(video.ref);
     });
