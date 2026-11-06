@@ -54,6 +54,20 @@
   // Fail open if the live bridge cannot load.
   window.setTimeout(function () { document.documentElement.classList.remove("optimus-video-resolving"); }, 8000);
 
+  // Stabilize native PWeb action layout at first paint, without replacing any buttons.
+  if (site === "auction" && /delilah/i.test(name) && !document.getElementById("optimus-delilah-stable-actions")) {
+    var stableActions = document.createElement("style");
+    stableActions.id = "optimus-delilah-stable-actions";
+    stableActions.textContent = [
+      "#videos,.optimus-auction-video-holder,#optimus-pweb-video-actions{background:#111!important;color:#fff!important;box-sizing:border-box!important}",
+      "#videos a,#videos button,.optimus-auction-video-holder a,.optimus-auction-video-holder button,#optimus-pweb-video-actions a,#optimus-pweb-video-actions button{display:flex!important;align-items:center!important;gap:10px!important;width:100%!important;min-height:48px!important;padding:12px 16px!important;margin:0!important;box-sizing:border-box!important;background:#111!important;color:#fff!important;border:0!important;border-radius:0!important;font:600 13px/1.4 Poppins,Montserrat,Arial,sans-serif!important;text-align:left!important;text-decoration:none!important}",
+      "#videos a:hover,#videos button:hover,.optimus-auction-video-holder a:hover,.optimus-auction-video-holder button:hover{background:#282828!important;color:#fff!important}",
+      ".optimus-pweb-native-videos-hidden{display:block!important;height:auto!important;overflow:visible!important}",
+      "html.optimus-managed-lot-videos #videos,html.optimus-vercel-videos #videos{visibility:visible!important}"
+    ].join("");
+    document.head.appendChild(stableActions);
+  }
+
   // Hybrid PWeb: move the explicitly authored Vimeo player above the native photo gallery.
   // Keep the original video links, vet report and gallery untouched.
   if (site === "auction" && /delilah/i.test(name)) {
